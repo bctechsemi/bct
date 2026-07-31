@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BCT 통합 관리 시스템 — Engineer</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<style>
+  :root{
+    /* ---- Meta-derived design tokens ---- */
+    --primary:#0064E0; --primary-deep:#0457CB; --primary-soft:#0091FF; --on-primary:#FFFFFF;
+    --ink-button:#000000; --on-ink-button:#FFFFFF;
+    --fb-blue:#1876F2;
+    --success:#31A24C; --attention:#F2A918; --warning:#F7B928;
+    --critical:#E41E3F; --critical-strong:#F0284A;
+    --canvas:#FFFFFF; --surface-soft:#F1F4F7;
+    --ink-deep:#0A1317; --ink:#1C1E21; --charcoal:#444950; --slate:#4B4C4F;
+    --steel:#5D6C7B; --stone:#8595A4;
+    --hairline:#CED0D4; --hairline-soft:#DEE3E9; --disabled-text:#BCC0C4;
+    --r-sm:4px; --r-md:6px; --r-lg:8px; --r-xl:16px; --r-xxl:24px; --r-xxxl:32px; --r-full:100px;
+    --sp-xxs:4px; --sp-xs:8px; --sp-sm:10px; --sp-md:12px; --sp-base:16px; --sp-lg:20px; --sp-xl:24px; --sp-xxl:32px;
+    --font: 'Inter','Noto Sans KR',-apple-system,sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--surface-soft); color:var(--ink);
+    font-family:var(--font); font-size:14px; line-height:1.43; letter-spacing:-0.14px;
+  }
+  .num{ font-variant-numeric:tabular-nums; }
+
+  /* ---- topbar ---- */
+  .topbar{
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    padding:20px 32px; background:var(--canvas); border-bottom:1px solid var(--hairline-soft);
+  }
+  .brand{ display:flex; align-items:center; gap:16px; }
+  .brand img{ height:56px; width:auto; display:block; }
+  .brand-text-kr{ font-family:var(--font); font-weight:700; font-size:20px; color:var(--ink-deep); letter-spacing:-0.1px; text-align:center; }
+  .brand-text-sub{ font-size:12px; color:var(--steel); margin-top:2px; text-align:center; }
+  .bct-badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border-radius:var(--r-full); background:var(--primary); color:#fff;
+    font-size:10px; font-weight:700; margin-left:10px; vertical-align:middle;
+  }
+  .conn-dot{
+    display:inline-block; width:10px; height:10px; border-radius:var(--r-full);
+    margin-left:8px; vertical-align:middle; box-shadow:0 0 0 2px var(--canvas);
+  }
+  .topbar-actions{ display:flex; align-items:center; gap:10px; }
+  .user-email{ font-size:12px; color:var(--steel); margin-right:4px; }
+  .ruler{ height:3px; background:linear-gradient(90deg, var(--primary), var(--primary-soft) 50%, var(--hairline-soft) 50%); background-size:200% 100%; opacity:.9; }
+
+  .section-nav{ background:var(--canvas); border-bottom:1px solid var(--hairline-soft); padding:14px 32px; display:flex; justify-content:center; }
+  .section-tabs{ display:flex; gap:8px; justify-content:center; }
+  .section-tab{
+    font-family:var(--font); font-weight:700; font-size:14px; letter-spacing:-0.14px;
+    padding:9px 20px; border-radius:var(--r-full); border:1px solid var(--hairline);
+    background:var(--canvas); color:var(--ink); cursor:pointer;
+  }
+  .section-tab.active{ background:var(--ink-deep); color:var(--canvas); border-color:var(--ink-deep); }
+
+  .content{ padding:28px 32px 64px; max-width:1480px; margin:0 auto; }
+  .page-head h1{ font-family:var(--font); font-weight:500; font-size:24px; line-height:1.25; color:var(--ink-deep); margin:0 0 4px; letter-spacing:-0.2px; }
+  .page-head p{ font-size:14px; color:var(--steel); margin:0 0 22px; }
+
+  /* ---- cards ---- */
+  .card-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+  .stat-card{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); padding:20px; }
+  .stat-label{ font-size:12px; color:var(--steel); margin-bottom:8px; }
+  .stat-value{ font-family:var(--font); font-size:24px; font-weight:600; color:var(--ink-deep); }
+
+  /* ---- pill quick-filter bar (also used for section tabs styling family) ---- */
+  .cat-bar{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .cat-btn{
+    font-family:var(--font); font-size:13px; font-weight:700; letter-spacing:-0.13px;
+    padding:9px 16px; border-radius:var(--r-full); border:1px solid var(--hairline);
+    background:var(--canvas); color:var(--ink); cursor:pointer; display:flex; align-items:center; gap:8px;
+  }
+  .cat-btn .count{ font-size:11px; padding:2px 8px; border-radius:var(--r-full); background:var(--surface-soft); color:var(--steel); }
+  .cat-btn.active{ background:var(--ink-deep); color:var(--canvas); border-color:var(--ink-deep); }
+  .cat-btn.active .count{ background:rgba(255,255,255,.22); color:#fff; }
+
+  .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap; }
+  .search-input{ width:300px; }
+
+  /* ---- form controls ---- */
+  .input, .select{
+    font-family:var(--font); font-size:14px; color:var(--ink);
+    background:var(--canvas); border:1px solid var(--hairline); border-radius:var(--r-lg);
+    padding:0 14px; height:44px; width:100%;
+  }
+  .input:focus, .select:focus{ outline:none; border:2px solid var(--fb-blue); padding:0 13px; }
+  .btn{
+    font-family:var(--font); font-weight:700; font-size:12.5px; letter-spacing:-0.13px;
+    padding:7px 18px; border-radius:999px; border:2px solid transparent; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .btn-primary{ background:var(--primary); color:var(--on-primary); border-color:var(--primary); }
+  .btn-primary:hover{ background:var(--primary-deep); border-color:var(--primary-deep); }
+  .btn-ghost{ background:transparent; color:var(--ink-deep); border:2px solid rgba(10,19,23,.14); }
+  .btn-ghost:hover{ background:var(--surface-soft); }
+  .btn-danger{ background:transparent; color:var(--critical); border:2px solid var(--critical); }
+  .btn-danger:hover{ background:#FDE8EC; }
+  .btn-sm{ padding:7px 16px; font-size:12px; }
+
+  /* ---- table ---- */
+  .table-wrap{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); overflow:hidden; }
+  .table-scroll{ overflow:auto; max-height:66vh; }
+  table.table{ width:100%; border-collapse:collapse; font-size:13px; min-width:1400px; }
+  table.table th{
+    text-align:center; font-weight:700; color:var(--steel); font-size:11px;
+    text-transform:uppercase; letter-spacing:.4px; padding:12px 14px; border-bottom:1px solid var(--hairline-soft);
+    background:var(--canvas); white-space:nowrap; position:sticky; top:0;
+  }
+  table.table td{ padding:12px 14px; border-bottom:1px solid var(--hairline-soft); vertical-align:middle; white-space:nowrap; }
+  table.table tbody tr:hover{ background:var(--surface-soft); }
+  .empty-note{ font-size:13px; color:var(--steel); padding:30px; text-align:center; }
+
+  .badge{
+    display:inline-flex; align-items:center; padding:4px 12px; border-radius:var(--r-full);
+    font-size:11px; font-weight:700; letter-spacing:.2px; white-space:nowrap;
+  }
+  .badge-machined{ background:var(--primary); color:#fff; }
+  .badge-services{ background:var(--success); color:#fff; }
+  .badge-commercials{ background:var(--warning); color:var(--ink-deep); }
+  .badge-green{ background:var(--success); color:#fff; }
+  .badge-amber{ background:var(--attention); color:var(--ink-deep); }
+  .badge-red{ background:var(--critical); color:#fff; }
+  .badge-gray{ background:var(--stone); color:#fff; }
+  .badge-ink{ background:var(--ink-deep); color:#fff; }
+
+  .progress-wrap{ display:flex; align-items:center; gap:8px; min-width:110px; }
+  .progress-track{ width:64px; height:6px; background:var(--surface-soft); border-radius:var(--r-full); overflow:hidden; }
+  .progress-fill{ height:100%; background:var(--primary); border-radius:var(--r-full); }
+  .progress-text{ font-size:11.5px; color:var(--steel); }
+
+  .completed-input{
+    width:64px; padding:5px 7px; border-radius:var(--r-md); border:1px solid var(--hairline);
+    font-family:var(--font); font-size:12.5px; text-align:right;
+  }
+  .completed-input:focus{ outline:2px solid var(--fb-blue); outline-offset:1px; }
+
+  /* ---- modal ---- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(10,19,23,.5); display:flex;
+    align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; z-index:60;
+  }
+  .modal-card{
+    background:var(--canvas); border-radius:var(--r-xxl); width:100%; max-width:760px; padding:28px 30px 26px;
+    box-shadow:0 20px 60px rgba(10,19,23,.3);
+  }
+  .modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .modal-head h2{ font-family:var(--font); font-size:18px; font-weight:600; margin:0; color:var(--ink-deep); }
+  .modal-close{ background:none; border:none; font-size:18px; color:var(--steel); cursor:pointer; line-height:1; padding:4px; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; }
+  .form-field{ display:flex; flex-direction:column; gap:6px; }
+  .form-field.span-2{ grid-column:1 / -1; }
+  .form-field label{ font-size:12px; color:var(--slate); font-weight:700; }
+  .form-field .req{ color:var(--critical); }
+  .form-hint{ font-size:11.5px; color:var(--steel); margin-top:10px; }
+  .modal-foot{ display:flex; justify-content:flex-end; gap:10px; margin-top:22px; padding-top:16px; border-top:1px solid var(--hairline-soft); }
+  .field-error{ font-size:12.5px; color:var(--critical-strong); margin-bottom:10px; display:none; }
+  .field-error.show{ display:block; }
+
+  /* ---- login ---- */
+  .login-wrap{ min-height:70vh; display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+  .login-card{ width:100%; max-width:380px; background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xxl); padding:36px 32px; text-align:center; box-shadow:0 4px 24px rgba(10,19,23,.05); }
+  .login-logo{ height:60px; width:auto; margin:0 auto 20px; display:block; }
+  .login-title{ font-family:var(--font); font-size:18px; font-weight:600; color:var(--ink-deep); margin-bottom:20px; }
+  .login-card .form-field{ text-align:left; margin-bottom:12px; }
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+    background:var(--ink-deep); color:#fff; padding:13px 22px; border-radius:var(--r-full);
+    font-size:13px; font-weight:500; box-shadow:0 10px 30px rgba(10,19,23,.3); z-index:70;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+
+const SEED_DATA = [{"customer":"ASENDIA","po_number":"20251230-9","po_category":"machined","po_date":"2026-12-30","asendia_nbd":"2026-01-30","erp_code_asendia":"MC01641","ordered_item":"COMPOENT CASE SET[AGL-1004HD]","serial_number":null,"oem_code":"AGL-1004HD","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":572000.0,"total_amount":17160000.0,"delievery_date":"2026-02-09","invoice_data":"2026-02-25"},{"customer":"ASENDIA","po_number":"20251230-9","po_category":"machined","po_date":"2026-12-30","asendia_nbd":"2026-01-30","erp_code_asendia":"MC01640","ordered_item":"COMPONENT CASE SET[APG-2012HD]","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":547000.0,"total_amount":16410000.0,"delievery_date":"2026-02-09","invoice_data":"2026-02-25"},{"customer":"ASENDIA","po_number":"20260209-5","po_category":"services","po_date":null,"asendia_nbd":null,"erp_code_asendia":null,"ordered_item":"[외주인건비]COMPONENT_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":380000.0,"total_amount":16410000.0,"delievery_date":"2026-02-09","invoice_data":"2026-02-25"},{"customer":"ASENDIA","po_number":"20260209-5","po_category":"services","po_date":null,"asendia_nbd":null,"erp_code_asendia":null,"ordered_item":"[외주인건비]COMPONENT_AGL-1004HD","serial_number":null,"oem_code":"AGL-1004HD_COMPOENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":270000.0,"total_amount":16410000.0,"delievery_date":"2026-02-09","invoice_data":"2026-02-25"},{"customer":"ASENDIA","po_number":"20260219-27","po_category":"commercials","po_date":"2026-02-19","asendia_nbd":"2026-02-27","erp_code_asendia":"LB00001","ordered_item":"경고라벨 고주파","serial_number":null,"oem_code":"LB-G-00001(160*64)","bct_code":null,"ordered_set":500.0,"completed_set":500.0,"unit_price":1000.0,"total_amount":500000.0,"delievery_date":"2026-02-27","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260219-27","po_category":"commercials","po_date":"2026-02-19","asendia_nbd":"2026-03-03","erp_code_asendia":"LB00002","ordered_item":"경고라벨 전기위험","serial_number":null,"oem_code":"LB-G-00002(160*64)","bct_code":null,"ordered_set":500.0,"completed_set":500.0,"unit_price":1000.0,"total_amount":500000.0,"delievery_date":"2026-02-27","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260219-27","po_category":"commercials","po_date":"2026-02-19","asendia_nbd":"2026-03-03","erp_code_asendia":"LB00003","ordered_item":"경고라벨 중량물","serial_number":null,"oem_code":"LB-G-00003(160*64)","bct_code":null,"ordered_set":500.0,"completed_set":500.0,"unit_price":1000.0,"total_amount":500000.0,"delievery_date":"2026-02-27","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260221-22","po_category":"commercials","po_date":"2026-02-19","asendia_nbd":"2026-02-27","erp_code_asendia":"LB00004","ordered_item":"경고라벨 전기위험(PE)_삼각형小","serial_number":null,"oem_code":"EL-001-S(20*22)","bct_code":null,"ordered_set":500.0,"completed_set":500.0,"unit_price":120.0,"total_amount":60000.0,"delievery_date":"2026-02-27","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260221-22","po_category":"commercials","po_date":"2026-02-19","asendia_nbd":"2026-02-27","erp_code_asendia":"LB00009","ordered_item":"경고라벨 고주파 위험(PE)","serial_number":null,"oem_code":"PN:1087-683-01(100*35)","bct_code":null,"ordered_set":500.0,"completed_set":500.0,"unit_price":450.0,"total_amount":225000.0,"delievery_date":"2026-02-27","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260221-22","po_category":"commercials","po_date":"2026-02-19","asendia_nbd":"2026-02-27","erp_code_asendia":"LB00010","ordered_item":"경고라벨 전기위험(PE)","serial_number":null,"oem_code":"PN:1087-681-01(100*35)","bct_code":null,"ordered_set":500.0,"completed_set":500.0,"unit_price":500.0,"total_amount":250000.0,"delievery_date":"2026-02-27","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260221-22","po_category":"commercials","po_date":"2026-02-19","asendia_nbd":"2026-02-27","erp_code_asendia":"LB00011","ordered_item":"경고라벨 전기장치내장(PE)","serial_number":null,"oem_code":"PN:1087-682-01(100*35)","bct_code":null,"ordered_set":500.0,"completed_set":500.0,"unit_price":450.0,"total_amount":225000.0,"delievery_date":"2026-02-27","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260309-17","po_category":"services","po_date":"2026-03-09","asendia_nbd":"2026-03-09","erp_code_asendia":"OS00045","ordered_item":"[외주인건비]ASSEMBLY_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_ASSEMBLY","bct_code":null,"ordered_set":8.0,"completed_set":8.0,"unit_price":260000.0,"total_amount":9360000.0,"delievery_date":"2026-03-24","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260309-17","po_category":"services","po_date":"2026-03-09","asendia_nbd":"2026-03-09","erp_code_asendia":"OS00046","ordered_item":"[외주인건비]ASSEMBLY_AGL-1004HD","serial_number":null,"oem_code":"AGL-1004HD_ASSEMBLY","bct_code":null,"ordered_set":8.0,"completed_set":8.0,"unit_price":240000.0,"total_amount":7200000.0,"delievery_date":"2026-03-24","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260309-8","po_category":"services","po_date":"2026-03-09","asendia_nbd":"2026-03-09","erp_code_asendia":"OL00145","ordered_item":"[외주인건비]COMPONENT_MP12M-20","serial_number":null,"oem_code":"MP12M-20_COMPONENT","bct_code":null,"ordered_set":20.0,"completed_set":20.0,"unit_price":320000.0,"total_amount":null,"delievery_date":"2026-03-24","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260223 -8","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00081","ordered_item":"[외주인건비]COMPONENT_APG-2060HG-D / HG","serial_number":null,"oem_code":"APG-2060HG-D_COMPONENT","bct_code":null,"ordered_set":13.0,"completed_set":13.0,"unit_price":520000.0,"total_amount":6760000.0,"delievery_date":"2026-03-09","invoice_data":"2026-03-25"},{"customer":"ASENDIA","po_number":"20260326-9","po_category":"services","po_date":"2026-03-26","asendia_nbd":"2026-04-10","erp_code_asendia":"OL00143","ordered_item":"[외주인건비]COMPONENT_APG-1513","serial_number":null,"oem_code":"APG-1513_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":380000.0,"total_amount":11400000.0,"delievery_date":"2026-04-16","invoice_data":"2026-04-25"},{"customer":"ASENDIA","po_number":"20260326-9","po_category":"services","po_date":"2026-03-26","asendia_nbd":"2026-04-10","erp_code_asendia":"OL00143","ordered_item":"[외주인건비]COMPONENT_APG-1513","serial_number":null,"oem_code":"APG-1513_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":380000.0,"total_amount":11400000.0,"delievery_date":"2026-04-24","invoice_data":"2026-04-25"},{"customer":"ASENDIA","po_number":"20260408-5","po_category":"commercials","po_date":"2026-04-08","asendia_nbd":"2026-04-17","erp_code_asendia":"LB00027","ordered_item":"Warranty sticker (공용)","serial_number":null,"oem_code":null,"bct_code":null,"ordered_set":30000.0,"completed_set":30000.0,"unit_price":50.0,"total_amount":1500000.0,"delievery_date":"2026-04-24","invoice_data":"2026-04-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"MAIN213H CORE COVER(APG-2013H)","serial_number":null,"oem_code":"GP1612271","bct_code":null,"ordered_set":150.0,"completed_set":150.0,"unit_price":10000.0,"total_amount":1500000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"FET PEEK BRACKET(APG-2013H)","serial_number":null,"oem_code":"GP1612263","bct_code":null,"ordered_set":150.0,"completed_set":150.0,"unit_price":14000.0,"total_amount":2100000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"MAIN213H-BODY(APG-2013H)","serial_number":null,"oem_code":"GP1612262","bct_code":null,"ordered_set":150.0,"completed_set":150.0,"unit_price":46000.0,"total_amount":6900000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SAW BODY(APG-2013H)","serial_number":null,"oem_code":"GP1612369","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":27000.0,"total_amount":270000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SAW TOP PLATE(APG-2013H)","serial_number":null,"oem_code":"GP1612370","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":8000.0,"total_amount":80000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE BASE PLATE(APG-2013H)","serial_number":null,"oem_code":"GP1612371","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":47000.0,"total_amount":1410000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE TOP PLATE(APG-2013H)","serial_number":null,"oem_code":"GP1612372","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":9000.0,"total_amount":270000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE I BLOCK(APG-2013H)","serial_number":null,"oem_code":"GP1612373","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":11000.0,"total_amount":330000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE L BLOCK(APG-2013H)","serial_number":null,"oem_code":"GP1612374","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":12000.0,"total_amount":360000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE L PLATE(APG-2013H)","serial_number":null,"oem_code":"GP1701319","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":8000.0,"total_amount":240000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR BASE PLATE (APG-2013H)","serial_number":null,"oem_code":"GP1612361","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":21000.0,"total_amount":840000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR COVER (APG-2013H)","serial_number":null,"oem_code":"GP1612362","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":14000.0,"total_amount":560000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"CONNECTOR HOLE PANEL (APG-2013H)","serial_number":null,"oem_code":"GP1612363","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":7000.0,"total_amount":280000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR BACK PANEL (APG-2013H)","serial_number":null,"oem_code":"GP1612364","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":7000.0,"total_amount":280000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR COOLING PANEL (APG-2013H)","serial_number":null,"oem_code":"GP1612365","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":14000.0,"total_amount":560000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR BONG TEFLON (APG-2013H)","serial_number":null,"oem_code":"GP1612366","bct_code":null,"ordered_set":80.0,"completed_set":80.0,"unit_price":8000.0,"total_amount":640000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR BONG (APG-2013H)","serial_number":null,"oem_code":"GP1612367","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":17000.0,"total_amount":680000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"CONN213H BASE (APG-2013H)","serial_number":null,"oem_code":"GP1612291","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":14000.0,"total_amount":560000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"CONN213H CONTACT (APG-2013H)","serial_number":null,"oem_code":"GP1612292","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":10000.0,"total_amount":400000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"CONN213H TEFLON (APG-2013H)","serial_number":null,"oem_code":"GP1612293","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":12000.0,"total_amount":480000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"COMB213H CASE(APG-2013H)","serial_number":null,"oem_code":"GC1612243","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":38000.0,"total_amount":1140000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"COMB213H COVER(APG-2013H)","serial_number":null,"oem_code":"GC1612244","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":10000.0,"total_amount":300000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"COIL 3P7T18(APG-2013H)","serial_number":null,"oem_code":"GP1701052","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":35000.0,"total_amount":1050000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE BASE PLATE(AGL-1004H)","serial_number":null,"oem_code":"GP1801251","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":62000.0,"total_amount":620000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE TOP PLATE(AGL-1004H)","serial_number":null,"oem_code":"GP1801252","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":8000.0,"total_amount":80000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE I BLOCK28(AGL-1004H)","serial_number":null,"oem_code":"GP1801253","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":11000.0,"total_amount":110000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE I BLOCK38(AGL-1004H)","serial_number":null,"oem_code":"GP1801254","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":12000.0,"total_amount":120000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"EXCITE L PLATE (AGL-1004H)","serial_number":null,"oem_code":"GP1801255","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":9000.0,"total_amount":90000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR BASE PLATE (AGL-1004H)","serial_number":null,"oem_code":"GP1801241","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":23000.0,"total_amount":230000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR COVER (AGL-1004H)","serial_number":null,"oem_code":"GP1801242","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":14000.0,"total_amount":140000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"CONNECTOR HOLE PANEL (AGL-1004H)","serial_number":null,"oem_code":"GP1801243","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":9000.0,"total_amount":90000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR BACK PANEL (AGL-1004H)","serial_number":null,"oem_code":"GP1801244","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":9000.0,"total_amount":90000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"SENSOR COOLING PANEL (AGL-1004H)","serial_number":null,"oem_code":"GP1801245","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":14000.0,"total_amount":140000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"CONN104H BASE (AGL-1004H)","serial_number":null,"oem_code":"GP1801247","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":19000.0,"total_amount":190000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"CONN104H CONTACT (AGL-1004H)","serial_number":null,"oem_code":"GP1801248","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":14000.0,"total_amount":140000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"CONN104H TEFLON (AGL-1004H)","serial_number":null,"oem_code":"GP1801249","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":17000.0,"total_amount":170000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"MAIN104H HEATSINK 400K(AGL-1004H)","serial_number":null,"oem_code":"GC18030240","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":330000.0,"total_amount":9900000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260219-32","po_category":"machined","po_date":"2026-02-19","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"FET PEEK BRACKET(AGL-1004)","serial_number":null,"oem_code":"GP1808211","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":19000.0,"total_amount":570000,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00011","ordered_item":"[외주인건비]MA_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_MAIN AMP_MODULE","bct_code":null,"ordered_set":50.0,"completed_set":50.0,"unit_price":80000.0,"total_amount":4000000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00012","ordered_item":"[외주인건비]EXCITOR_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_EXCITOR_MODULE","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":50000.0,"total_amount":1500000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00013","ordered_item":"[외주인건비]RFS_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_RF SENSOR_MODULE","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":140000.0,"total_amount":5600000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00014","ordered_item":"[외주인건비]CMB_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_COMBINER_MODULE","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":50000.0,"total_amount":1500000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00015","ordered_item":"[외주인건비]SAW_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_SAW FILTER_MODULE","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":10000.0,"total_amount":100000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00016","ordered_item":"[외주인건비]SPL_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_SPLITTER_MODULE","bct_code":null,"ordered_set":40.0,"completed_set":40.0,"unit_price":30000.0,"total_amount":1200000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00017","ordered_item":"[외주인건비]DRV_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_DRIVER_MODULE","bct_code":null,"ordered_set":50.0,"completed_set":50.0,"unit_price":20000.0,"total_amount":1000000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00018","ordered_item":"[외주인건비]MA_AGL-1004HD","serial_number":null,"oem_code":"AGL-1004HD_MAIN AMP_MODULE","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":60000.0,"total_amount":1800000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00019","ordered_item":"[외주인건비]EXCITOR_AGL-1004HD","serial_number":null,"oem_code":"AGL-1004HD_EXCITOR_MODULE","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":50000.0,"total_amount":500000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260223 -12","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00020","ordered_item":"[외주인건비]RFS_AGL-1004HD","serial_number":null,"oem_code":"AGL-1004HD_RF SENSOR_MODULE","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":120000.0,"total_amount":1200000.0,"delievery_date":"2026-05-07","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260420-8","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00143","ordered_item":"[외주인건비]COMPONENT_APG-1513","serial_number":null,"oem_code":"APG-1513_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":380000.0,"total_amount":11400000.0,"delievery_date":"2026-05-13","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260420-8","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00143","ordered_item":"[외주인건비]COMPONENT_APG-1513","serial_number":null,"oem_code":"APG-1513_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":380000.0,"total_amount":11400000.0,"delievery_date":"2026-05-20","invoice_data":"2026-05-25"},{"customer":"ASENDIA","po_number":"20260312-10","po_category":"services","po_date":"2026-06-02","asendia_nbd":"2026-06-02","erp_code_asendia":null,"ordered_item":"[외주인건비]COMPONENT_APG-1013H","serial_number":null,"oem_code":"APG-1013_COMPONENT","bct_code":null,"ordered_set":7.0,"completed_set":7.0,"unit_price":350000.0,"total_amount":2450000.0,"delievery_date":"2026-06-02","invoice_data":"2026-06-25"},{"customer":"ASENDIA","po_number":"20260504-10","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"OL00143","ordered_item":"[외주인건비]COMPONENT_APG-1513","serial_number":null,"oem_code":"APG-1513_COMPONENT","bct_code":null,"ordered_set":24.0,"completed_set":24.0,"unit_price":380000.0,"total_amount":11400000.0,"delievery_date":"2026-05-27","invoice_data":"2026-06-25"},{"customer":"ASENDIA","po_number":"20260403-17","po_category":"machined","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":"MC01640","ordered_item":"COMPONENT CASE SET[APG-2012HD]","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":547000.0,"total_amount":16410000,"delievery_date":"2026-06-10","invoice_data":"2026-06-25"},{"customer":"ASENDIA","po_number":"20260504-10","po_category":"services","po_date":"2026-02-23","asendia_nbd":"2026-02-23","erp_code_asendia":null,"ordered_item":"[외주인건비]COMPONENT_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":380000.0,"total_amount":16410000.0,"delievery_date":"2026-06-10","invoice_data":"2026-06-25"},{"customer":"ASENDIA","po_number":"20260510-4","po_category":"machined","po_date":"2026-05-10","asendia_nbd":"2026-05-29","erp_code_asendia":"MC01909","ordered_item":"CHASSIS_LDA75F-24","serial_number":null,"oem_code":"CHASSIS_LDA75F-24(APG-2060)","bct_code":null,"ordered_set":17.0,"completed_set":17.0,"unit_price":55000.0,"total_amount":935000.0,"delievery_date":"2026-06-17","invoice_data":"2026-06-25"},{"customer":"ASENDIA","po_number":"20260510-4","po_category":"machined","po_date":"2026-05-10","asendia_nbd":"2026-05-29","erp_code_asendia":"MC01910","ordered_item":"CASEQ_LDA75F-24","serial_number":null,"oem_code":"CASEQ_LDA75F-24(APG-2060)","bct_code":null,"ordered_set":17.0,"completed_set":17.0,"unit_price":75000.0,"total_amount":1275000.0,"delievery_date":"2026-06-17","invoice_data":"2026-06-25"},{"customer":"ASENDIA","po_number":"20260403-17","po_category":"machined","po_date":"2026-04-03","asendia_nbd":"2026-04-03","erp_code_asendia":"MC01641","ordered_item":"COMPOENT CASE SET[AGL-1004HD]","serial_number":null,"oem_code":"AGL-1004HD","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":612000.0,"total_amount":18360000.0,"delievery_date":"2026-06-19","invoice_data":"2026-06-25"},{"customer":"ASENDIA","po_number":"20260609-8","po_category":"commercials","po_date":"2026-06-09","asendia_nbd":"2026-06-19","erp_code_asendia":"LB00004","ordered_item":"경고라벨 전기위험(PE)_삼각형小","serial_number":null,"oem_code":"EL-001-S(20*22)","bct_code":null,"ordered_set":2000.0,"completed_set":2000.0,"unit_price":120.0,"total_amount":240000.0,"delievery_date":"2026-06-19","invoice_data":"2026-06-25"},{"customer":"ASENDIA","po_number":"20260504-10","po_category":"services","po_date":"2026-05-04","asendia_nbd":"2026-06-04","erp_code_asendia":"OS00024","ordered_item":"[외주인건비]COMPONENT_AGL-1004HD","serial_number":null,"oem_code":"AGL-1004HD_COMPOENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":270000.0,"total_amount":8100000.0,"delievery_date":"2026-06-19","invoice_data":"2026-06-25"},{"customer":"ASENDIA","po_number":"20260504-10","po_category":"services","po_date":"2026-05-04","asendia_nbd":"2026-06-04","erp_code_asendia":"OL00023","ordered_item":"[외주인건비]COMPONENT_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":20.0,"completed_set":20.0,"unit_price":380000.0,"total_amount":7600000.0,"delievery_date":"2026-06-26","invoice_data":"2026-07-25"},{"customer":"ASENDIA","po_number":"20260518-15","po_category":"services","po_date":"2026-05-18","asendia_nbd":"2026-07-10","erp_code_asendia":"OL00053","ordered_item":"[외주인건비]COMPONENT _APG-2014HD/HG","serial_number":null,"oem_code":"APG-2013H_COMPONENT","bct_code":null,"ordered_set":10.0,"completed_set":10.0,"unit_price":380000.0,"total_amount":3800000.0,"delievery_date":"2026-06-26","invoice_data":"2026-06-30"},{"customer":"ASENDIA","po_number":"20260616-2","po_category":"commercials","po_date":"2026-06-16","asendia_nbd":"2026-06-26","erp_code_asendia":"LB00039","ordered_item":"경고라벨 NO ADJUSTMENT/(주)ASENDIA","serial_number":null,"oem_code":"은무데드롱 25g*1도/코팅","bct_code":null,"ordered_set":1000.0,"completed_set":1000.0,"unit_price":90.0,"total_amount":90000.0,"delievery_date":"2026-06-26","invoice_data":"2026-07-25"},{"customer":"ASENDIA","po_number":"20260512-2","po_category":"machined","po_date":"2026-05-18","asendia_nbd":"2026-06-30","erp_code_asendia":"MC01640","ordered_item":"COMPONENT CASE SET[APG-2012HD]","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":547000.0,"total_amount":16410000,"delievery_date":"2026-06-26","invoice_data":"2026-07-25"},{"customer":"ASENDIA","po_number":"20260615-1","po_category":"machined","po_date":"2026-06-15","asendia_nbd":"2026-06-30","erp_code_asendia":"MC01909","ordered_item":"CHASSIS_LDA75F-24","serial_number":null,"oem_code":"CHASSIS_LDA75F-24(APG-2060)","bct_code":null,"ordered_set":52.0,"completed_set":52.0,"unit_price":55000.0,"total_amount":2860000.0,"delievery_date":"2026-07-02","invoice_data":"2026-07-25"},{"customer":"ASENDIA","po_number":"20260615-1","po_category":"machined","po_date":"2026-06-15","asendia_nbd":"2026-06-30","erp_code_asendia":"MC01910","ordered_item":"CASEQ_LDA75F-24","serial_number":null,"oem_code":"CASEQ_LDA75F-24(APG-2060)","bct_code":null,"ordered_set":52.0,"completed_set":52.0,"unit_price":75000.0,"total_amount":3900000.0,"delievery_date":"2026-07-02","invoice_data":"2026-07-25"},{"customer":"ASENDIA","po_number":"20260601-4","po_category":"machined","po_date":"2026-06-01","asendia_nbd":"2026-06-19","erp_code_asendia":"MC01641","ordered_item":"COMPOENT CASE SET[AGL-1004HD]","serial_number":null,"oem_code":"AGL-1004HD","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":612000.0,"total_amount":18360000,"delievery_date":"2026-07-07","invoice_data":"2026-07-25"},{"customer":"ASENDIA","po_number":"20260601-7","po_category":"services","po_date":"2026-06-01","asendia_nbd":"2026-06-19","erp_code_asendia":"OSL00024","ordered_item":"[외주인건비]COMPONENT_AGL-1004HD","serial_number":null,"oem_code":"AGL-1004HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":270000.0,"total_amount":8100000.0,"delievery_date":"2026-07-07","invoice_data":"2026-07-25"},{"customer":"ASENDIA","po_number":"20260601-4","po_category":"machined","po_date":"2026-06-01","asendia_nbd":"2026-06-19","erp_code_asendia":"MC01640","ordered_item":"COMPONENT CASE SET[APG-2012HD]","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":547000.0,"total_amount":16410000.0,"delievery_date":"2026-07-20","invoice_data":"2026-07-25"},{"customer":"ASENDIA","po_number":"20260601-7","po_category":"services","po_date":"2026-06-01","asendia_nbd":"2026-06-19","erp_code_asendia":"OL00023","ordered_item":"[외주인건비]COMPONENT_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":30.0,"unit_price":380000.0,"total_amount":11400000.0,"delievery_date":"2026-07-20","invoice_data":"2026-07-25"},{"customer":"ASENDIA","po_number":"20260622-14","po_category":"machined","po_date":"2026-06-22","asendia_nbd":"2026-07-17","erp_code_asendia":"MC01640","ordered_item":"COMPONENT CASE SET[APG-2012HD]","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":null,"unit_price":547000.0,"total_amount":16410000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260622-14","po_category":"machined","po_date":"2026-06-22","asendia_nbd":"2026-07-17","erp_code_asendia":"MC01641","ordered_item":"COMPOENT CASE SET[AGL-1004HD]","serial_number":null,"oem_code":"AGL-1004HD","bct_code":null,"ordered_set":30.0,"completed_set":null,"unit_price":612000.0,"total_amount":18360000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260622-8","po_category":"services","po_date":"2026-06-22","asendia_nbd":"2026-06-22","erp_code_asendia":"OL00143","ordered_item":"[외주인건비]COMPONENT_APG-1513","serial_number":null,"oem_code":"APG-1513_COMPONENT","bct_code":null,"ordered_set":36.0,"completed_set":null,"unit_price":390000.0,"total_amount":14040000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260622-8","po_category":"services","po_date":"2026-06-22","asendia_nbd":"2026-06-22","erp_code_asendia":"OL00023","ordered_item":"[외주인건비]COMPONENT_APG-2012HD","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":null,"unit_price":380000.0,"total_amount":11400000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260622-8","po_category":"services","po_date":"2026-06-22","asendia_nbd":"2026-06-22","erp_code_asendia":"OSL00024","ordered_item":"[외주인건비]COMPONENT_AGL-1004HD","serial_number":null,"oem_code":"AGL-1004HD_COMPONENT","bct_code":null,"ordered_set":30.0,"completed_set":null,"unit_price":270000.0,"total_amount":8100000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260706-19","po_category":"machined","po_date":"2026-07-06","asendia_nbd":"2026-07-31","erp_code_asendia":"MC01640","ordered_item":"COMPONENT CASE SET[APG-2012HD]","serial_number":null,"oem_code":"APG-2012HD_COMPONENT","bct_code":null,"ordered_set":60.0,"completed_set":null,"unit_price":547000.0,"total_amount":32820000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260706-19","po_category":"machined","po_date":"2026-07-06","asendia_nbd":"2026-07-31","erp_code_asendia":"MC01641","ordered_item":"COMPOENT CASE SET[AGL-1004HD]","serial_number":null,"oem_code":"AGL-1004HD","bct_code":null,"ordered_set":60.0,"completed_set":null,"unit_price":612000.0,"total_amount":36720000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260720-11","po_category":"commercials","po_date":"2026-07-20","asendia_nbd":"2026-07-30","erp_code_asendia":"LB00012","ordered_item":"경고라벨 전기위험(PE)","serial_number":null,"oem_code":"EL-001-LS-K005(70*35)","bct_code":null,"ordered_set":300.0,"completed_set":null,"unit_price":450.0,"total_amount":135000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260720-11","po_category":"commercials","po_date":"2026-07-20","asendia_nbd":"2026-07-30","erp_code_asendia":"LB00013","ordered_item":"경고라벨 고주파 위험(PE)","serial_number":null,"oem_code":"RL-006-LS-K001(70*35)","bct_code":null,"ordered_set":300.0,"completed_set":null,"unit_price":450.0,"total_amount":135000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260720-11","po_category":"commercials","po_date":"2026-07-20","asendia_nbd":"2026-07-30","erp_code_asendia":"LB00014","ordered_item":"경고라벨 RF HAZARD(PE)","serial_number":null,"oem_code":"RL-006-LS-003(70*35)","bct_code":null,"ordered_set":300.0,"completed_set":null,"unit_price":450.0,"total_amount":135000.0,"delievery_date":null,"invoice_data":null},{"customer":"ASENDIA","po_number":"20260720-11","po_category":"commercials","po_date":"2026-07-20","asendia_nbd":"2026-07-30","erp_code_asendia":"LB00015","ordered_item":"경고라벨 도어 및 커버 개폐금지(PE)","serial_number":null,"oem_code":"GW-009-K008-S(70*35)","bct_code":null,"ordered_set":300.0,"completed_set":null,"unit_price":450.0,"total_amount":135000.0,"delievery_date":null,"invoice_data":null}];
+
+const CATEGORY_LABEL = { machined:'Machined', services:'Services', commercials:'Commercials' };
+const CATEGORY_BADGE_CLASS = { machined:'badge-machined', services:'badge-services', commercials:'badge-commercials' };
+
+/* ============================================================
+   Supabase 연결 설정
+   아래 두 값을 실제 Supabase 프로젝트 정보로 교체하세요.
+   - SUPABASE_URL   : Project Settings > API > Project URL
+   - SUPABASE_ANON_KEY : Project Settings > API > anon public key
+   anon key는 클라이언트 코드에 넣어도 되도록 설계된 공개 키입니다.
+   다만 01_supabase_table_setup.sql 의 RLS 정책이 열려 있는 동안은
+   이 링크를 아는 누구나 데이터를 읽고 쓸 수 있으니 유의하세요.
+============================================================ */
+const CONFIG = {
+  SUPABASE_URL: 'https://okiamzritzrrxhouzolm.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_nmVTVGoaQqIMKvit5YHL5g_S7uahQlr'
+};
+const IS_CONFIGURED = !CONFIG.SUPABASE_URL.includes('YOUR-PROJECT-REF') && !CONFIG.SUPABASE_ANON_KEY.includes('YOUR-ANON-PUBLIC-KEY');
+const TABLE_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/po_status';
+const IS_ADMIN_FILE = false;
+const AUTH_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/auth/v1';
+const PROFILES_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/profiles';
+const ITEM_MASTER_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/item_master';
+const NCM_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/ncm_list';
+const SESSION_KEY = 'bct_po_status_session_v1';
+function sbHeaders(extra){
+  const token = (state.session && state.session.access_token) ? state.session.access_token : CONFIG.SUPABASE_ANON_KEY;
+  return Object.assign({
+    'apikey': CONFIG.SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  }, extra || {});
+}
+
+const state = {
+  category:'unbilled',
+  query:'',
+  toast:null,
+  modalOpen:false,
+  modalMode:'create',
+  editingId:null,
+  formError:'',
+  loading:true,
+  demoMode: !IS_CONFIGURED,
+  connError:null,
+  records: [],
+  itemMasterList: [],
+  session:null,
+  profile:null,
+  authView:'checking',
+  authError:'',
+  authLoading:false,
+  section:'po',
+  ncmRecords: [],
+  ncmStatus:'all',
+  ncmQuery:'',
+  ncmModalOpen:false,
+  ncmModalMode:'create',
+  ncmEditingId:null,
+  ncmFormError:''
+};
+
+/* ---------- auth ---------- */
+function saveSession(s){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }catch(e){} }
+function loadSavedSession(){ try{ const s = localStorage.getItem(SESSION_KEY); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+function clearSavedSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
+
+async function refreshSession(){
+  if(!state.session || !state.session.refresh_token) return false;
+  try{
+    const res = await fetch(AUTH_URL + '/token?grant_type=refresh_token', {
+      method:'POST',
+      headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ refresh_token: state.session.refresh_token })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error_description || data.msg || ('HTTP ' + res.status));
+    state.session = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Date.now() + (data.expires_in*1000),
+      user: data.user || state.session.user
+    };
+    saveSession(state.session);
+    return true;
+  } catch(e){
+    return false;
+  }
+}
+
+async function loadProfile(){
+  try{
+    const res = await fetch(PROFILES_URL + '?select=role,email&id=eq.' + state.session.user.id, { headers: sbHeaders() });
+    const rows = await res.json();
+    state.profile = (res.ok && rows[0]) ? rows[0] : { role:'engineer', email: state.session.user.email };
+  } catch(e){
+    state.profile = { role:'engineer', email: state.session.user.email };
+  }
+}
+
+async function loadItemMaster(){
+  if(state.demoMode) return;
+  try{
+    const res = await fetch(ITEM_MASTER_URL + '?select=*&order=erp_code_asendia.asc', { headers: sbHeaders() });
+    if(res.ok) state.itemMasterList = await res.json();
+  } catch(e){
+    /* 자동완성 목록 로딩 실패는 조용히 무시 - 수동 입력은 계속 가능 */
+  }
+}
+
+async function initAuth(){
+  if(!IS_CONFIGURED){
+    state.authView = 'app';
+    render();
+    loadRecords();
+    loadItemMaster();
+    loadNcmRecords();
+    return;
+  }
+  const saved = loadSavedSession();
+  if(saved){
+    state.session = saved;
+    if(!saved.expires_at || saved.expires_at < Date.now() + 30000){
+      const ok = await refreshSession();
+      if(!ok){ state.session = null; clearSavedSession(); }
+    }
+  }
+  if(state.session){
+    await loadProfile();
+    state.authView = (IS_ADMIN_FILE && state.profile.role !== 'admin') ? 'forbidden' : 'app';
+  } else {
+    state.authView = 'login';
+  }
+  render();
+  if(state.authView==='app'){ loadRecords(); loadItemMaster(); loadNcmRecords(); }
+}
+
+async function login(){
+  const emailEl = document.getElementById('auth_email');
+  const passEl = document.getElementById('auth_password');
+  const email = emailEl.value.trim();
+  const password = passEl.value;
+  if(!email || !password){ state.authError = '이메일과 비밀번호를 입력해 주세요.'; render(); return; }
+  state.authLoading = true; state.authError = ''; render();
+  try{
+    const res = await fetch(AUTH_URL + '/token?grant_type=password', {
+      method:'POST',
+      headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error_description || data.msg || ('HTTP ' + res.status));
+    state.session = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Date.now() + (data.expires_in*1000),
+      user: data.user
+    };
+    saveSession(state.session);
+    await loadProfile();
+    state.authView = (IS_ADMIN_FILE && state.profile.role !== 'admin') ? 'forbidden' : 'app';
+  } catch(e){
+    state.authError = '로그인 실패: ' + e.message;
+  }
+  state.authLoading = false;
+  render();
+  if(state.authView==='app'){ loadRecords(); loadItemMaster(); loadNcmRecords(); }
+}
+
+async function logout(){
+  try{ await fetch(AUTH_URL + '/logout', { method:'POST', headers: sbHeaders() }); } catch(e){}
+  state.session = null;
+  state.profile = null;
+  state.records = [];
+  state.authView = 'login';
+  state.authError = '';
+  clearSavedSession();
+  render();
+}
+
+/* ---------- helpers ---------- */
+function won(n){ return n==null ? '—' : '₩' + Math.round(n).toLocaleString('ko-KR'); }
+function qty(n){ return n==null ? '—' : n.toLocaleString('ko-KR'); }
+function dash(v){ return (v===null || v===undefined || v==='') ? '—' : v; }
+function progressOf(r){
+  const done = r.completed_set==null ? 0 : r.completed_set;
+  const total = r.ordered_set==null ? 0 : r.ordered_set;
+  const pct = total>0 ? Math.round(done/total*100) : 0;
+  let label = '미착수', cls='badge-gray';
+  if(pct>=100 && total>0){ label='완료'; cls='badge-green'; }
+  else if(pct>0){ label='진행중'; cls='badge-amber'; }
+  return { done, total, pct, label, cls };
+}
+function totalAmountOf(r){
+  if(r.total_amount!=null) return r.total_amount;
+  if(r.ordered_set!=null && r.unit_price!=null) return r.ordered_set*r.unit_price;
+  return null;
+}
+
+/* ---------- data loading ---------- */
+function buildDemoRecords(){
+  return SEED_DATA.map((r,i)=>Object.assign({ id:'demo-'+(i+1) }, r, {
+    delivery_date: r.delievery_date,
+    invoice_date: r.invoice_data
+  }));
+}
+async function loadRecords(){
+  if(!IS_CONFIGURED){
+    state.records = buildDemoRecords();
+    state.demoMode = true;
+    state.loading = false;
+    render();
+    return;
+  }
+  state.loading = true; render();
+  try{
+    const res = await fetch(TABLE_URL + '?select=*&order=id.desc', { headers: sbHeaders() });
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+    const data = await res.json();
+    state.records = data;
+    state.demoMode = false;
+    state.connError = null;
+  } catch(e){
+    state.connError = e.message;
+    state.records = buildDemoRecords();
+    state.demoMode = true;
+  }
+  state.loading = false;
+  render();
+}
+
+/* ---------- actions ---------- */
+function setCategory(cat){ state.category = cat; render(); }
+function setSection(s){ state.section = s; render(); }
+function setQuery(v){ state.query = v; render(); }
+function showToast(msg){ state.toast = msg; render(); setTimeout(()=>{ state.toast=null; render(); }, 2800); }
+function openModal(){ state.modalMode='create'; state.editingId=null; state.modalOpen = true; state.formError=''; render(); }
+function openEditModal(id){ state.modalMode='edit'; state.editingId=id; state.modalOpen = true; state.formError=''; render(); }
+function closeModal(){ state.modalOpen = false; render(); }
+function escAttr(v){ return v===null || v===undefined ? '' : String(v).replace(/"/g,'&quot;'); }
+function refreshData(){ loadRecords(); showToast('최신 데이터를 불러왔습니다.'); }
+
+async function updateCompleted(id, value){
+  const rec = state.records.find(r=>String(r.id)===String(id));
+  if(!rec) return;
+  let v = value===''? null : Number(value);
+  if(v!=null && isNaN(v)) v = 0;
+  if(v!=null && rec.ordered_set!=null && v>rec.ordered_set) v = rec.ordered_set;
+  if(v!=null && v<0) v = 0;
+  const prev = rec.completed_set;
+  rec.completed_set = v;
+  render();
+
+  if(state.demoMode) return;
+
+  try{
+    const res = await fetch(TABLE_URL + '?id=eq.' + id, {
+      method:'PATCH', headers: sbHeaders({ 'Prefer':'return=minimal' }),
+      body: JSON.stringify({ completed_set: v })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+  } catch(e){
+    rec.completed_set = prev;
+    render();
+    showToast('저장 실패: 완료수량이 원래대로 되돌아갔습니다. (' + e.message + ')');
+  }
+}
+
+async function deleteRecord(id, poNumber){
+  const ok = window.confirm('발주번호 "' + poNumber + '" 항목을 삭제할까요?\n이 작업은 되돌릴 수 없습니다.');
+  if(!ok) return;
+
+  if(state.demoMode){
+    state.records = state.records.filter(r=>String(r.id)!==String(id));
+    render();
+    showToast('삭제되었습니다. (데모 모드 - 새로고침 시 원래대로 돌아감)');
+    return;
+  }
+
+  try{
+    const res = await fetch(TABLE_URL + '?id=eq.' + id, {
+      method:'DELETE', headers: sbHeaders({ 'Prefer':'return=minimal' })
+    });
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+    state.records = state.records.filter(r=>String(r.id)!==String(id));
+    render();
+    showToast('발주번호 "' + poNumber + '" 항목이 삭제되었습니다.');
+  } catch(e){
+    showToast('삭제 실패: ' + e.message);
+  }
+}
+
+function itemMasterOptions(){
+  return state.itemMasterList.map(function(m){
+    const label = m.erp_code_asendia + (m.ordered_item ? ' \u2014 ' + m.ordered_item : '');
+    return '<option value="' + escAttrText(m.erp_code_asendia) + '">' + escAttrText(label) + '</option>';
+  }).join('');
+}
+function escAttrText(v){ return v===null||v===undefined ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function lookupItemMaster(){
+  const el = document.getElementById('f_erp_code');
+  if(!el) return;
+  const code = el.value.trim();
+  if(!code) return;
+  const m = state.itemMasterList.find(x=>x.erp_code_asendia===code);
+  if(!m) return;
+  /* 주의: 여기서 render()를 호출하면(예: showToast) 입력 중인 폼 전체가
+     빈 값으로 다시 그려집니다. DOM을 직접 조작해서 값만 채웁니다. */
+  const flash = (id, val) => {
+    const e = document.getElementById(id);
+    if(!e || val==null || val==='') return;
+    e.value = val;
+    e.style.transition = 'background-color .2s';
+    e.style.backgroundColor = 'var(--green-bg)';
+    setTimeout(()=>{ e.style.backgroundColor = ''; }, 800);
+  };
+  flash('f_ordered_item', m.ordered_item);
+  flash('f_oem_code', m.oem_code);
+  flash('f_bct_code', m.bct_code);
+  flash('f_unit_price', m.unit_price);
+}
+
+async function submitPoForm(){
+  const g = id => document.getElementById(id);
+  const isEdit = state.modalMode === 'edit';
+  const po_number = g('f_po_number').value.trim();
+  const po_category = g('f_po_category').value;
+  const ordered_item = g('f_ordered_item').value.trim();
+  const ordered_set = g('f_ordered_set').value ? Number(g('f_ordered_set').value) : null;
+
+  if(!po_number || !po_category || !ordered_item || !ordered_set){
+    state.formError = '발주번호, 구분, 품목명, 발주수량은 필수 입력 항목입니다.';
+    render();
+    return;
+  }
+
+  const unit_price = g('f_unit_price').value ? Number(g('f_unit_price').value) : null;
+  const serialEl = document.getElementById('f_serial_number');
+  const payload = {
+    po_number,
+    po_category,
+    po_date: g('f_po_date').value || null,
+    asendia_nbd: g('f_asendia_nbd').value || null,
+    erp_code_asendia: g('f_erp_code').value.trim() || null,
+    ordered_item,
+    oem_code: g('f_oem_code').value.trim() || null,
+    bct_code: g('f_bct_code').value.trim() || null,
+    ordered_set,
+    unit_price,
+    total_amount: (unit_price!=null ? unit_price*ordered_set : null),
+    delivery_date: g('f_delivery_date').value || null,
+    invoice_date: g('f_invoice_date').value || null
+  };
+  if(isEdit){
+    if(serialEl) payload.serial_number = serialEl.value.trim() || null;
+  } else {
+    payload.customer = 'ASENDIA';
+    payload.serial_number = null;
+    payload.completed_set = 0;
+  }
+
+  if(state.demoMode){
+    if(isEdit){
+      const rec = state.records.find(r=>String(r.id)===String(state.editingId));
+      if(rec) Object.assign(rec, payload);
+      state.modalOpen = false;
+      render();
+      showToast('PO 항목이 수정되었습니다. (데모 모드)');
+    } else {
+      state.records.unshift(Object.assign({ id:'demo-new-' + Date.now() }, payload));
+      state.modalOpen = false;
+      state.category = po_category;
+      render();
+      showToast('신규 PO "' + po_number + '"가 등록되었습니다. (데모 모드 - 새로고침 시 사라짐)');
+    }
+    return;
+  }
+
+  try{
+    if(isEdit){
+      const res = await fetch(TABLE_URL + '?id=eq.' + state.editingId, {
+        method:'PATCH', headers: sbHeaders({ 'Prefer':'return=representation' }),
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+      const rows = await res.json();
+      const idx = state.records.findIndex(r=>String(r.id)===String(state.editingId));
+      if(idx>-1) state.records[idx] = rows[0];
+      state.modalOpen = false;
+      render();
+      showToast('PO 항목이 수정되었습니다.');
+    } else {
+      const res = await fetch(TABLE_URL, {
+        method:'POST', headers: sbHeaders({ 'Prefer':'return=representation' }),
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+      const rows = await res.json();
+      state.records.unshift(rows[0]);
+      state.modalOpen = false;
+      state.category = po_category;
+      render();
+      showToast('신규 PO "' + po_number + '"가 Supabase에 저장되었습니다.');
+    }
+  } catch(e){
+    state.formError = (isEdit ? '수정 실패: ' : '저장 실패: ') + e.message;
+    render();
+  }
+}
+
+/* ---------- render pieces ---------- */
+function connDot(){
+  const connected = !state.loading && !state.demoMode && !state.connError;
+  const color = connected ? 'var(--green)' : 'var(--red)';
+  const title = state.loading ? '불러오는 중'
+    : connected ? 'Supabase 연결됨'
+    : (state.connError ? '연결 실패: ' + state.connError : '데모 모드 (Supabase 미설정)');
+  return '<span class="conn-dot" style="background:' + color + '" title="' + title.replace(/"/g,'') + '"></span>';
+}
+
+function renderLoginScreen(){
+  const err = state.authError ? '<div class="field-error show">' + state.authError + '</div>' : '';
+  return '' +
+  '<div class="login-wrap"><div class="login-card">' +
+    '<img class="login-logo" src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT 로고">' +
+    '<div class="login-title">BCT 관리자 로그인</div>' +
+    err +
+    '<div class="form-field"><label>이메일</label><input class="input" type="email" id="auth_email" placeholder="you@bct.co.kr" onkeydown="if(event.key===\'Enter\') login()"></div>' +
+    '<div class="form-field"><label>비밀번호</label><input class="input" type="password" id="auth_password" placeholder="********" onkeydown="if(event.key===\'Enter\') login()"></div>' +
+    '<button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="login()" ' + (state.authLoading ? 'disabled' : '') + '>' + (state.authLoading ? '로그인 중…' : '로그인') + '</button>' +
+    '<div class="form-hint" style="margin-top:14px">계정이 없으신가요? BCT 관리자에게 문의해 주세요.</div>' +
+  '</div></div>';
+}
+
+function renderForbiddenScreen(){
+  return '' +
+  '<div class="login-wrap"><div class="login-card">' +
+    '<div class="login-title">접근 권한이 없습니다</div>' +
+    '<p class="form-hint">이 화면은 관리자(admin) 계정만 사용할 수 있습니다.<br>일반 엔지니어용 화면을 이용해 주세요.</p>' +
+    '<button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="logout()">로그아웃</button>' +
+  '</div></div>';
+}
+
+function renderHeader(){
+  const registerBtn = state.section==='po'
+    ? '<button class="btn btn-primary" onclick="openModal()">+ 신규 PO 등록</button>'
+    : '<button class="btn btn-primary" onclick="openNcmModal()">+ 신규 부적합 등록</button>';
+  const tabs = '<div class="section-tabs">' +
+      '<button class="section-tab ' + (state.section==='po'?'active':'') + '" onclick="setSection(\'po\')">PO 현황</button>' +
+      '<button class="section-tab ' + (state.section==='ncm'?'active':'') + '" onclick="setSection(\'ncm\')">부적합 (NCM)</button>' +
+    '</div>';
+  return '' +
+  '<div class="topbar">' +
+    '<div class="brand">' +
+      '<img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT 로고">' +
+      '<div>' +
+        '<div class="brand-text-kr">통합 관리 시스템<span class="bct-badge">BCT</span>' + connDot() + '</div>' +
+        '<div class="brand-text-sub">ASENDIA 발주 · 부적합 통합 관리 (엔지니어용)</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="topbar-actions">' + (
+      state.authView==='app' ?
+        ('<span class="user-email">' + (state.session && state.session.user ? state.session.user.email : '') + '</span>' +
+         '<button class="btn btn-ghost" onclick="refreshData()">↻ 새로고침</button>' +
+         '<button class="btn btn-ghost" onclick="exportToExcel()">⭳ 엑셀 다운로드</button>' +
+         registerBtn +
+         '<button class="btn btn-ghost" onclick="logout()">로그아웃</button>')
+      : state.authView==='forbidden' ? '<button class="btn btn-ghost" onclick="logout()">로그아웃</button>'
+      : ''
+    ) + '</div>' +
+  '</div><div class="ruler"></div>' +
+  (state.authView==='app' ? '<div class="section-nav">' + tabs + '</div>' : '');
+}
+
+function renderStats(){
+  const recs = state.records;
+  const totalPos = new Set(recs.map(r=>r.po_number)).size;
+  const totalOrdered = recs.reduce((s,r)=>s+(r.ordered_set||0),0);
+  const totalCompleted = recs.reduce((s,r)=>s+(r.completed_set||0),0);
+  const pct = totalOrdered>0 ? Math.round(totalCompleted/totalOrdered*100) : 0;
+  return '' +
+  '<div class="card-grid">' +
+    '<div class="stat-card"><div class="stat-label">발주 건수 (PO 번호 기준)</div><div class="stat-value num">' + totalPos + '건</div></div>' +
+    '<div class="stat-card"><div class="stat-label">전체 라인 항목</div><div class="stat-value num">' + recs.length + '건</div></div>' +
+    '<div class="stat-card"><div class="stat-label">전체 발주수량</div><div class="stat-value num">' + qty(totalOrdered) + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">전체 완료율</div><div class="stat-value num">' + pct + '%</div></div>' +
+  '</div>';
+}
+
+function renderCatBar(){
+  const recs = state.records;
+  const counts = { all:recs.length, unbilled:0, machined:0, services:0, commercials:0 };
+  recs.forEach(r=>{
+    if(counts[r.po_category]!=null) counts[r.po_category]++;
+    if(!r.invoice_date) counts.unbilled++;
+  });
+  const items = [
+    { key:'unbilled', label:'전체 · 계산서미처리' },
+    { key:'all', label:'전체' },
+    { key:'machined', label:CATEGORY_LABEL.machined },
+    { key:'services', label:CATEGORY_LABEL.services },
+    { key:'commercials', label:CATEGORY_LABEL.commercials }
+  ];
+  return '<div class="cat-bar">' + items.map(it=>{
+    const active = state.category===it.key ? 'active' : '';
+    return '<button class="cat-btn ' + active + '" onclick="setCategory(\'' + it.key + '\')">' + it.label + '<span class="count">' + counts[it.key] + '</span></button>';
+  }).join('') + '</div>';
+}
+
+function exportToExcel(){
+  if(typeof XLSX === 'undefined'){
+    showToast('엑셀 기능을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');
+    return;
+  }
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  if(state.section==='po'){
+    const rows = filteredRecords();
+    if(!rows.length){ showToast('내보낼 데이터가 없습니다.'); return; }
+    const data = rows.map(r=>{
+      const p = progressOf(r);
+      return {
+        '발주번호': r.po_number || '',
+        '구분': CATEGORY_LABEL[r.po_category] || r.po_category || '',
+        '발행일': r.po_date || '',
+        '요청납기(NBD)': r.asendia_nbd || '',
+        'ERP코드': r.erp_code_asendia || '',
+        '품목명': r.ordered_item || '',
+        'OEM Code': r.oem_code || '',
+        'BCT Code': r.bct_code || '',
+        '시리얼번호': r.serial_number || '',
+        '발주수량': r.ordered_set,
+        '완료수량': r.completed_set,
+        '진행률(%)': p.pct,
+        '상태': p.label,
+        '단가': r.unit_price,
+        '합계금액': totalAmountOf(r),
+        '납품일': r.delivery_date || '',
+        '계산서발행일': r.invoice_date || ''
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'PO현황');
+    XLSX.writeFile(wb, '아센디아_발주현황_' + today + '.xlsx');
+  } else {
+    const rows = filteredNcmRecords();
+    if(!rows.length){ showToast('내보낼 데이터가 없습니다.'); return; }
+    const data = rows.map(r=>({
+      '모델': r.model || '',
+      '모듈': r.component || '',
+      '발생일': r.issued_date || '',
+      '수량': r.quantity,
+      '불량증상': r.failure_mode || '',
+      'ASENDIA통보일': r.noti_date_to_asendia || '',
+      'ASENDIA담당자': r.asendia_engineer || '',
+      '진행상태': r.progress || '',
+      '교환품수령일': r.replacement_received_date || ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '부적합현황');
+    XLSX.writeFile(wb, '부적합_NCM_' + today + '.xlsx');
+  }
+}
+
+function filteredRecords(){
+  const q = state.query.trim().toLowerCase();
+  return state.records.filter(r=>{
+    const matchesCat = state.category==='unbilled' ? !r.invoice_date
+      : state.category==='all' ? true
+      : r.po_category===state.category;
+    if(!matchesCat) return false;
+    if(!q) return true;
+    return [r.po_number, r.ordered_item, r.oem_code, r.erp_code_asendia].some(v=>v && String(v).toLowerCase().includes(q));
+  });
+}
+
+function renderTable(){
+  const filtered = filteredRecords();
+
+  const rows = filtered.map(r=>{
+    const p = progressOf(r);
+    const catCls = CATEGORY_BADGE_CLASS[r.po_category] || 'badge-gray';
+    return '<tr>' +
+      '<td class="num">' + dash(r.po_number) + '</td>' +
+      '<td><span class="badge ' + catCls + '">' + (CATEGORY_LABEL[r.po_category] || r.po_category) + '</span></td>' +
+      '<td>' + dash(r.po_date) + '</td>' +
+      '<td>' + dash(r.asendia_nbd) + '</td>' +
+      '<td>' + dash(r.erp_code_asendia) + '</td>' +
+      '<td style="white-space:normal;min-width:220px">' + dash(r.ordered_item) + '</td>' +
+      '<td>' + dash(r.oem_code) + '</td>' +
+      '<td class="num">' + qty(r.ordered_set) + '</td>' +
+      '<td><input type="number" class="completed-input num" min="0" max="' + (r.ordered_set||0) + '" value="' + (r.completed_set==null?'':r.completed_set) + '" onchange="updateCompleted(\'' + r.id + '\',this.value)"></td>' +
+      '<td><div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:' + p.pct + '%"></div></div><div class="progress-text num">' + p.pct + '%</div></div></td>' +
+      '<td><span class="badge ' + p.cls + '">' + p.label + '</span></td>' +
+      '<td>' + dash(r.delivery_date) + '</td>' +
+      '<td>' + dash(r.invoice_date) + '</td>' +
+      '<td>' + dash(r.serial_number) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  const body = filtered.length ? rows : '<tr><td colspan="14"><div class="empty-note">조건에 맞는 PO 항목이 없습니다.</div></td></tr>';
+
+  return '' +
+  '<div class="table-wrap"><div class="table-scroll">' +
+  '<table class="table"><thead><tr>' +
+    '<th>발주번호</th><th>구분</th><th>발행일</th><th>요청납기(NBD)</th><th>ERP코드</th>' +
+    '<th>품목명</th><th>OEM Code</th>' +
+    '<th>발주수량</th><th>완료수량</th><th>진행률</th><th>상태</th>' +
+    '<th>납품일</th><th>계산서발행일</th><th>시리얼번호</th>' +
+  '</tr></thead><tbody>' + body + '</tbody></table>' +
+  '</div></div>';
+}
+
+function renderModal(){
+  if(!state.modalOpen) return '';
+  const isEdit = state.modalMode === 'edit';
+  const rec = isEdit ? state.records.find(r=>String(r.id)===String(state.editingId)) : null;
+  const v = (field) => escAttr(rec ? rec[field] : '');
+  const catOpt = (val, label) => '<option value="' + val + '" ' + (rec && rec.po_category===val ? 'selected' : '') + '>' + label + '</option>';
+  const err = state.formError ? '<div class="field-error show">' + state.formError + '</div>' : '';
+  return '' +
+  '<div class="modal-overlay" onclick="if(event.target===this) closeModal()">' +
+    '<div class="modal-card">' +
+      '<div class="modal-head"><h2>' + (isEdit ? 'PO 항목 수정' : '신규 PO 등록') + '</h2><button class="modal-close" onclick="closeModal()">✕</button></div>' +
+      err +
+      '<div class="form-grid">' +
+        '<div class="form-field"><label>발주번호 <span class="req">*</span></label><input class="input" id="f_po_number" value="' + v('po_number') + '" placeholder="예: 20260801-1"></div>' +
+        '<div class="form-field"><label>구분 <span class="req">*</span></label>' +
+          '<select class="select" id="f_po_category">' +
+            catOpt('machined','가공 (Machined)') +
+            catOpt('services','외주용역 (Services)') +
+            catOpt('commercials','상용/부자재 (Commercials)') +
+          '</select></div>' +
+        '<div class="form-field"><label>발행일</label><input class="input" type="date" id="f_po_date" value="' + v('po_date') + '"></div>' +
+        '<div class="form-field"><label>요청납기 (NBD)</label><input class="input" type="date" id="f_asendia_nbd" value="' + v('asendia_nbd') + '"></div>' +
+        '<div class="form-field"><label>ASENDIA ERP코드</label><input class="input" id="f_erp_code" list="item_master_options" value="' + v('erp_code_asendia') + '" placeholder="예: MC01641 (클릭 시 목록, 직접 입력도 가능)" oninput="lookupItemMaster()" autocomplete="off"><datalist id="item_master_options">' + itemMasterOptions() + '</datalist></div>' +
+        '<div class="form-field"><label>OEM Code</label><input class="input" id="f_oem_code" value="' + v('oem_code') + '" placeholder="예: APG-2012HD_COMPONENT"></div>' +
+        '<div class="form-field span-2"><label>품목명 <span class="req">*</span></label><input class="input" id="f_ordered_item" value="' + v('ordered_item') + '" placeholder="예: COMPONENT CASE SET [APG-2012HD]"></div>' +
+        '<div class="form-field"><label>BCT Code</label><input class="input" id="f_bct_code" value="' + v('bct_code') + '"></div>' +
+        '<div class="form-field"><label>발주수량 <span class="req">*</span></label><input class="input" type="number" min="0" id="f_ordered_set" value="' + v('ordered_set') + '"></div>' +
+        '<div class="form-field"><label>단가</label><input class="input" type="number" min="0" id="f_unit_price" value="' + v('unit_price') + '"></div>' +
+        '<div class="form-field"><label>납품일</label><input class="input" type="date" id="f_delivery_date" value="' + v('delivery_date') + '"></div>' +
+        '<div class="form-field"><label>계산서 발행일</label><input class="input" type="date" id="f_invoice_date" value="' + v('invoice_date') + '"></div>' +
+      '</div>' +
+      '<div class="form-hint">완료수량(completed_set)은 0으로 시작하며, 등록 후 목록에서 직접 입력합니다. 시리얼 번호는 작업 시작 시 부여합니다.</div>' +
+      '<div class="modal-foot">' +
+        '<button class="btn btn-ghost" onclick="closeModal()">취소</button>' +
+        '<button class="btn btn-primary" onclick="submitPoForm()">등록</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+
+/* ============================================================
+   NCM (부적합) 모듈
+============================================================ */
+const NCM_COMPONENTS = ['Combiner','Driver','Exciter','Main_Amp','Sensor','Splitter','Saw_Filter'];
+const NCM_PROGRESS_STEPS = ['접수','통보완료','교환대기','교환완료','종결'];
+const NCM_SEED_DATA = [
+  { model:'APG-2012HD', component:'Splitter', issued_date:'2026-04-01', quantity:2, failure_mode:'CAL 실패', noti_date_to_asendia:null, asendia_engineer:null, progress:'접수', replacement_received_date:null },
+  { model:'APG-1013H', component:'Combiner', issued_date:'2026-04-01', quantity:10, failure_mode:'COIL 빠짐, CAL 실패', noti_date_to_asendia:null, asendia_engineer:null, progress:'접수', replacement_received_date:null },
+  { model:'APG-1513', component:'Saw_Filter', issued_date:'2026-04-09', quantity:30, failure_mode:'VOLTAGE 미달', noti_date_to_asendia:'2026-04-10', asendia_engineer:'J. Smith', progress:'통보완료', replacement_received_date:null },
+  { model:'APG-1513', component:'Sensor', issued_date:'2026-04-15', quantity:25, failure_mode:'VR6 조정 Spec out', noti_date_to_asendia:'2026-04-16', asendia_engineer:'J. Smith', progress:'교환대기', replacement_received_date:null },
+  { model:'APG-1513', component:'Driver', issued_date:'2026-04-19', quantity:1, failure_mode:'수삽 불량', noti_date_to_asendia:'2026-04-20', asendia_engineer:'M. Lee', progress:'교환완료', replacement_received_date:'2026-05-02' },
+  { model:'AGL-1004HD', component:'Exciter', issued_date:'2026-05-02', quantity:1, failure_mode:'출력불가', noti_date_to_asendia:'2026-05-03', asendia_engineer:'M. Lee', progress:'종결', replacement_received_date:'2026-05-12' }
+];
+function buildNcmDemoRecords(){
+  return NCM_SEED_DATA.map((r,i)=>Object.assign({ id:'ncm-demo-'+(i+1) }, r));
+}
+async function loadNcmRecords(){
+  if(!IS_CONFIGURED){
+    state.ncmRecords = buildNcmDemoRecords();
+    render();
+    return;
+  }
+  try{
+    const res = await fetch(NCM_URL + '?select=*&order=issued_date.desc', { headers: sbHeaders() });
+    state.ncmRecords = res.ok ? await res.json() : buildNcmDemoRecords();
+  } catch(e){
+    state.ncmRecords = buildNcmDemoRecords();
+  }
+  render();
+}
+function ncmBadgeClass(status){
+  if(status==='종결') return 'badge-ink';
+  if(status==='교환완료') return 'badge-green';
+  if(status==='교환대기') return 'badge-amber';
+  if(status==='통보완료') return 'badge-machined';
+  return 'badge-gray';
+}
+function setNcmStatus(s){ state.ncmStatus = s; render(); }
+function setNcmQuery(v){ state.ncmQuery = v; render(); }
+function openNcmModal(){ state.ncmModalMode='create'; state.ncmEditingId=null; state.ncmModalOpen=true; state.ncmFormError=''; render(); }
+function openNcmEditModal(id){ state.ncmModalMode='edit'; state.ncmEditingId=id; state.ncmModalOpen=true; state.ncmFormError=''; render(); }
+function closeNcmModal(){ state.ncmModalOpen=false; render(); }
+
+async function deleteNcmRecord(id, model){
+  const ok = window.confirm('모델 "' + model + '" 부적합 항목을 삭제할까요?\n이 작업은 되돌릴 수 없습니다.');
+  if(!ok) return;
+  if(state.demoMode){
+    state.ncmRecords = state.ncmRecords.filter(r=>String(r.id)!==String(id));
+    render();
+    showToast('삭제되었습니다. (데모 모드)');
+    return;
+  }
+  try{
+    const res = await fetch(NCM_URL + '?id=eq.' + id, { method:'DELETE', headers: sbHeaders({ 'Prefer':'return=minimal' }) });
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+    state.ncmRecords = state.ncmRecords.filter(r=>String(r.id)!==String(id));
+    render();
+    showToast('부적합 항목이 삭제되었습니다.');
+  } catch(e){
+    showToast('삭제 실패: ' + e.message);
+  }
+}
+
+async function submitNcmForm(){
+  const g = id => document.getElementById(id);
+  const isEdit = state.ncmModalMode === 'edit';
+  const model = g('n_model').value.trim();
+  const component = g('n_component').value;
+  const failure_mode = g('n_failure_mode').value.trim();
+  const quantity = g('n_quantity').value ? Number(g('n_quantity').value) : null;
+
+  if(!model || !component || !failure_mode || !quantity){
+    state.ncmFormError = '모델, 모듈, 불량증상, 수량은 필수 입력 항목입니다.';
+    render();
+    return;
+  }
+
+  const payload = {
+    model, component,
+    issued_date: g('n_issued_date').value || null,
+    quantity,
+    failure_mode,
+    noti_date_to_asendia: g('n_noti_date').value || null,
+    asendia_engineer: g('n_engineer').value.trim() || null,
+    progress: g('n_progress').value || '접수',
+    replacement_received_date: g('n_replacement_date').value || null
+  };
+
+  if(state.demoMode){
+    if(isEdit){
+      const rec = state.ncmRecords.find(r=>String(r.id)===String(state.ncmEditingId));
+      if(rec) Object.assign(rec, payload);
+    } else {
+      state.ncmRecords.unshift(Object.assign({ id:'ncm-demo-new-' + Date.now() }, payload));
+    }
+    state.ncmModalOpen = false;
+    render();
+    showToast(isEdit ? '부적합 항목이 수정되었습니다. (데모 모드)' : '신규 부적합이 등록되었습니다. (데모 모드)');
+    return;
+  }
+
+  try{
+    if(isEdit){
+      const res = await fetch(NCM_URL + '?id=eq.' + state.ncmEditingId, {
+        method:'PATCH', headers: sbHeaders({ 'Prefer':'return=representation' }),
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+      const rows = await res.json();
+      const idx = state.ncmRecords.findIndex(r=>String(r.id)===String(state.ncmEditingId));
+      if(idx>-1) state.ncmRecords[idx] = rows[0];
+      state.ncmModalOpen = false;
+      render();
+      showToast('부적합 항목이 수정되었습니다.');
+    } else {
+      const res = await fetch(NCM_URL, {
+        method:'POST', headers: sbHeaders({ 'Prefer':'return=representation' }),
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+      const rows = await res.json();
+      state.ncmRecords.unshift(rows[0]);
+      state.ncmModalOpen = false;
+      render();
+      showToast('신규 부적합이 등록되었습니다.');
+    }
+  } catch(e){
+    state.ncmFormError = (isEdit ? '수정 실패: ' : '등록 실패: ') + e.message;
+    render();
+  }
+}
+
+function filteredNcmRecords(){
+  const q = state.ncmQuery.trim().toLowerCase();
+  return state.ncmRecords.filter(r=>{
+    const matchesStatus = state.ncmStatus==='all' ? true : r.progress===state.ncmStatus;
+    if(!matchesStatus) return false;
+    if(!q) return true;
+    return [r.model, r.component, r.failure_mode, r.asendia_engineer].some(v=>v && String(v).toLowerCase().includes(q));
+  });
+}
+
+function renderNcmStatusBar(){
+  const recs = state.ncmRecords;
+  const counts = { all: recs.length };
+  NCM_PROGRESS_STEPS.forEach(s=>{ counts[s] = 0; });
+  recs.forEach(r=>{ if(counts[r.progress]!=null) counts[r.progress]++; });
+  const items = [{ key:'all', label:'전체' }].concat(NCM_PROGRESS_STEPS.map(s=>({ key:s, label:s })));
+  return '<div class="cat-bar">' + items.map(it=>{
+    const active = state.ncmStatus===it.key ? 'active' : '';
+    return '<button class="cat-btn ' + active + '" onclick="setNcmStatus(\'' + it.key + '\')">' + it.label + '<span class="count">' + (counts[it.key]||0) + '</span></button>';
+  }).join('') + '</div>';
+}
+
+function renderNcmTable(){
+  const filtered = filteredNcmRecords();
+  const rows = filtered.map(r=>{
+    return '<tr>' +
+      '<td>' + dash(r.model) + '</td>' +
+      '<td>' + dash(r.component) + '</td>' +
+      '<td>' + dash(r.issued_date) + '</td>' +
+      '<td class="num">' + qty(r.quantity) + '</td>' +
+      '<td style="white-space:normal;min-width:220px">' + dash(r.failure_mode) + '</td>' +
+      '<td>' + dash(r.noti_date_to_asendia) + '</td>' +
+      '<td>' + dash(r.asendia_engineer) + '</td>' +
+      '<td><span class="badge ' + ncmBadgeClass(r.progress) + '">' + dash(r.progress) + '</span></td>' +
+      '<td>' + dash(r.replacement_received_date) + '</td>' +
+      '<td><div style="display:flex;gap:6px"><button class="btn btn-sm btn-ghost" onclick="openNcmEditModal(\'' + r.id + '\')">수정</button><button class="btn btn-sm btn-danger" onclick="deleteNcmRecord(\'' + r.id + '\',\'' + String(r.model||'').replace(/'/g,"\\'") + '\')">삭제</button></div></td>' +
+    '</tr>';
+  }).join('');
+  const body = filtered.length ? rows : '<tr><td colspan="10"><div class="empty-note">조건에 맞는 부적합 항목이 없습니다.</div></td></tr>';
+  return '' +
+  '<div class="table-wrap"><div class="table-scroll">' +
+  '<table class="table"><thead><tr>' +
+    '<th>모델</th><th>모듈</th><th>발생일</th><th>수량</th><th>불량증상</th>' +
+    '<th>ASENDIA통보일</th><th>ASENDIA담당자</th><th>진행상태</th><th>교환품수령일</th><th>관리</th>' +
+  '</tr></thead><tbody>' + body + '</tbody></table>' +
+  '</div></div>';
+}
+
+function renderNcmModal(){
+  if(!state.ncmModalOpen) return '';
+  const isEdit = state.ncmModalMode === 'edit';
+  const rec = isEdit ? state.ncmRecords.find(r=>String(r.id)===String(state.ncmEditingId)) : null;
+  const v = (field) => escAttr(rec ? rec[field] : '');
+  const compOpt = (val) => '<option value="' + val + '" ' + (rec && rec.component===val ? 'selected' : '') + '>' + val + '</option>';
+  const progOpt = (val) => '<option value="' + val + '" ' + ((rec ? rec.progress : '접수')===val ? 'selected' : '') + '>' + val + '</option>';
+  const err = state.ncmFormError ? '<div class="field-error show">' + state.ncmFormError + '</div>' : '';
+  return '' +
+  '<div class="modal-overlay" onclick="if(event.target===this) closeNcmModal()">' +
+    '<div class="modal-card">' +
+      '<div class="modal-head"><h2>' + (isEdit ? '부적합 항목 수정' : '신규 부적합 등록') + '</h2><button class="modal-close" onclick="closeNcmModal()">✕</button></div>' +
+      err +
+      '<div class="form-grid">' +
+        '<div class="form-field"><label>모델 <span class="req">*</span></label><input class="input" id="n_model" value="' + v('model') + '" placeholder="예: APG-2012HD"></div>' +
+        '<div class="form-field"><label>모듈 <span class="req">*</span></label><select class="select" id="n_component">' + NCM_COMPONENTS.map(compOpt).join('') + '</select></div>' +
+        '<div class="form-field"><label>발생일</label><input class="input" type="date" id="n_issued_date" value="' + v('issued_date') + '"></div>' +
+        '<div class="form-field"><label>수량 <span class="req">*</span></label><input class="input" type="number" min="0" id="n_quantity" value="' + v('quantity') + '"></div>' +
+        '<div class="form-field span-2"><label>불량증상 <span class="req">*</span></label><input class="input" id="n_failure_mode" value="' + v('failure_mode') + '" placeholder="예: CAL 실패"></div>' +
+        '<div class="form-field"><label>ASENDIA 통보일</label><input class="input" type="date" id="n_noti_date" value="' + v('noti_date_to_asendia') + '"></div>' +
+        '<div class="form-field"><label>ASENDIA 담당자</label><input class="input" id="n_engineer" value="' + v('asendia_engineer') + '"></div>' +
+        '<div class="form-field"><label>진행상태</label><select class="select" id="n_progress">' + NCM_PROGRESS_STEPS.map(progOpt).join('') + '</select></div>' +
+        '<div class="form-field"><label>교환품 수령일</label><input class="input" type="date" id="n_replacement_date" value="' + v('replacement_received_date') + '"></div>' +
+      '</div>' +
+      '<div class="modal-foot">' +
+        '<button class="btn btn-ghost" onclick="closeNcmModal()">취소</button>' +
+        '<button class="btn btn-primary" onclick="submitNcmForm()">' + (isEdit ? '저장' : '등록') + '</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ---------- root render ---------- */
+function render(){
+  if(state.authView==='checking'){
+    document.getElementById('app').innerHTML = renderHeader() + '<div class="empty-note" style="padding:120px 20px;text-align:center">로그인 정보를 확인하는 중입니다…</div>';
+    return;
+  }
+  if(state.authView==='login'){
+    document.getElementById('app').innerHTML = renderHeader() + renderLoginScreen();
+    return;
+  }
+  if(state.authView==='forbidden'){
+    document.getElementById('app').innerHTML = renderHeader() + renderForbiddenScreen();
+    return;
+  }
+
+  const isPo = state.section === 'po';
+  const bodyContent = state.loading
+    ? '<div class="empty-note" style="padding:80px 20px">데이터를 불러오는 중입니다…</div>'
+    : isPo
+      ? (renderStats() + renderCatBar() +
+         '<div class="toolbar"><input class="input search-input" placeholder="발주번호, 품목명, OEM Code, ERP코드 검색" value="' + state.query + '" oninput="setQuery(this.value)"><span class="empty-note" style="padding:0">표 안에서 Shift + 마우스 휠로 좌우 스크롤할 수 있습니다.</span></div>' +
+         renderTable())
+      : (renderNcmStatusBar() +
+         '<div class="toolbar"><input class="input search-input" placeholder="모델, 모듈, 불량증상, ASENDIA담당자 검색" value="' + state.ncmQuery + '" oninput="setNcmQuery(this.value)"><span class="empty-note" style="padding:0">표 안에서 Shift + 마우스 휠로 좌우 스크롤할 수 있습니다.</span></div>' +
+         renderNcmTable());
+
+  const pageHead = isPo
+    ? '<div class="page-head"><h1>아센디아 발주현황</h1><p>발주 항목별 진행 상태를 확인하고 완료수량을 직접 입력합니다. 이 화면은 BCT 내부 전용이며 고객사에는 공개되지 않습니다.</p></div>'
+    : '<div class="page-head"><h1>부적합 (NCM) 관리</h1><p>외주용역 작업 중 사급 부품에서 발생한 불량 현황과 ASENDIA 통보·교환 진행상황을 관리합니다. 이 화면은 BCT 내부 전용이며 고객사에는 공개되지 않습니다.</p></div>';
+
+  document.getElementById('app').innerHTML =
+    renderHeader() +
+    '<div class="content">' +
+      pageHead +
+      bodyContent +
+    '</div>' +
+    (isPo ? renderModal() : renderNcmModal()) +
+    (state.toast ? '<div class="toast">' + state.toast + '</div>' : '');
+}
+
+render();
+initAuth();
+
+</script>
+</body>
+</html>

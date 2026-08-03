@@ -110,7 +110,19 @@
 
   /* ---- table ---- */
   .table-wrap{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); overflow:hidden; }
+  .table-scroll-top{ overflow-x:auto; overflow-y:hidden; height:14px; border-bottom:1px solid var(--hairline-soft); }
+  .table-scroll-top-inner{ height:1px; }
   .table-scroll{ overflow:auto; max-height:66vh; }
+  .toggle-btn{
+    width:22px; height:22px; border-radius:50%; border:none; padding:0;
+    background:rgba(0,100,224,.10); color:var(--primary);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:10px; cursor:pointer; line-height:1;
+  }
+  .toggle-btn:hover{ background:rgba(0,100,224,.2); }
+  .component-panel table.table{ width:100%; }
+  .component-panel table.table td{ text-align:center; }
+  .component-panel .progress-wrap{ justify-content:center; margin:0 auto; }
   table.table{ width:100%; border-collapse:collapse; font-size:13px; min-width:1400px; }
   table.table th{
     text-align:center; font-weight:700; color:var(--steel); font-size:11px;
@@ -210,6 +222,8 @@ const IS_ADMIN_FILE = false;
 const AUTH_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/auth/v1';
 const PROFILES_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/profiles';
 const ITEM_MASTER_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/item_master';
+const SET_COMPONENTS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/set_components';
+const PO_PROGRESS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/po_component_progress';
 const NCM_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/ncm_list';
 const SESSION_KEY = 'bct_po_status_session_v1';
 function sbHeaders(extra){
@@ -234,6 +248,10 @@ const state = {
   connError:null,
   records: [],
   itemMasterList: [],
+  expandedPoId: null,
+  componentRows: [],
+  componentsLoading: false,
+  rowsWithComponents: {},
   session:null,
   profile:null,
   authView:'checking',
@@ -752,6 +770,122 @@ function exportToExcel(){
   }
 }
 
+/* ---------- set-component (BOM) progress ---------- */
+async function toggleComponents(poId){
+  if(String(state.expandedPoId)===String(poId)){
+    state.expandedPoId = null;
+    render();
+    return;
+  }
+  state.expandedPoId = poId;
+  state.componentRows = [];
+  state.componentsLoading = true;
+  render();
+  await loadComponentsForPo(poId);
+}
+
+async function loadComponentsForPo(poId){
+  if(state.demoMode){
+    state.componentRows = [];
+    state.componentsLoading = false;
+    render();
+    return;
+  }
+  try{
+    const res = await fetch(PO_PROGRESS_URL + '?po_id=eq.' + poId + '&select=*&order=component.asc', { headers: sbHeaders() });
+    let rows = res.ok ? await res.json() : [];
+    if(rows.length===0){
+      const po = state.records.find(r=>String(r.id)===String(poId));
+      if(po && po.erp_code_asendia){
+        const bomRes = await fetch(SET_COMPONENTS_URL + '?erp_code_asendia=eq.' + encodeURIComponent(po.erp_code_asendia) + '&select=*', { headers: sbHeaders() });
+        const bom = bomRes.ok ? await bomRes.json() : [];
+        if(bom.length){
+          const inserts = bom.map(b=>({ po_id:poId, component:b.component, required_quantity:(po.ordered_set||0)*b.unit_quantity, completed_quantity:0 }));
+          const insRes = await fetch(PO_PROGRESS_URL, { method:'POST', headers: sbHeaders({ 'Prefer':'return=representation' }), body: JSON.stringify(inserts) });
+          rows = insRes.ok ? await insRes.json() : [];
+        }
+      }
+    }
+    state.componentRows = rows;
+    state.rowsWithComponents[poId] = rows.length>0;
+  } catch(e){
+    state.componentRows = [];
+  }
+  state.componentsLoading = false;
+  render();
+}
+
+async function updateComponentProgress(rowId, poId, value){
+  let v = value===''?0:Number(value);
+  if(isNaN(v) || v<0) v = 0;
+  const row = state.componentRows.find(r=>String(r.id)===String(rowId));
+  if(!row) return;
+  if(v > row.required_quantity) v = row.required_quantity;
+  const prev = row.completed_quantity;
+  row.completed_quantity = v;
+  render();
+  if(state.demoMode) return;
+  try{
+    const res = await fetch(PO_PROGRESS_URL + '?id=eq.' + rowId, {
+      method:'PATCH', headers: sbHeaders({ 'Prefer':'return=minimal' }),
+      body: JSON.stringify({ completed_quantity: v })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const poRes = await fetch(TABLE_URL + '?id=eq.' + poId + '&select=completed_set', { headers: sbHeaders() });
+    if(poRes.ok){
+      const rows2 = await poRes.json();
+      if(rows2[0]){
+        const rec = state.records.find(r=>String(r.id)===String(poId));
+        if(rec) rec.completed_set = rows2[0].completed_set;
+      }
+    }
+    render();
+  } catch(e){
+    row.completed_quantity = prev;
+    render();
+    showToast('저장 실패: 완료수량이 원래대로 되돌아갔습니다. (' + e.message + ')');
+  }
+}
+
+async function recalcComponents(poId){
+  const ok = window.confirm('구성품 진행률을 현재 발주수량 기준으로 다시 계산할까요?\n지금까지 입력한 완료수량은 초기화됩니다.');
+  if(!ok) return;
+  if(state.demoMode){ showToast('데모 모드에서는 재계산할 수 없습니다.'); return; }
+  try{
+    await fetch(PO_PROGRESS_URL + '?po_id=eq.' + poId, { method:'DELETE', headers: sbHeaders({ 'Prefer':'return=minimal' }) });
+    state.componentRows = [];
+    delete state.rowsWithComponents[poId];
+    await loadComponentsForPo(poId);
+    showToast('구성품 진행률을 다시 계산했습니다.');
+  } catch(e){
+    showToast('재계산 실패: ' + e.message);
+  }
+}
+
+function renderComponentPanel(poId){
+  if(state.componentsLoading){
+    return '<div class="empty-note">구성품 정보를 불러오는 중입니다…</div>';
+  }
+  if(!state.componentRows.length){
+    return '<div class="empty-note">이 항목에는 등록된 구성품(Set) 정보가 없습니다.</div>';
+  }
+  const rows = state.componentRows.map(cr=>{
+    const pct = cr.required_quantity>0 ? Math.round(cr.completed_quantity/cr.required_quantity*100) : 0;
+    return '<tr>' +
+      '<td>' + dash(cr.component) + '</td>' +
+      '<td class="num">' + qty(cr.required_quantity) + '</td>' +
+      '<td><input type="number" class="completed-input num" min="0" max="' + cr.required_quantity + '" value="' + cr.completed_quantity + '" onchange="updateComponentProgress(\'' + cr.id + '\',\'' + poId + '\',this.value)"></td>' +
+      '<td><div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div><div class="progress-text num">' + pct + '%</div></div></td>' +
+    '</tr>';
+  }).join('');
+  return '' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<div class="stat-label" style="margin:0">구성품별 진행률</div>' +
+      '<button class="btn btn-sm btn-ghost" onclick="recalcComponents(\'' + poId + '\')">↻ 재계산</button>' +
+    '</div>' +
+    '<div class="component-panel"><table class="table"><thead><tr><th>구성품</th><th>필요수량</th><th>완료수량</th><th>진행률</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
 function filteredRecords(){
   const q = state.query.trim().toLowerCase();
   return state.records.filter(r=>{
@@ -770,7 +904,14 @@ function renderTable(){
   const rows = filtered.map(r=>{
     const p = progressOf(r);
     const catCls = CATEGORY_BADGE_CLASS[r.po_category] || 'badge-gray';
-    return '<tr>' +
+    const isExpanded = String(state.expandedPoId)===String(r.id);
+    const hasComponents = !!state.rowsWithComponents[r.id];
+    const toggleBtn = '<button class="toggle-btn" onclick="toggleComponents(\'' + r.id + '\')" title="구성품 보기">' + (isExpanded?'▾':'▸') + '</button>';
+    const completedCell = hasComponents
+      ? '<td class="num" title="구성품 진행률로 자동 계산됩니다">' + qty(r.completed_set) + '</td>'
+      : '<td><input type="number" class="completed-input num" min="0" max="' + (r.ordered_set||0) + '" value="' + (r.completed_set==null?'':r.completed_set) + '" onchange="updateCompleted(\'' + r.id + '\',this.value)"></td>';
+    const mainRow = '<tr>' +
+      '<td>' + toggleBtn + '</td>' +
       '<td class="num">' + dash(r.po_number) + '</td>' +
       '<td><span class="badge ' + catCls + '">' + (CATEGORY_LABEL[r.po_category] || r.po_category) + '</span></td>' +
       '<td>' + dash(r.po_date) + '</td>' +
@@ -779,21 +920,25 @@ function renderTable(){
       '<td style="white-space:normal;min-width:220px">' + dash(r.ordered_item) + '</td>' +
       '<td>' + dash(r.oem_code) + '</td>' +
       '<td class="num">' + qty(r.ordered_set) + '</td>' +
-      '<td><input type="number" class="completed-input num" min="0" max="' + (r.ordered_set||0) + '" value="' + (r.completed_set==null?'':r.completed_set) + '" onchange="updateCompleted(\'' + r.id + '\',this.value)"></td>' +
+      completedCell +
       '<td><div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:' + p.pct + '%"></div></div><div class="progress-text num">' + p.pct + '%</div></div></td>' +
       '<td><span class="badge ' + p.cls + '">' + p.label + '</span></td>' +
       '<td>' + dash(r.delivery_date) + '</td>' +
       '<td>' + dash(r.invoice_date) + '</td>' +
       '<td>' + dash(r.serial_number) + '</td>' +
     '</tr>';
+    const expandRow = isExpanded
+      ? '<tr><td colspan="15" style="padding:0;background:var(--surface-soft)"><div style="position:sticky;left:0;max-width:640px;padding:14px 16px;box-sizing:border-box">' + renderComponentPanel(r.id) + '</div></td></tr>'
+      : '';
+    return mainRow + expandRow;
   }).join('');
 
-  const body = filtered.length ? rows : '<tr><td colspan="14"><div class="empty-note">조건에 맞는 PO 항목이 없습니다.</div></td></tr>';
+  const body = filtered.length ? rows : '<tr><td colspan="15"><div class="empty-note">조건에 맞는 PO 항목이 없습니다.</div></td></tr>';
 
   return '' +
-  '<div class="table-wrap"><div class="table-scroll">' +
+  '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll"' + (state.expandedPoId ? ' style="max-height:none"' : '') + '>' +
   '<table class="table"><thead><tr>' +
-    '<th>발주번호</th><th>구분</th><th>발행일</th><th>요청납기(NBD)</th><th>ERP코드</th>' +
+    '<th></th><th>발주번호</th><th>구분</th><th>발행일</th><th>요청납기(NBD)</th><th>ERP코드</th>' +
     '<th>품목명</th><th>OEM Code</th>' +
     '<th>발주수량</th><th>완료수량</th><th>진행률</th><th>상태</th>' +
     '<th>납품일</th><th>계산서발행일</th><th>시리얼번호</th>' +
@@ -1014,7 +1159,7 @@ function renderNcmTable(){
   }).join('');
   const body = filtered.length ? rows : '<tr><td colspan="10"><div class="empty-note">조건에 맞는 부적합 항목이 없습니다.</div></td></tr>';
   return '' +
-  '<div class="table-wrap"><div class="table-scroll">' +
+  '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll">' +
   '<table class="table"><thead><tr>' +
     '<th>모델</th><th>모듈</th><th>발생일</th><th>수량</th><th>불량증상</th>' +
     '<th>ASENDIA통보일</th><th>ASENDIA담당자</th><th>진행상태</th><th>교환품수령일</th><th>관리</th>' +
@@ -1055,6 +1200,18 @@ function renderNcmModal(){
 }
 
 /* ---------- root render ---------- */
+function syncTableScrollbars(){
+  document.querySelectorAll('.table-wrap').forEach(function(wrap){
+    const top = wrap.querySelector('.table-scroll-top');
+    const inner = wrap.querySelector('.table-scroll-top-inner');
+    const main = wrap.querySelector('.table-scroll');
+    if(!top || !inner || !main) return;
+    inner.style.width = main.scrollWidth + 'px';
+    top.addEventListener('scroll', function(){ main.scrollLeft = top.scrollLeft; });
+    main.addEventListener('scroll', function(){ top.scrollLeft = main.scrollLeft; });
+  });
+}
+
 function render(){
   const active = document.activeElement;
   const activeId = active && active.id ? active.id : null;
@@ -1103,6 +1260,12 @@ function render(){
         try{ el.setSelectionRange(selStart, selEnd); }catch(e){}
       }
     }
+  }
+
+  if(typeof requestAnimationFrame === 'function'){
+    requestAnimationFrame(syncTableScrollbars);
+  } else {
+    setTimeout(syncTableScrollbars, 0);
   }
 }
 

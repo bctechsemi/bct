@@ -1056,42 +1056,54 @@ function renderNcmModal(){
 
 /* ---------- root render ---------- */
 function render(){
+  const active = document.activeElement;
+  const activeId = active && active.id ? active.id : null;
+  const selStart = active && typeof active.selectionStart === 'number' ? active.selectionStart : null;
+  const selEnd = active && typeof active.selectionEnd === 'number' ? active.selectionEnd : null;
+
+  let html;
   if(state.authView==='checking'){
-    document.getElementById('app').innerHTML = renderHeader() + '<div class="empty-note" style="padding:120px 20px;text-align:center">로그인 정보를 확인하는 중입니다…</div>';
-    return;
-  }
-  if(state.authView==='login'){
-    document.getElementById('app').innerHTML = renderHeader() + renderLoginScreen();
-    return;
-  }
-  if(state.authView==='forbidden'){
-    document.getElementById('app').innerHTML = renderHeader() + renderForbiddenScreen();
-    return;
+    html = renderHeader() + '<div class="empty-note" style="padding:120px 20px;text-align:center">로그인 정보를 확인하는 중입니다…</div>';
+  } else if(state.authView==='login'){
+    html = renderHeader() + renderLoginScreen();
+  } else if(state.authView==='forbidden'){
+    html = renderHeader() + renderForbiddenScreen();
+  } else {
+    const isPo = state.section === 'po';
+    const bodyContent = state.loading
+      ? '<div class="empty-note" style="padding:80px 20px">데이터를 불러오는 중입니다…</div>'
+      : isPo
+        ? (renderStats() + renderCatBar() +
+           '<div class="toolbar"><input id="po_search_input" class="input search-input" placeholder="발주번호, 품목명, OEM Code, ERP코드 검색" value="' + state.query + '" oninput="setQuery(this.value)"><span class="empty-note" style="padding:0">표 안에서 Shift + 마우스 휠로 좌우 스크롤할 수 있습니다.</span></div>' +
+           renderTable())
+        : (renderNcmStatusBar() +
+           '<div class="toolbar"><input id="ncm_search_input" class="input search-input" placeholder="모델, 모듈, 불량증상, ASENDIA담당자 검색" value="' + state.ncmQuery + '" oninput="setNcmQuery(this.value)"><span class="empty-note" style="padding:0">표 안에서 Shift + 마우스 휠로 좌우 스크롤할 수 있습니다.</span></div>' +
+           renderNcmTable());
+
+    const pageHead = isPo
+      ? '<div class="page-head"><h1>아센디아 발주현황</h1><p>발주 항목별 진행 상태를 확인하고 완료수량을 직접 입력합니다. 이 화면은 BCT 내부 전용이며 고객사에는 공개되지 않습니다.</p></div>'
+      : '<div class="page-head"><h1>부적합 (NCM) 관리</h1><p>외주용역 작업 중 사급 부품에서 발생한 불량 현황과 ASENDIA 통보·교환 진행상황을 관리합니다. 이 화면은 BCT 내부 전용이며 고객사에는 공개되지 않습니다.</p></div>';
+
+    html = renderHeader() +
+      '<div class="content">' +
+        pageHead +
+        bodyContent +
+      '</div>' +
+      (isPo ? renderModal() : renderNcmModal()) +
+      (state.toast ? '<div class="toast">' + state.toast + '</div>' : '');
   }
 
-  const isPo = state.section === 'po';
-  const bodyContent = state.loading
-    ? '<div class="empty-note" style="padding:80px 20px">데이터를 불러오는 중입니다…</div>'
-    : isPo
-      ? (renderStats() + renderCatBar() +
-         '<div class="toolbar"><input class="input search-input" placeholder="발주번호, 품목명, OEM Code, ERP코드 검색" value="' + state.query + '" oninput="setQuery(this.value)"><span class="empty-note" style="padding:0">표 안에서 Shift + 마우스 휠로 좌우 스크롤할 수 있습니다.</span></div>' +
-         renderTable())
-      : (renderNcmStatusBar() +
-         '<div class="toolbar"><input class="input search-input" placeholder="모델, 모듈, 불량증상, ASENDIA담당자 검색" value="' + state.ncmQuery + '" oninput="setNcmQuery(this.value)"><span class="empty-note" style="padding:0">표 안에서 Shift + 마우스 휠로 좌우 스크롤할 수 있습니다.</span></div>' +
-         renderNcmTable());
+  document.getElementById('app').innerHTML = html;
 
-  const pageHead = isPo
-    ? '<div class="page-head"><h1>아센디아 발주현황</h1><p>발주 항목별 진행 상태를 확인하고 완료수량을 직접 입력합니다. 이 화면은 BCT 내부 전용이며 고객사에는 공개되지 않습니다.</p></div>'
-    : '<div class="page-head"><h1>부적합 (NCM) 관리</h1><p>외주용역 작업 중 사급 부품에서 발생한 불량 현황과 ASENDIA 통보·교환 진행상황을 관리합니다. 이 화면은 BCT 내부 전용이며 고객사에는 공개되지 않습니다.</p></div>';
-
-  document.getElementById('app').innerHTML =
-    renderHeader() +
-    '<div class="content">' +
-      pageHead +
-      bodyContent +
-    '</div>' +
-    (isPo ? renderModal() : renderNcmModal()) +
-    (state.toast ? '<div class="toast">' + state.toast + '</div>' : '');
+  if(activeId){
+    const el = document.getElementById(activeId);
+    if(el && typeof el.focus === 'function'){
+      el.focus();
+      if(selStart!=null && el.setSelectionRange){
+        try{ el.setSelectionRange(selStart, selEnd); }catch(e){}
+      }
+    }
+  }
 }
 
 render();

@@ -110,7 +110,19 @@
 
   /* ---- table ---- */
   .table-wrap{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); overflow:hidden; }
+  .table-scroll-top{ overflow-x:auto; overflow-y:hidden; height:14px; border-bottom:1px solid var(--hairline-soft); }
+  .table-scroll-top-inner{ height:1px; }
   .table-scroll{ overflow:auto; max-height:66vh; }
+  .toggle-btn{
+    width:22px; height:22px; border-radius:50%; border:none; padding:0;
+    background:rgba(0,100,224,.10); color:var(--primary);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:10px; cursor:pointer; line-height:1;
+  }
+  .toggle-btn:hover{ background:rgba(0,100,224,.2); }
+  .component-panel table.table{ width:100%; }
+  .component-panel table.table td{ text-align:center; }
+  .component-panel .progress-wrap{ justify-content:center; margin:0 auto; }
   table.table{ width:100%; border-collapse:collapse; font-size:13px; min-width:1400px; }
   table.table th{
     text-align:center; font-weight:700; color:var(--steel); font-size:11px;
@@ -210,6 +222,8 @@ const IS_ADMIN_FILE = false;
 const AUTH_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/auth/v1';
 const PROFILES_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/profiles';
 const ITEM_MASTER_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/item_master';
+const SET_COMPONENTS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/set_components';
+const PO_PROGRESS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/po_component_progress';
 const NCM_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/ncm_list';
 const SESSION_KEY = 'bct_po_status_session_v1';
 function sbHeaders(extra){
@@ -234,6 +248,9 @@ const state = {
   connError:null,
   records: [],
   itemMasterList: [],
+  expandedPoId: null,
+  componentRows: [],
+  componentsLoading: false,
   session:null,
   profile:null,
   authView:'checking',
@@ -637,12 +654,64 @@ function renderNcmTable(){
   }).join('');
   const body = filtered.length ? rows : '<tr><td colspan="9"><div class="empty-note">조건에 맞는 부적합 항목이 없습니다.</div></td></tr>';
   return '' +
-  '<div class="table-wrap"><div class="table-scroll">' +
+  '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll">' +
   '<table class="table"><thead><tr>' +
     '<th>모델</th><th>모듈</th><th>발생일</th><th>수량</th><th>불량증상</th>' +
     '<th>ASENDIA통보일</th><th>ASENDIA담당자</th><th>진행상태</th><th>교환품수령일</th>' +
   '</tr></thead><tbody>' + body + '</tbody></table>' +
   '</div></div>';
+}
+
+/* ---------- set-component (BOM) progress (읽기 전용) ---------- */
+async function toggleComponents(poId){
+  if(String(state.expandedPoId)===String(poId)){
+    state.expandedPoId = null;
+    render();
+    return;
+  }
+  state.expandedPoId = poId;
+  state.componentRows = [];
+  state.componentsLoading = true;
+  render();
+  await loadComponentsForPo(poId);
+}
+
+async function loadComponentsForPo(poId){
+  if(state.demoMode){
+    state.componentRows = [];
+    state.componentsLoading = false;
+    render();
+    return;
+  }
+  try{
+    const res = await fetch(PO_PROGRESS_URL + '?po_id=eq.' + poId + '&select=*&order=component.asc', { headers: sbHeaders() });
+    state.componentRows = res.ok ? await res.json() : [];
+  } catch(e){
+    state.componentRows = [];
+  }
+  state.componentsLoading = false;
+  render();
+}
+
+function renderComponentPanel(){
+  if(state.componentsLoading){
+    return '<div class="empty-note">구성품 정보를 불러오는 중입니다…</div>';
+  }
+  if(!state.componentRows.length){
+    return '<div class="empty-note">이 항목에는 등록된 구성품(Set) 정보가 없습니다.</div>';
+  }
+  const rows = state.componentRows.map(cr=>{
+    const pct = cr.required_quantity>0 ? Math.round(cr.completed_quantity/cr.required_quantity*100) : 0;
+    return '<tr>' +
+      '<td>' + dash(cr.component) + '</td>' +
+      '<td class="num">' + qty(cr.required_quantity) + '</td>' +
+      '<td class="num">' + qty(cr.completed_quantity) + '</td>' +
+      '<td><div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div><div class="progress-text num">' + pct + '%</div></div></td>' +
+    '</tr>';
+  }).join('');
+  return '' +
+    '<div class="stat-label" style="margin:0 0 8px">구성품별 진행률</div>' +
+    '<div class="component-panel"><table class="table"><thead><tr><th>구성품</th><th>필요수량</th><th>완료수량</th><th>진행률</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 
 function filteredServiceRecords(){
@@ -679,7 +748,10 @@ function renderTable(){
   const filtered = filteredServiceRecords();
   const rows = filtered.map(r=>{
     const p = progressOf(r);
-    return '<tr>' +
+    const isExpanded = String(state.expandedPoId)===String(r.id);
+    const toggleBtn = '<button class="toggle-btn" onclick="toggleComponents(\'' + r.id + '\')" title="구성품 보기">' + (isExpanded?'▾':'▸') + '</button>';
+    const mainRow = '<tr>' +
+      '<td>' + toggleBtn + '</td>' +
       '<td class="num">' + dash(r.po_number) + '</td>' +
       '<td>' + dash(r.po_date) + '</td>' +
       '<td>' + dash(r.asendia_nbd) + '</td>' +
@@ -692,16 +764,32 @@ function renderTable(){
       '<td>' + dash(r.delivery_date) + '</td>' +
       '<td>' + dash(r.serial_number) + '</td>' +
     '</tr>';
+    const expandRow = isExpanded
+      ? '<tr><td colspan="12" style="padding:0;background:var(--surface-soft)"><div style="position:sticky;left:0;max-width:640px;padding:14px 16px;box-sizing:border-box">' + renderComponentPanel() + '</div></td></tr>'
+      : '';
+    return mainRow + expandRow;
   }).join('');
-  const body = filtered.length ? rows : '<tr><td colspan="11"><div class="empty-note">조건에 맞는 PO 항목이 없습니다.</div></td></tr>';
+  const body = filtered.length ? rows : '<tr><td colspan="12"><div class="empty-note">조건에 맞는 PO 항목이 없습니다.</div></td></tr>';
   return '' +
-  '<div class="table-wrap"><div class="table-scroll">' +
+  '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll"' + (state.expandedPoId ? ' style="max-height:none"' : '') + '>' +
   '<table class="table"><thead><tr>' +
-    '<th>발주번호</th><th>발행일</th><th>요청납기(NBD)</th><th>ERP코드</th>' +
+    '<th></th><th>발주번호</th><th>발행일</th><th>요청납기(NBD)</th><th>ERP코드</th>' +
     '<th>품목명</th><th>발주수량</th><th>완료수량</th><th>진행률</th><th>상태</th>' +
     '<th>납품일</th><th>시리얼번호</th>' +
   '</tr></thead><tbody>' + body + '</tbody></table>' +
   '</div></div>';
+}
+
+function syncTableScrollbars(){
+  document.querySelectorAll('.table-wrap').forEach(function(wrap){
+    const top = wrap.querySelector('.table-scroll-top');
+    const inner = wrap.querySelector('.table-scroll-top-inner');
+    const main = wrap.querySelector('.table-scroll');
+    if(!top || !inner || !main) return;
+    inner.style.width = main.scrollWidth + 'px';
+    top.addEventListener('scroll', function(){ main.scrollLeft = top.scrollLeft; });
+    main.addEventListener('scroll', function(){ top.scrollLeft = main.scrollLeft; });
+  });
 }
 
 function render(){
@@ -751,6 +839,12 @@ function render(){
         try{ el.setSelectionRange(selStart, selEnd); }catch(e){}
       }
     }
+  }
+
+  if(typeof requestAnimationFrame === 'function'){
+    requestAnimationFrame(syncTableScrollbars);
+  } else {
+    setTimeout(syncTableScrollbars, 0);
   }
 }
 

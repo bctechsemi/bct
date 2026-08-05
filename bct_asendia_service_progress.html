@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <style>
   :root{
@@ -16,7 +16,7 @@
     --ink-button:#000000; --on-ink-button:#FFFFFF;
     --fb-blue:#1876F2;
     --success:#31A24C; --attention:#F2A918; --warning:#F7B928;
-    --critical:#E41E3F; --critical-strong:#F0284A;
+    --critical:#E41E3F; --critical-strong:#F0284A; --pink:#FF3D8F;
     --canvas:#FFFFFF; --surface-soft:#F1F4F7;
     --ink-deep:#0A1317; --ink:#1C1E21; --charcoal:#444950; --slate:#4B4C4F;
     --steel:#5D6C7B; --stone:#8595A4;
@@ -40,31 +40,29 @@
   }
   .brand{ display:flex; align-items:center; gap:16px; }
   .brand img{ height:56px; width:auto; display:block; }
-  .brand-text-kr{ font-family:var(--font); font-weight:700; font-size:20px; color:var(--ink-deep); letter-spacing:-0.1px; text-align:center; }
+  .brand-text-kr{ font-family:'Black Han Sans','Noto Sans KR',sans-serif; font-weight:400; font-size:34px; color:var(--ink-deep); letter-spacing:.5px; text-align:center; }
   .brand-text-sub{ font-size:12px; color:var(--steel); margin-top:2px; text-align:center; }
-  .bct-badge{
-    display:inline-flex; align-items:center; justify-content:center;
-    width:30px; height:30px; border-radius:var(--r-full); background:var(--primary); color:#fff;
-    font-size:10px; font-weight:700; margin-left:10px; vertical-align:middle;
-  }
   .conn-dot{
-    display:inline-block; width:10px; height:10px; border-radius:var(--r-full);
-    margin-left:8px; vertical-align:middle; box-shadow:0 0 0 2px var(--canvas);
+    display:inline-block; width:14px; height:14px; border-radius:50%;
+    margin-left:12px; vertical-align:middle; box-shadow:0 0 0 2px var(--canvas);
   }
   .topbar-actions{ display:flex; align-items:center; gap:10px; }
   .user-email{ font-size:12px; color:var(--steel); margin-right:4px; }
   .ruler{ height:3px; background:linear-gradient(90deg, var(--primary), var(--primary-soft) 50%, var(--hairline-soft) 50%); background-size:200% 100%; opacity:.9; }
 
   .section-nav{ background:var(--canvas); border-bottom:1px solid var(--hairline-soft); padding:14px 32px; display:flex; justify-content:center; }
-  .section-tabs{ display:flex; gap:8px; justify-content:center; }
-  .section-tab{
-    font-family:var(--font); font-weight:700; font-size:14px; letter-spacing:-0.14px;
-    padding:9px 20px; border-radius:var(--r-full); border:1px solid var(--hairline);
-    background:var(--canvas); color:var(--ink); cursor:pointer;
+  .section-tabs{
+    display:inline-flex; gap:2px; justify-content:center;
+    padding:4px; background:var(--surface-soft); border:1px solid var(--hairline-soft); border-radius:var(--r-full);
   }
-  .section-tab.active{ background:var(--ink-deep); color:var(--canvas); border-color:var(--ink-deep); }
+  .section-tab{
+    font-family:var(--font); font-weight:700; font-size:13.5px; letter-spacing:-0.14px;
+    padding:8px 22px; border-radius:var(--r-full); border:none;
+    background:transparent; color:var(--steel); cursor:pointer; transition:background .15s, color .15s;
+  }
+  .section-tab.active{ background:var(--canvas); color:var(--ink-deep); box-shadow:0 1px 3px rgba(10,19,23,.14); }
 
-  .content{ padding:28px 32px 64px; max-width:1480px; margin:0 auto; }
+  .content{ padding:28px 32px 64px; max-width:min(1800px, 96vw); margin:0 auto; }
   .page-head h1{ font-family:var(--font); font-weight:500; font-size:24px; line-height:1.25; color:var(--ink-deep); margin:0 0 4px; letter-spacing:-0.2px; }
   .page-head p{ font-size:14px; color:var(--steel); margin:0 0 22px; }
 
@@ -260,7 +258,7 @@ const state = {
   ncmRecords: [],
   ncmStatus:'all',
   ncmQuery:'',
-  statusFilter:'all'
+  statusFilter:'inprogress'
 };
 
 /* ---------- auth ---------- */
@@ -473,7 +471,7 @@ function lookupItemMaster(){
 
 function connDot(){
   const connected = !state.loading && !state.demoMode && !state.connError;
-  const color = connected ? 'var(--green)' : 'var(--red)';
+  const color = connected ? 'var(--success)' : 'var(--pink)';
   const title = state.loading ? '불러오는 중'
     : connected ? 'Supabase 연결됨'
     : (state.connError ? '연결 실패: ' + state.connError : '데모 모드 (Supabase 미설정)');
@@ -504,7 +502,7 @@ function renderForbiddenScreen(){
 
 function renderHeader(){
   const tabs = '<div class="section-tabs">' +
-      '<button class="section-tab ' + (state.section==='po'?'active':'') + '" onclick="setSection(\'po\')">PO 현황</button>' +
+      '<button class="section-tab ' + (state.section==='po'?'active':'') + '" onclick="setSection(\'po\')">생산진행현황</button>' +
       '<button class="section-tab ' + (state.section==='ncm'?'active':'') + '" onclick="setSection(\'ncm\')">부적합 (NCM)</button>' +
     '</div>';
   return '' +
@@ -512,7 +510,7 @@ function renderHeader(){
     '<div class="brand">' +
       '<img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT 로고">' +
       '<div>' +
-        '<div class="brand-text-kr">통합 관리 시스템<span class="bct-badge">BCT</span>' + connDot() + '</div>' +
+        '<div class="brand-text-kr">통합 관리 시스템' + connDot() + '</div>' +
         '<div class="brand-text-sub">ASENDIA 발주 · 부적합 진행 현황 (고객사용)</div>' +
       '</div>' +
     '</div>' +
@@ -718,10 +716,7 @@ function filteredServiceRecords(){
   const q = state.query.trim().toLowerCase();
   return state.records.filter(r=>{
     if(r.po_category!=='services') return false;
-    const p = progressOf(r);
-    const matchesStatus = state.statusFilter==='done' ? p.pct>=100
-      : state.statusFilter==='pending' ? p.pct<100
-      : true;
+    const matchesStatus = state.statusFilter==='inprogress' ? !r.delivery_date : true;
     if(!matchesStatus) return false;
     if(!q) return true;
     return [r.po_number, r.ordered_item, r.oem_code, r.erp_code_asendia].some(v=>v && String(v).toLowerCase().includes(q));
@@ -730,12 +725,10 @@ function filteredServiceRecords(){
 
 function renderStatusBar(){
   const base = state.records.filter(r=>r.po_category==='services');
-  const counts = { all: base.length, done:0, pending:0 };
-  base.forEach(r=>{ const p = progressOf(r); if(p.pct>=100) counts.done++; else counts.pending++; });
+  const counts = { all: base.length, inprogress: base.filter(r=>!r.delivery_date).length };
   const items = [
     { key:'all', label:'전체' },
-    { key:'done', label:'완료' },
-    { key:'pending', label:'미완료' }
+    { key:'inprogress', label:'진행중' }
   ];
   return '<div class="cat-bar">' + items.map(it=>{
     const active = state.statusFilter===it.key ? 'active' : '';

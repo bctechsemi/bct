@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <style>
   :root{
@@ -16,7 +16,7 @@
     --ink-button:#000000; --on-ink-button:#FFFFFF;
     --fb-blue:#1876F2;
     --success:#31A24C; --attention:#F2A918; --warning:#F7B928;
-    --critical:#E41E3F; --critical-strong:#F0284A;
+    --critical:#E41E3F; --critical-strong:#F0284A; --pink:#FF3D8F;
     --canvas:#FFFFFF; --surface-soft:#F1F4F7;
     --ink-deep:#0A1317; --ink:#1C1E21; --charcoal:#444950; --slate:#4B4C4F;
     --steel:#5D6C7B; --stone:#8595A4;
@@ -40,16 +40,11 @@
   }
   .brand{ display:flex; align-items:center; gap:16px; }
   .brand img{ height:56px; width:auto; display:block; }
-  .brand-text-kr{ font-family:var(--font); font-weight:700; font-size:20px; color:var(--ink-deep); letter-spacing:-0.1px; text-align:center; }
+  .brand-text-kr{ font-family:'Black Han Sans','Noto Sans KR',sans-serif; font-weight:400; font-size:34px; color:var(--ink-deep); letter-spacing:.5px; text-align:center; }
   .brand-text-sub{ font-size:12px; color:var(--steel); margin-top:2px; text-align:center; }
-  .bct-badge{
-    display:inline-flex; align-items:center; justify-content:center;
-    width:30px; height:30px; border-radius:var(--r-full); background:var(--primary); color:#fff;
-    font-size:10px; font-weight:700; margin-left:10px; vertical-align:middle;
-  }
   .conn-dot{
-    display:inline-block; width:10px; height:10px; border-radius:var(--r-full);
-    margin-left:8px; vertical-align:middle; box-shadow:0 0 0 2px var(--canvas);
+    display:inline-block; width:14px; height:14px; border-radius:50%;
+    margin-left:12px; vertical-align:middle; box-shadow:0 0 0 2px var(--canvas);
   }
   .topbar-actions{ display:flex; align-items:center; gap:10px; }
   .user-email{ font-size:12px; color:var(--steel); margin-right:4px; }
@@ -64,7 +59,7 @@
   }
   .section-tab.active{ background:var(--ink-deep); color:var(--canvas); border-color:var(--ink-deep); }
 
-  .content{ padding:28px 32px 64px; max-width:1480px; margin:0 auto; }
+  .content{ padding:28px 32px 64px; max-width:min(1800px, 96vw); margin:0 auto; }
   .page-head h1{ font-family:var(--font); font-weight:500; font-size:24px; line-height:1.25; color:var(--ink-deep); margin:0 0 4px; letter-spacing:-0.2px; }
   .page-head p{ font-size:14px; color:var(--steel); margin:0 0 22px; }
 
@@ -619,7 +614,7 @@ async function submitPoForm(){
 /* ---------- render pieces ---------- */
 function connDot(){
   const connected = !state.loading && !state.demoMode && !state.connError;
-  const color = connected ? 'var(--green)' : 'var(--red)';
+  const color = connected ? 'var(--success)' : 'var(--pink)';
   const title = state.loading ? '불러오는 중'
     : connected ? 'Supabase 연결됨'
     : (state.connError ? '연결 실패: ' + state.connError : '데모 모드 (Supabase 미설정)');
@@ -661,7 +656,7 @@ function renderHeader(){
     '<div class="brand">' +
       '<img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT 로고">' +
       '<div>' +
-        '<div class="brand-text-kr">통합 관리 시스템<span class="bct-badge">BCT</span>' + connDot() + '</div>' +
+        '<div class="brand-text-kr">통합 관리 시스템' + connDot() + '</div>' +
         '<div class="brand-text-sub">ASENDIA 발주 · 부적합 통합 관리 (엔지니어용)</div>' +
       '</div>' +
     '</div>' +

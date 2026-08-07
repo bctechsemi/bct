@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BCT 통합 관리 시스템 — Engineer</title>
+<title>BCT 생산 관리 시스템 — Engineer</title>
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,6 +58,8 @@
     background:var(--canvas); color:var(--ink); cursor:pointer;
   }
   .section-tab.active{ background:var(--ink-deep); color:var(--canvas); border-color:var(--ink-deep); }
+  .section-tab-link{ text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+  .section-tab-link:hover{ background:var(--surface-soft); }
 
   .content{ padding:28px 32px 64px; max-width:min(1800px, 96vw); margin:0 auto; }
   .page-head h1{ font-family:var(--font); font-weight:500; font-size:24px; line-height:1.25; color:var(--ink-deep); margin:0 0 4px; letter-spacing:-0.2px; }
@@ -650,13 +652,14 @@ function renderHeader(){
   const tabs = '<div class="section-tabs">' +
       '<button class="section-tab ' + (state.section==='po'?'active':'') + '" onclick="setSection(\'po\')">PO 현황</button>' +
       '<button class="section-tab ' + (state.section==='ncm'?'active':'') + '" onclick="setSection(\'ncm\')">부적합 (NCM)</button>' +
+      '<a class="section-tab section-tab-link" href="bct_asendia_qc.html" target="_blank" rel="noopener noreferrer">SPC 차트 ↗</a>' +
     '</div>';
   return '' +
   '<div class="topbar">' +
     '<div class="brand">' +
       '<img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT 로고">' +
       '<div>' +
-        '<div class="brand-text-kr">통합 관리 시스템' + connDot() + '</div>' +
+        '<div class="brand-text-kr">생산 관리 시스템' + connDot() + '</div>' +
         '<div class="brand-text-sub">ASENDIA 발주 · 부적합 통합 관리 (엔지니어용)</div>' +
       '</div>' +
     '</div>' +

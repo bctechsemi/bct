@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BCT × ASENDIA — SPC Chart (Customer View)</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" defer></script>
+<style>
+  :root{
+    /* ---- Meta-derived design tokens (shared with the other BCT x ASENDIA pages) ---- */
+    --primary:#0064E0; --primary-deep:#0457CB; --primary-soft:#0091FF; --on-primary:#FFFFFF;
+    --ink-button:#000000; --on-ink-button:#FFFFFF;
+    --fb-blue:#1876F2;
+    --success:#31A24C; --success-bg:#E9F6EC; --attention:#F2A918; --warning:#F7B928;
+    --critical:#E41E3F; --critical-strong:#F0284A; --critical-bg:#FDE8EC; --pink:#FF3D8F;
+    --canvas:#FFFFFF; --surface-soft:#F1F4F7;
+    --ink-deep:#0A1317; --ink:#1C1E21; --charcoal:#444950; --slate:#4B4C4F;
+    --steel:#5D6C7B; --stone:#8595A4;
+    --hairline:#CED0D4; --hairline-soft:#DEE3E9; --disabled-text:#BCC0C4;
+    --r-sm:4px; --r-md:6px; --r-lg:8px; --r-xl:16px; --r-xxl:24px; --r-xxxl:32px; --r-full:100px;
+    --sp-xxs:4px; --sp-xs:8px; --sp-sm:10px; --sp-md:12px; --sp-base:16px; --sp-lg:20px; --sp-xl:24px; --sp-xxl:32px;
+    --font: 'Google Sans','Noto Sans KR',-apple-system,sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--surface-soft); color:var(--ink);
+    font-family:var(--font); font-size:14px; line-height:1.43; letter-spacing:-0.1px;
+  }
+  .num{ font-variant-numeric:tabular-nums; }
+
+  /* ---- topbar ---- */
+  .topbar{
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    padding:20px 32px; background:var(--canvas); border-bottom:1px solid var(--hairline-soft);
+  }
+  .brand{ display:flex; align-items:center; gap:16px; }
+  .brand img{ height:56px; width:auto; display:block; }
+  .brand-text-en{ font-family:var(--font); font-weight:700; font-size:26px; color:var(--ink-deep); letter-spacing:-.3px; text-align:center; }
+  .brand-text-sub{ font-size:12px; color:var(--steel); margin-top:2px; text-align:center; }
+  .conn-dot{
+    display:inline-block; width:14px; height:14px; border-radius:50%;
+    margin-left:12px; vertical-align:middle; box-shadow:0 0 0 2px var(--canvas);
+  }
+  .topbar-actions{ display:flex; align-items:center; gap:10px; }
+  .user-email{ font-size:12px; color:var(--steel); margin-right:4px; }
+  .ruler{ height:3px; background:linear-gradient(90deg, var(--primary), var(--primary-soft) 50%, var(--hairline-soft) 50%); background-size:200% 100%; opacity:.9; }
+
+  .section-nav{ background:var(--canvas); border-bottom:1px solid var(--hairline-soft); padding:14px 32px; display:flex; justify-content:center; }
+  .section-tabs{
+    display:inline-flex; gap:2px; justify-content:center;
+    padding:4px; background:var(--surface-soft); border:1px solid var(--hairline-soft); border-radius:var(--r-full);
+  }
+  .section-tab{
+    font-family:var(--font); font-weight:700; font-size:13.5px; letter-spacing:-0.1px;
+    padding:8px 22px; border-radius:var(--r-full); border:none;
+    background:transparent; color:var(--steel); cursor:pointer; transition:background .15s, color .15s;
+  }
+  .section-tab.active{ background:var(--canvas); color:var(--ink-deep); box-shadow:0 1px 3px rgba(10,19,23,.14); }
+
+  .content{ padding:28px 32px 64px; max-width:min(1800px, 96vw); margin:0 auto; }
+  .page-head h1{ font-family:var(--font); font-weight:600; font-size:24px; line-height:1.25; color:var(--ink-deep); margin:0 0 4px; letter-spacing:-0.2px; }
+  .page-head p{ font-size:14px; color:var(--steel); margin:0 0 22px; }
+
+  /* ---- selector row ---- */
+  .selector-row{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
+  .selector-field{ display:flex; flex-direction:column; gap:6px; min-width:220px; }
+  .selector-field label{ font-size:11.5px; font-weight:700; color:var(--slate); text-transform:uppercase; letter-spacing:.4px; }
+
+  /* ---- cards ---- */
+  .card-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:20px; }
+  .stat-card{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); padding:18px 20px; }
+  .stat-label{ font-size:11.5px; color:var(--steel); margin-bottom:8px; text-transform:uppercase; letter-spacing:.4px; }
+  .stat-value{ font-family:var(--font); font-size:22px; font-weight:600; color:var(--ink-deep); }
+  .stat-value.good{ color:var(--success); }
+  .stat-value.warn{ color:var(--attention); }
+  .stat-value.bad{ color:var(--critical); }
+
+  .panel{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); padding:24px; margin-bottom:20px; }
+  .panel h2{ font-family:var(--font); font-size:15px; font-weight:700; color:var(--ink-deep); margin:0 0 16px; }
+  .panel-head-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .panel-head-row h2{ margin:0; }
+
+  /* ---- form controls ---- */
+  .input, .select{
+    font-family:var(--font); font-size:14px; color:var(--ink);
+    background:var(--canvas); border:1px solid var(--hairline); border-radius:var(--r-lg);
+    padding:0 14px; height:44px; width:100%;
+  }
+  .input:focus, .select:focus{ outline:none; border:2px solid var(--fb-blue); padding:0 13px; }
+  select.select{ height:44px; }
+  .btn{
+    font-family:var(--font); font-weight:700; font-size:12.5px; letter-spacing:-0.1px;
+    padding:7px 18px; border-radius:999px; border:2px solid transparent; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .btn-primary{ background:var(--primary); color:var(--on-primary); border-color:var(--primary); }
+  .btn-primary:hover{ background:var(--primary-deep); border-color:var(--primary-deep); }
+  .btn-primary:disabled{ opacity:.55; cursor:not-allowed; }
+  .btn-ghost{ background:transparent; color:var(--ink-deep); border:2px solid rgba(10,19,23,.14); }
+  .btn-ghost:hover{ background:var(--surface-soft); }
+  .btn-sm{ padding:6px 14px; font-size:11.5px; }
+
+  /* ---- entry form grid ---- */
+  .meta-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px 16px; margin-bottom:22px; }
+  .param-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:14px; }
+  .param-port-group{ margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--hairline-soft); }
+  .param-port-group:last-child{ margin-bottom:0; padding-bottom:0; border-bottom:none; }
+  .param-port-title{ font-family:var(--font); font-size:12.5px; font-weight:700; color:var(--steel); text-transform:uppercase; letter-spacing:.5px; margin:0 0 12px; }
+  .form-field{ display:flex; flex-direction:column; gap:6px; }
+  .form-field label{ font-size:12px; color:var(--slate); font-weight:700; display:flex; align-items:center; gap:6px; }
+  .unit-tag{ font-size:10.5px; font-weight:600; color:var(--steel); background:var(--surface-soft); padding:1px 7px; border-radius:var(--r-full); }
+  .param-input-row{ display:flex; align-items:center; gap:8px; }
+  .param-input-row .input{ flex:1; }
+  .form-hint{ font-size:11px; color:var(--steel); margin-top:1px; }
+  .live-badge{
+    display:inline-flex; align-items:center; justify-content:center; min-width:52px; height:28px; padding:0 10px;
+    border-radius:var(--r-full); font-size:10.5px; font-weight:700; letter-spacing:.3px; white-space:nowrap;
+  }
+  .live-badge.pending{ background:var(--surface-soft); color:var(--stone); }
+  .live-badge.pass{ background:var(--success-bg); color:var(--success); }
+  .live-badge.fail{ background:var(--critical-bg); color:var(--critical); }
+
+  .form-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:22px; padding-top:18px; border-top:1px solid var(--hairline-soft); }
+
+  /* ---- procedure reference banner ---- */
+  .procedure-banner{
+    display:flex; align-items:center; gap:12px;
+    background:var(--surface-soft); border:1px solid var(--hairline-soft); border-radius:var(--r-xl);
+    padding:14px 18px; margin-bottom:20px;
+  }
+  .procedure-banner-link{ text-decoration:none; cursor:pointer; transition:background .12s, border-color .12s; }
+  .procedure-banner-link:hover{ background:var(--canvas); border-color:var(--primary); }
+  .procedure-icon{ font-size:20px; line-height:1; }
+  .procedure-title{ font-weight:700; font-size:13.5px; color:var(--ink-deep); }
+  .procedure-banner-link .procedure-title{ color:var(--primary); }
+  .procedure-sub{ font-size:12px; color:var(--steel); margin-top:2px; }
+  .procedure-banner-empty{ color:var(--steel); font-size:12.5px; gap:10px; }
+
+  /* ---- table ---- */
+  .table-wrap{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); overflow:hidden; }
+  .table-scroll{ overflow:auto; max-height:56vh; }
+  table.table{ width:100%; border-collapse:collapse; font-size:13px; }
+  table.table th{
+    text-align:center; font-weight:700; color:var(--steel); font-size:11px;
+    text-transform:uppercase; letter-spacing:.4px; padding:12px 14px; border-bottom:1px solid var(--hairline-soft);
+    background:var(--canvas); white-space:nowrap; position:sticky; top:0;
+  }
+  table.table td{ padding:11px 14px; border-bottom:1px solid var(--hairline-soft); vertical-align:middle; white-space:nowrap; text-align:center; }
+  table.table tbody tr:hover{ background:var(--surface-soft); }
+  .empty-note{ font-size:13px; color:var(--steel); padding:40px 20px; text-align:center; }
+
+  .badge{
+    display:inline-flex; align-items:center; padding:4px 12px; border-radius:var(--r-full);
+    font-size:11px; font-weight:700; letter-spacing:.2px; white-space:nowrap;
+  }
+  .badge-green{ background:var(--success); color:#fff; }
+  .badge-red{ background:var(--critical); color:#fff; }
+  .badge-gray{ background:var(--stone); color:#fff; }
+
+  /* ---- chart ---- */
+  .chart-wrap{ position:relative; height:420px; }
+  .chart-legend-note{ display:flex; flex-wrap:wrap; gap:16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--hairline-soft); }
+  .legend-item{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--steel); }
+  .legend-swatch{ width:18px; height:0; border-top:2.5px solid; display:inline-block; }
+  .legend-swatch.dashed{ border-top-style:dashed; }
+
+  /* ---- login ---- */
+  .login-wrap{ min-height:70vh; display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+  .login-card{ width:100%; max-width:380px; background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xxl); padding:36px 32px; text-align:center; box-shadow:0 4px 24px rgba(10,19,23,.05); }
+  .login-logo{ height:60px; width:auto; margin:0 auto 20px; display:block; }
+  .login-title{ font-family:var(--font); font-size:18px; font-weight:600; color:var(--ink-deep); margin-bottom:20px; }
+  .login-card .form-field{ text-align:left; margin-bottom:12px; }
+  .field-error{ font-size:12.5px; color:var(--critical-strong); margin-bottom:10px; display:none; }
+  .field-error.show{ display:block; }
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+    background:var(--ink-deep); color:#fff; padding:13px 22px; border-radius:var(--r-full);
+    font-size:13px; font-weight:500; box-shadow:0 10px 30px rgba(10,19,23,.3); z-index:70;
+  }
+
+  .security-footer{
+    max-width:min(1800px, 96vw); margin:0 auto; padding:18px 32px 36px;
+    display:flex; align-items:flex-start; gap:8px;
+    font-size:11.5px; line-height:1.5; color:var(--steel);
+    border-top:1px solid var(--hairline-soft);
+  }
+
+  @media (max-width:900px){
+    .meta-grid{ grid-template-columns:1fr; }
+    .card-grid{ grid-template-columns:repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+
+const DEMO_SPEC = [{"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "bias", "parameter_label": "Bias Current", "unit": "mA", "test_power_w": null, "limit_type": "target", "lsl": null, "usl": null, "target": 200.0}, {"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "rl_low", "parameter_label": "Input Return Loss - Low Freq", "unit": "dB", "test_power_w": 800, "limit_type": "upper", "lsl": null, "usl": -22.0, "target": null}, {"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "rl_center", "parameter_label": "Input Return Loss - Center Freq", "unit": "dB", "test_power_w": 800, "limit_type": "upper", "lsl": null, "usl": -33.0, "target": null}, {"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "rl_high", "parameter_label": "Input Return Loss - High Freq", "unit": "dB", "test_power_w": 800, "limit_type": "upper", "lsl": null, "usl": -22.0, "target": null}, {"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "oc_pin", "parameter_label": "Output Center - Input Power", "unit": "dBm", "test_power_w": 800, "limit_type": "upper", "lsl": null, "usl": 33.0, "target": null}, {"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "oc_idc", "parameter_label": "Output Center - DC Current", "unit": "A", "test_power_w": 800, "limit_type": "range", "lsl": 23.5, "usl": 25.5, "target": null}, {"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "flat_low_pin", "parameter_label": "Flatness Low Freq - Input Power", "unit": "dBm", "test_power_w": 800, "limit_type": "upper", "lsl": null, "usl": 33.0, "target": null}, {"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "flat_low_idc", "parameter_label": "Flatness Low Freq - DC Current", "unit": "A", "test_power_w": 800, "limit_type": "upper", "lsl": null, "usl": 26.0, "target": null}, {"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "flat_high_pin", "parameter_label": "Flatness High Freq - Input Power", "unit": "dBm", "test_power_w": 800, "limit_type": "upper", "lsl": null, "usl": 33.0, "target": null}, {"component_type": "Main_Amp", "model": "APG-2012H", "parameter_code": "flat_high_idc", "parameter_label": "Flatness High Freq - DC Current", "unit": "A", "test_power_w": 800, "limit_type": "upper", "lsl": null, "usl": 26.0, "target": null}];
+const DEMO_MEASUREMENTS = [{"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_low", "value": -28.42, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_center", "value": -40.33, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_high", "value": -31.9, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_pin", "value": 32.62, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_idc", "value": 23.94, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_pin", "value": 32.77, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_idc", "value": 24.55, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_pin", "value": 32.66, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0001", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_idc", "value": 25.48, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_low", "value": -26.69, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_center", "value": -38.03, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_high", "value": -33.08, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_pin", "value": 32.54, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_idc", "value": 24.07, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_pin", "value": 32.75, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_idc", "value": 24.96, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_pin", "value": 32.71, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0002", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_idc", "value": 25.39, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_low", "value": -30.09, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_center", "value": -40.94, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_high", "value": -32.32, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_pin", "value": 32.75, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_idc", "value": 24.27, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_pin", "value": 32.78, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_idc", "value": 24.68, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_pin", "value": 32.86, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0003", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_idc", "value": 24.98, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_low", "value": -30.17, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_center", "value": -47.86, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_high", "value": -34.51, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_pin", "value": 32.52, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_idc", "value": 24.56, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_pin", "value": 32.83, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_idc", "value": 24.3, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_pin", "value": 32.87, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0004", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_idc", "value": 25.03, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_low", "value": -28.58, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_center", "value": -39.66, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_high", "value": -31.66, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_pin", "value": 32.72, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_idc", "value": 24.42, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_pin", "value": 32.83, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_idc", "value": 24.74, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_pin", "value": 32.57, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0005", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_idc", "value": 25.14, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_low", "value": -27.55, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_center", "value": -30.5, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_high", "value": -28.63, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_pin", "value": 32.53, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_idc", "value": 24.04, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_pin", "value": 32.85, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_idc", "value": 24.99, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_pin", "value": 32.8, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0006", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_idc", "value": 25.76, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_low", "value": -28.32, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_center", "value": -44.27, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_high", "value": -34.36, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_pin", "value": 32.76, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_idc", "value": 23.95, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_pin", "value": 32.71, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_idc", "value": 24.69, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_pin", "value": 32.64, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0007", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_idc", "value": 25.72, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_low", "value": -25.18, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_center", "value": -38.14, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_high", "value": -34.52, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_pin", "value": 32.57, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_idc", "value": 24.11, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_pin", "value": 32.89, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_idc", "value": 24.47, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_pin", "value": 32.69, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0008", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_idc", "value": 25.73, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_low", "value": -28.58, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_center", "value": -45.52, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_high", "value": -35.46, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_pin", "value": 32.57, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_idc", "value": 24.44, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_pin", "value": 32.94, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_idc", "value": 24.62, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_pin", "value": 32.75, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0009", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_idc", "value": 25.5, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_low", "value": -27.04, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_center", "value": -39.18, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_high", "value": -35.32, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_pin", "value": 32.76, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_idc", "value": 24.43, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_pin", "value": 32.95, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_idc", "value": 24.61, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_pin", "value": 33.09, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0010", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_idc", "value": 25.29, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_low", "value": -28.05, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_center", "value": -41.55, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_high", "value": -35.56, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_pin", "value": 32.62, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_idc", "value": 26.2, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_pin", "value": 32.86, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_idc", "value": 24.8, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_pin", "value": 32.22, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0011", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_idc", "value": 25.71, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_low", "value": -28.91, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_center", "value": -41.88, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_high", "value": -33.3, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_pin", "value": 32.86, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_idc", "value": 24.06, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_pin", "value": 32.61, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_idc", "value": 24.97, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_pin", "value": 32.61, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0012", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_idc", "value": 25.28, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_low", "value": -29.81, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_center", "value": -39.34, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_high", "value": -35.72, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_pin", "value": 32.76, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_idc", "value": 24.33, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_pin", "value": 33.16, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_idc", "value": 24.69, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_pin", "value": 32.97, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0013", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_idc", "value": 24.91, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_low", "value": -27.78, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_center", "value": -34.76, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_high", "value": -36.66, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_pin", "value": 32.77, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_idc", "value": 24.48, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_pin", "value": 33.01, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_idc", "value": 24.81, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_pin", "value": 32.71, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0014", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_idc", "value": 25.22, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_low", "value": -27.95, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_center", "value": -40.58, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "rl_high", "value": -29.26, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_pin", "value": 32.56, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "oc_idc", "value": 24.41, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_pin", "value": 32.39, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_low_idc", "value": 24.52, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_pin", "value": 32.75, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0015", "measured_date": "2026-07-16", "inspector_name": "고홍철", "parameter_code": "flat_high_idc", "value": 25.76, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "bias", "value": 200.0, "unit": "mA"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_low", "value": -28.26, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_center", "value": -43.35, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "rl_high", "value": -32.38, "unit": "dB"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_pin", "value": 32.71, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "oc_idc", "value": 24.46, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_pin", "value": 32.56, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_low_idc", "value": 24.91, "unit": "A"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_pin", "value": 32.72, "unit": "dBm"}, {"component_type": "Main_Amp", "model": "APG-2012H", "serial": "260716-0016", "measured_date": "2026-07-16", "inspector_name": "홍승락", "parameter_code": "flat_high_idc", "value": 25.71, "unit": "A"}];
+
+const DEMO_MODELS = [
+  { component_type:'Main_Amp', model:'APG-2012H', max_power_w:2000, frequency_khz:12900, doc_number:'ASES-500-16', doc_revision:'A1', doc_path:'sop_adjustment/ASES-500-16_APG-2012H_adjustment.pdf', notes:'Demo mode sample' }
+];
+
+/* ============================================================
+   Supabase connection settings — same backend as the other
+   BCT x ASENDIA pages (bct_asendia_admin / po_status / service_progress).
+============================================================ */
+const CONFIG = {
+  SUPABASE_URL: 'https://okiamzritzrrxhouzolm.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_nmVTVGoaQqIMKvit5YHL5g_S7uahQlr'
+};
+const IS_CONFIGURED = !CONFIG.SUPABASE_URL.includes('YOUR-PROJECT-REF') && !CONFIG.SUPABASE_ANON_KEY.includes('YOUR-ANON-PUBLIC-KEY');
+const AUTH_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/auth/v1';
+const SPEC_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_spec_limits';
+const MEASUREMENTS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_measurements';
+const MODELS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_models';
+const SESSION_KEY = 'bct_qc_session_v1';
+
+function sbHeaders(extra){
+  const token = (state.session && state.session.access_token) ? state.session.access_token : CONFIG.SUPABASE_ANON_KEY;
+  return Object.assign({
+    'apikey': CONFIG.SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  }, extra || {});
+}
+
+const COMPONENT_TYPE_LABELS = { 'Saw_Filter': 'Saw Filter (Rdet)' };
+function componentTypeLabel(t){ return COMPONENT_TYPE_LABELS[t] || t.replace(/_/g,' '); }
+/* Preferred display order for component types when known; anything else (a brand new
+   component_type that shows up in the DB) still appears, just sorted alphabetically
+   after these. The dropdown itself is populated dynamically from the DB (loadComponentTypes)
+   rather than a hardcoded list, so adding a new component server-side is enough - no HTML
+   edit required (this is what broke twice before, for RF Sensor and LPF). */
+const COMPONENT_TYPE_ORDER = ['Main_Amp','Driver','Exciter','Combiner','Splitter','RF Sensor','Saw_Filter','LPF'];
+function componentTypeRank(t){ const i = COMPONENT_TYPE_ORDER.indexOf(t); return i===-1 ? 999 : i; }
+function sortComponentTypes(types){
+  return types.slice().sort((a,b)=>{
+    const ra = componentTypeRank(a), rb = componentTypeRank(b);
+    if(ra!==rb) return ra-rb;
+    return a.localeCompare(b);
+  });
+}
+/* Global display-order hint for parameter_code, shared across every component type.
+   Codes not listed here just sort alphabetically after the known ones - safe default
+   for any future component's parameters. */
+const PARAM_ORDER = [
+  // Main_Amp / Driver (Bias + Return Loss + Output + Flatness)
+  'bias','rl_low','rl_center','rl_high',
+  'oc_pin','oc_idc','oc50_pin','oc50_idc','oc100_pin','oc100_idc',
+  'flat_low_pin','flat_low_idc','flat_center_pin','flat_center_idc','flat_high_pin','flat_high_idc',
+  'flat_low','flat_center','flat_high',
+  // Combiner / Splitter / LPF (per-port S-parameters + insertion loss + isolation)
+  's11_real_low','s11_image_low','s11_real_center','s11_image_center','s11_real_high','s11_image_high',
+  'in_real_low','in_image_low','in_real_center','in_image_center','in_real_high','in_image_high',
+  'out_real_low','out_image_low','out_real_center','out_image_center','out_real_high','out_image_high',
+  's22_real_low','s22_image_low','s22_real_center','s22_image_center','s22_real_high','s22_image_high',
+  'ins_loss_low','ins_loss_center','ins_loss_high',
+  'isolation_low','isolation_center','isolation_high',
+  // Exciter
+  'bias1','bias2','int_out_6v','int_idc_6v','int_out_8v',
+  'int_flat_low','int_flat_center','int_flat_high',
+  'ext_out_6v','ext_out','ext_z_low','ext_z_center','ext_z_high',
+  // RF Sensor
+  'iso_low','iso_center','iso_high','coupling_db','coupling_real','coupling_image',
+  'fwd_iso_center','fwd_rl_center','fwd_coupling_db','ref_iso_center','ref_rl_center','ref_coupling_db',
+  'fwd_v','ref_v','ref_m_v',
+  // Saw_Filter
+  'ref_voltage',
+  // shared pass/fail flag style params
+  'freq_out_check',
+];
+function paramRank(code){ const i = PARAM_ORDER.indexOf(code); return i===-1 ? 999 : i; }
+
+/* Display-order hint for the "port" dimension used by Combiner/Splitter (and any future
+   multi-port component). '' means "not port-specific" (e.g. LPF, or Combiner's shared
+   output measurement) and always sorts first. */
+const PORT_ORDER = ['','Port1','Port2','Port3','Port1-Port2','Port2-Port3','Port3-Port1'];
+function portRank(port){ const i = PORT_ORDER.indexOf(port || ''); return i===-1 ? 999 : i; }
+/* Compound key so the same parameter_code appearing under different ports (e.g.
+   Combiner's Input Return Loss for Port1 vs Port2) doesn't collide - used to match
+   the selected SPC parameter/port pair against the right spec row and measurement data.
+   For port-less components this reduces to the plain parameter_code, unchanged from before. */
+function paramKey(code, port){ return port ? (code + '@' + port) : code; }
+
+/* Preferred model order (highest-volume / most active models first), then alphabetical.
+   APG-1513 has two variants in the data (TEOS/ECO); TEOS is listed first since it has
+   production history. Adjust this list if the priority should differ. */
+const MODEL_PRIORITY = ['AGL-1004H','APG-2012H','APG-1513(TEOS)','APG-1513(ECO)','APG-2013H','MP12M-20'];
+function modelRank(m){ const i = MODEL_PRIORITY.indexOf(m); return i===-1 ? 999 : i; }
+function sortModels(models){
+  return models.slice().sort((a,b)=>{
+    const ra = modelRank(a), rb = modelRank(b);
+    if(ra!==rb) return ra-rb;
+    return a.localeCompare(b);
+  });
+}
+
+const state = {
+  authView:'checking',
+  authError:'',
+  authLoading:false,
+  session:null,
+  connError:null,
+  demoMode: !IS_CONFIGURED,
+  loading:true,
+  toast:null,
+
+  componentTypes:['Main_Amp'],      // populated from the DB at boot (loadComponentTypes)
+  componentType:'Main_Amp',
+  model:null,
+  specByModel:{},                  // model -> [spec rows], for the current componentType
+  specLoading:false,
+
+  recentEntriesRaw:[],             // read-only measurement history for the selected model
+
+  // SPC
+  spcParam:null,
+  spcMeasurements:[],
+  spcStats:null
+};
+
+/* ---------- auth ---------- */
+function saveSession(s){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }catch(e){} }
+function loadSavedSession(){ try{ const s = localStorage.getItem(SESSION_KEY); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+function clearSavedSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} }
+
+async function refreshSession(){
+  if(!state.session || !state.session.refresh_token) return false;
+  try{
+    const res = await fetch(AUTH_URL + '/token?grant_type=refresh_token', {
+      method:'POST',
+      headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ refresh_token: state.session.refresh_token })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error_description || data.msg || ('HTTP ' + res.status));
+    state.session = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Date.now() + (data.expires_in*1000),
+      user: data.user || state.session.user
+    };
+    saveSession(state.session);
+    return true;
+  } catch(e){
+    return false;
+  }
+}
+
+async function initAuth(){
+  if(!IS_CONFIGURED){
+    state.authView = 'app';
+    state.loading = false;
+    render();
+    bootData();
+    return;
+  }
+  const saved = loadSavedSession();
+  if(saved){
+    state.session = saved;
+    if(!saved.expires_at || saved.expires_at < Date.now() + 30000){
+      const ok = await refreshSession();
+      if(!ok){ state.session = null; clearSavedSession(); }
+    }
+  }
+  state.authView = state.session ? 'app' : 'login';
+  state.loading = false;
+  render();
+  if(state.authView==='app'){ bootData(); }
+}
+
+async function login(){
+  const emailEl = document.getElementById('auth_email');
+  const passEl = document.getElementById('auth_password');
+  const email = emailEl.value.trim();
+  const password = passEl.value;
+  if(!email || !password){ state.authError = 'Enter your email and password.'; render(); return; }
+  state.authLoading = true; state.authError = ''; render();
+  try{
+    const res = await fetch(AUTH_URL + '/token?grant_type=password', {
+      method:'POST',
+      headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error_description || data.msg || ('HTTP ' + res.status));
+    state.session = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Date.now() + (data.expires_in*1000),
+      user: data.user
+    };
+    saveSession(state.session);
+    state.authView = 'app';
+  } catch(e){
+    state.authError = 'Sign-in failed: ' + e.message;
+  }
+  state.authLoading = false;
+  render();
+  if(state.authView==='app'){ bootData(); }
+}
+
+async function logout(){
+  try{ await fetch(AUTH_URL + '/logout', { method:'POST', headers: sbHeaders() }); } catch(e){}
+  state.session = null;
+  state.authView = 'login';
+  state.authError = '';
+  clearSavedSession();
+  render();
+}
+
+/* ---------- helpers ---------- */
+function escAttrText(v){ return v===null||v===undefined ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function dash(v){ return (v===null || v===undefined || v==='') ? '—' : v; }
+function fmtNum(v){
+  if(v===null || v===undefined || v==='') return '—';
+  const n = Number(v);
+  if(Number.isNaN(n)) return '—';
+  return (Math.round(n*100)/100).toString();
+}
+/* Formats a frequency stored in kHz as the more natural unit for its magnitude
+   (e.g. 430 -> "430kHz", 13560 -> "13.56MHz"), trimming trailing zeros. */
+function formatFrequencyKHz(khz){
+  if(khz===null || khz===undefined || khz==='') return null;
+  const n = Number(khz);
+  if(Number.isNaN(n)) return null;
+  if(n >= 1000){
+    const mhz = Math.round((n/1000)*100)/100;
+    return mhz + 'MHz';
+  }
+  return n + 'kHz';
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function showToast(msg){ state.toast = msg; render(); setTimeout(()=>{ state.toast=null; render(); }, 2800); }
+function enc(v){ return encodeURIComponent(v); }
+
+function specHint(p){
+  if(!p) return '';
+  const u = p.unit ? (' ' + p.unit) : '';
+  if(p.limit_type==='target') return 'Target ' + fmtNum(p.target) + u + ' (exact)';
+  if(p.limit_type==='range') return fmtNum(p.lsl) + u + ' – ' + fmtNum(p.usl) + u;
+  if(p.limit_type==='upper') return '≤ ' + fmtNum(p.usl) + u;
+  if(p.limit_type==='lower') return '≥ ' + fmtNum(p.lsl) + u;
+  if(p.limit_type==='none') return 'Reference only (no spec limit)';
+  return '—';
+}
+function evalPass(p, v){
+  if(v===null || v===undefined || v==='' || Number.isNaN(Number(v))) return null;
+  const n = Number(v);
+  if(p.limit_type==='target') return Math.abs(n - Number(p.target)) < 1e-9;
+  if(p.limit_type==='upper') return n <= Number(p.usl);
+  if(p.limit_type==='lower') return n >= Number(p.lsl);
+  if(p.limit_type==='range') return n >= Number(p.lsl) && n <= Number(p.usl);
+  if(p.limit_type==='none') return null;
+  return true;
+}
+
+function connDot(){
+  const connected = !state.loading && !state.demoMode && !state.connError;
+  const color = connected ? 'var(--success)' : 'var(--pink)';
+  const title = state.loading ? 'Loading…'
+    : connected ? 'Connected to Supabase'
+    : (state.connError ? 'Connection error: ' + state.connError : 'Demo mode (Supabase not configured)');
+  return '<span class="conn-dot" style="background:' + color + '" title="' + title.replace(/"/g,'') + '"></span>';
+}
+
+/* ---------- data loading ---------- */
+function bootData(){
+  loadComponentTypes();
+  loadSpecForComponent(state.componentType);
+}
+
+async function loadComponentTypes(){
+  if(state.demoMode){
+    const types = Array.from(new Set(DEMO_MODELS.map(r=>r.component_type)));
+    state.componentTypes = sortComponentTypes(types.length ? types : ['Main_Amp']);
+    render();
+    return;
+  }
+  try{
+    const res = await fetch(MODELS_URL + '?select=component_type', { headers: sbHeaders() });
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+    const rows = await res.json();
+    const types = Array.from(new Set(rows.map(r=>r.component_type)));
+    if(types.length){
+      state.componentTypes = sortComponentTypes(types);
+    } else {
+      showToast('component_models table returned no rows \u2014 Component Type list may be incomplete.');
+    }
+  } catch(e){
+    showToast('Could not load component type list: ' + e.message);
+  }
+  render();
+}
+
+function groupByModel(rows){
+  const byModel = {};
+  rows.forEach(r=>{ (byModel[r.model] = byModel[r.model] || []).push(r); });
+  Object.values(byModel).forEach(arr=>arr.sort((a,b)=>paramRank(a.parameter_code)-paramRank(b.parameter_code)));
+  return byModel;
+}
+
+async function loadSpecForComponent(type){
+  state.specLoading = true; render();
+  if(state.demoMode){
+    const rows = DEMO_SPEC.filter(r=>r.component_type===type);
+    state.specByModel = groupByModel(rows);
+    const models = sortModels(Object.keys(state.specByModel));
+    state.model = models.includes(state.model) ? state.model : (models[0] || null);
+    state.specLoading = false;
+    onModelReady();
+    return;
+  }
+  try{
+    const res = await fetch(SPEC_URL + '?component_type=eq.' + enc(type) + '&select=*&order=model.asc,parameter_code.asc,port.asc', { headers: sbHeaders() });
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+    const rows = await res.json();
+    state.specByModel = groupByModel(rows);
+    state.connError = null;
+  } catch(e){
+    state.connError = e.message;
+    state.specByModel = {};
+  }
+  const models = sortModels(Object.keys(state.specByModel));
+  state.model = models.includes(state.model) ? state.model : (models[0] || null);
+  state.specLoading = false;
+  onModelReady();
+}
+
+function onModelReady(){
+  const spec = state.specByModel[state.model] || [];
+  state.spcParam = spec.length ? (spec.find(p=>paramKey(p.parameter_code,p.port)===state.spcParam) ? state.spcParam : paramKey(spec[0].parameter_code, spec[0].port)) : null;
+  render();
+  loadRecentEntries();
+  loadSpcData();
+}
+
+async function loadRecentEntries(){
+  if(!state.model){ state.recentEntriesRaw = []; render(); return; }
+  if(state.demoMode){
+    state.recentEntriesRaw = DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model);
+    render();
+    return;
+  }
+  try{
+    const res = await fetch(MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&select=*&order=serial.desc&limit=400', { headers: sbHeaders() });
+    state.recentEntriesRaw = res.ok ? await res.json() : [];
+  } catch(e){
+    state.recentEntriesRaw = [];
+  }
+  render();
+}
+
+/* Fetches every measurement row for (componentType, model), paginating past
+   PostgREST's default row cap so "download all" is really all, not just the
+   400-row preview the Recent Entries table uses. */
+async function fetchAllMeasurements(componentType, model){
+  const pageSize = 1000;
+  let offset = 0;
+  let all = [];
+  while(true){
+    const res = await fetch(
+      MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
+      '&select=*&order=serial.asc&offset=' + offset + '&limit=' + pageSize,
+      { headers: sbHeaders() }
+    );
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+    const rows = await res.json();
+    all = all.concat(rows);
+    if(rows.length < pageSize) break;
+    offset += pageSize;
+  }
+  return all;
+}
+
+function csvEscape(v){
+  const s = (v===null || v===undefined) ? '' : String(v);
+  return /[",\n]/.test(s) ? ('"' + s.replace(/"/g,'""') + '"') : s;
+}
+
+function triggerDownload(filename, content){
+  // Leading BOM so Excel (Windows) correctly detects UTF-8 and renders Korean text properly.
+  const blob = new Blob(['\ufeff' + content], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+async function downloadAllEntries(){
+  if(!state.model){ return; }
+  const spec = state.specByModel[state.model] || [];
+  showToast('Preparing download\u2026');
+  let rawRows;
+  try{
+    rawRows = state.demoMode
+      ? DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model)
+      : await fetchAllMeasurements(state.componentType, state.model);
+  } catch(e){
+    showToast('Download failed: ' + e.message);
+    return;
+  }
+  const groups = groupUnits(rawRows).slice().sort((a,b)=> a.serial < b.serial ? -1 : a.serial > b.serial ? 1 : 0);
+  if(!groups.length){ showToast('No data to download for this model.'); return; }
+
+  const headerCols = ['Serial','Measured Date','Inspector'].concat(
+    spec.map(p=> p.parameter_label + (p.unit ? (' (' + p.unit + ')') : '') + (p.port ? (' [' + p.port + ']') : ''))
+  ).concat(['Result']);
+  const lines = [headerCols.map(csvEscape).join(',')];
+
+  groups.forEach(g=>{
+    const evalSpec = spec.filter(p=>p.limit_type!=='none');
+    const evals = evalSpec.map(p=> evalPass(p, g.values[paramKey(p.parameter_code, p.port)]));
+    let result = '\u2014';
+    if(evalSpec.length){
+      if(evals.some(e=>e===false)) result = 'FAIL';
+      else if(evals.every(e=>e===true)) result = 'PASS';
+      else result = 'PARTIAL';
+    }
+    const row = [g.serial, g.measured_date || '', g.inspector_name || ''].concat(
+      spec.map(p=>{
+        const v = g.values[paramKey(p.parameter_code, p.port)];
+        return (v===null || v===undefined) ? '' : v;
+      })
+    ).concat([result]);
+    lines.push(row.map(csvEscape).join(','));
+  });
+
+  const filename = state.componentType + '_' + state.model + '_measurements_' + todayISO() + '.csv';
+  triggerDownload(filename, lines.join('\r\n'));
+  showToast('Downloaded ' + groups.length + ' units \u2014 ' + filename);
+}
+
+async function loadSpcData(){
+  if(!state.model || !state.spcParam){ state.spcMeasurements = []; state.spcStats = null; render(); return; }
+  const activeSpec = (state.specByModel[state.model] || []).find(p=>paramKey(p.parameter_code,p.port)===state.spcParam);
+  if(!activeSpec){ state.spcMeasurements = []; state.spcStats = null; render(); return; }
+  const code = activeSpec.parameter_code;
+  const port = activeSpec.port || '';
+  let rows;
+  if(state.demoMode){
+    rows = DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model && r.parameter_code===code && (r.port||'')===port)
+      .map(r=>({ serial:r.serial, value:r.value }))
+      .sort((a,b)=> a.serial < b.serial ? -1 : a.serial > b.serial ? 1 : 0);
+  } else {
+    try{
+      const res = await fetch(MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&parameter_code=eq.' + enc(code) + '&port=eq.' + enc(port) + '&select=serial,value&order=serial.asc&limit=2000', { headers: sbHeaders() });
+      rows = res.ok ? await res.json() : [];
+    } catch(e){
+      rows = [];
+    }
+  }
+  state.spcMeasurements = rows;
+  state.spcStats = computeStats(activeSpec, rows.map(r=>Number(r.value)));
+  render();
+}
+
+function computeStats(spec, values){
+  const n = values.length;
+  if(n===0) return { n:0 };
+  const mean = values.reduce((a,b)=>a+b,0)/n;
+  let ucl=null, lcl=null, sigma=null;
+  if(n>=2){
+    const mr = [];
+    for(let i=1;i<n;i++) mr.push(Math.abs(values[i]-values[i-1]));
+    const mrbar = mr.reduce((a,b)=>a+b,0)/mr.length;
+    sigma = mrbar / 1.128;
+    ucl = mean + 2.66*mrbar;
+    lcl = mean - 2.66*mrbar;
+  }
+  let cp=null, cpu=null, cpl=null, cpk=null;
+  if(spec && sigma!=null && sigma>0){
+    if(spec.usl!=null) cpu = (Number(spec.usl)-mean)/(3*sigma);
+    if(spec.lsl!=null) cpl = (mean-Number(spec.lsl))/(3*sigma);
+    if(spec.usl!=null && spec.lsl!=null){ cp = (Number(spec.usl)-Number(spec.lsl))/(6*sigma); cpk = Math.min(cpu,cpl); }
+    else if(spec.usl!=null){ cpk = cpu; }
+    else if(spec.lsl!=null){ cpk = cpl; }
+  }
+  const outOfControl = (ucl!=null) ? values.filter(v=>v>ucl || v<lcl).length : 0;
+  const outOfSpec = spec ? values.filter(v=>evalPass(spec,v)===false).length : 0;
+  return { n, mean, sigma, ucl, lcl, cp, cpk, outOfControl, outOfSpec };
+}
+
+/* ---------- actions ---------- */
+function setComponentType(v){ state.componentType = v; state.model = null; state.specByModel = {}; loadSpecForComponent(v); }
+function setModel(v){ state.model = v; onModelReady(); }
+function setSpcParam(v){ state.spcParam = v; loadSpcData(); }
+
+function groupUnits(rawRows){
+  const bySerial = {};
+  rawRows.forEach(r=>{
+    if(!bySerial[r.serial]) bySerial[r.serial] = { serial:r.serial, measured_date:r.measured_date, inspector_name:r.inspector_name, values:{} };
+    bySerial[r.serial].values[paramKey(r.parameter_code, r.port)] = r.value;
+  });
+  return Object.values(bySerial).sort((a,b)=> a.serial < b.serial ? 1 : a.serial > b.serial ? -1 : 0);
+}
+
+/* ---------- render: header / login ---------- */
+function renderLoginScreen(){
+  const err = state.authError ? '<div class="field-error show">' + escAttrText(state.authError) + '</div>' : '';
+  return '' +
+  '<div class="login-wrap"><div class="login-card">' +
+    '<img class="login-logo" src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT logo">' +
+    '<div class="login-title">Quality Control Sign In</div>' +
+    err +
+    '<div class="form-field"><label>Email</label><input class="input" type="email" id="auth_email" placeholder="you@bct.co.kr" onkeydown="if(event.key===\'Enter\') login()"></div>' +
+    '<div class="form-field"><label>Password</label><input class="input" type="password" id="auth_password" placeholder="********" onkeydown="if(event.key===\'Enter\') login()"></div>' +
+    '<button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="login()" ' + (state.authLoading ? 'disabled' : '') + '>' + (state.authLoading ? 'Signing in\u2026' : 'Sign In') + '</button>' +
+    '<div class="form-hint" style="margin-top:14px">No account? Contact your BCT administrator.</div>' +
+  '</div></div>';
+}
+
+function renderHeader(){
+  return '' +
+  '<div class="topbar">' +
+    '<div class="brand">' +
+      '<img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT logo">' +
+      '<div>' +
+        '<div class="brand-text-en">SPC Chart' + connDot() + '</div>' +
+        '<div class="brand-text-sub">Quality Data \u00b7 Statistical Process Control (Customer View)</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="topbar-actions">' + (
+      state.authView==='app' ?
+        ('<span class="user-email">' + (state.session && state.session.user ? escAttrText(state.session.user.email) : (state.demoMode ? 'Demo mode' : '')) + '</span>' +
+         '<button class="btn btn-ghost" onclick="bootData()">\u21bb Refresh</button>' +
+         (IS_CONFIGURED ? '<button class="btn btn-ghost" onclick="logout()">Sign Out</button>' : ''))
+      : ''
+    ) + '</div>' +
+  '</div><div class="ruler"></div>';
+}
+
+/* ---------- render: selector row (shared) ---------- */
+function renderSelectorRow(includeParam){
+  const spec = state.specByModel[state.model] || [];
+  const models = sortModels(Object.keys(state.specByModel));
+  const typeOptions = state.componentTypes.map(t=>'<option value="' + t + '" ' + (t===state.componentType?'selected':'') + '>' + componentTypeLabel(t) + '</option>').join('');
+  const modelOptions = models.length
+    ? models.map(m=>'<option value="' + escAttrText(m) + '" ' + (m===state.model?'selected':'') + '>' + escAttrText(m) + '</option>').join('')
+    : '<option value="">No models configured</option>';
+  let out = '<div class="selector-row">' +
+    '<div class="selector-field"><label>Component Type</label><select class="select" onchange="setComponentType(this.value)">' + typeOptions + '</select></div>' +
+    '<div class="selector-field"><label>Model</label><select class="select" onchange="setModel(this.value)" ' + (models.length?'':'disabled') + '>' + modelOptions + '</select></div>';
+  if(includeParam){
+    const sortedSpec = spec.slice().sort((a,b)=>{
+      const rp = portRank(a.port) - portRank(b.port);
+      return rp !== 0 ? rp : paramRank(a.parameter_code) - paramRank(b.parameter_code);
+    });
+    const paramOptions = sortedSpec.length
+      ? sortedSpec.map(p=>{
+          const key = paramKey(p.parameter_code, p.port);
+          const label = escAttrText(p.parameter_label) + (p.port ? ' \u2014 ' + escAttrText(p.port) : '');
+          return '<option value="' + escAttrText(key) + '" ' + (key===state.spcParam?'selected':'') + '>' + label + '</option>';
+        }).join('')
+      : '<option value="">No parameters</option>';
+    out += '<div class="selector-field"><label>Parameter</label><select class="select" onchange="setSpcParam(this.value)" ' + (spec.length?'':'disabled') + '>' + paramOptions + '</select></div>';
+  }
+  out += '</div>';
+  return out;
+}
+
+function renderRecentEntriesPanel(){
+  const spec = state.specByModel[state.model] || [];
+  const groups = groupUnits(state.recentEntriesRaw).slice(0,30);
+  const rows = groups.map(g=>{
+    let cls='badge-gray', label='\u2014';
+    if(spec.length){
+      const evalSpec = spec.filter(p=>p.limit_type!=='none');
+      const evals = evalSpec.map(p=> evalPass(p, g.values[paramKey(p.parameter_code, p.port)]));
+      if(evals.some(e=>e===false)){ cls='badge-red'; label='FAIL'; }
+      else if(evalSpec.length && evals.every(e=>e===true)){ cls='badge-green'; label='PASS'; }
+      else { cls='badge-gray'; label='PARTIAL'; }
+    }
+    return '<tr>' +
+      '<td class="num">' + dash(g.serial) + '</td>' +
+      '<td>' + dash(g.measured_date) + '</td>' +
+      '<td>' + dash(g.inspector_name) + '</td>' +
+      '<td class="num">' + Object.keys(g.values).length + ' / ' + spec.length + '</td>' +
+      '<td><span class="badge ' + cls + '">' + label + '</span></td>' +
+    '</tr>';
+  }).join('');
+  const body = groups.length ? rows : '<tr><td colspan="5"><div class="empty-note">No measurements recorded yet for this model.</div></td></tr>';
+  return '' +
+  '<div class="panel">' +
+    '<div class="panel-head-row"><h2>Measurement History</h2><button class="btn btn-ghost btn-sm" onclick="downloadAllEntries()">\u2b07 Download All (CSV)</button></div>' +
+    '<div class="table-wrap"><div class="table-scroll"><table class="table"><thead><tr>' +
+      '<th>Serial</th><th>Date</th><th>Inspector</th><th>Params Filled</th><th>Result</th>' +
+    '</tr></thead><tbody>' + body + '</tbody></table></div></div>' +
+  '</div>';
+}
+
+/* ---------- render: SPC tab ---------- */
+function cpkClass(v){
+  if(v===null || v===undefined) return '';
+  if(v>=1.33) return 'good';
+  if(v>=1.0) return 'warn';
+  return 'bad';
+}
+
+function renderSpcTab(){
+  const spec = state.specByModel[state.model] || [];
+  if(state.specLoading){
+    return renderSelectorRow(true) + '<div class="empty-note" style="padding:60px 20px">Loading spec limits\u2026</div>';
+  }
+  if(!spec.length){
+    return renderSelectorRow(true) + '<div class="panel"><div class="empty-note">No spec data available yet for ' + componentTypeLabel(state.componentType) + '.</div></div>';
+  }
+  const s = state.spcStats;
+  const activeSpec = spec.find(p=>paramKey(p.parameter_code,p.port)===state.spcParam);
+
+  if(!s || s.n===0){
+    return renderSelectorRow(true) +
+      '<div class="panel"><div class="empty-note">No measurement data yet for this parameter.</div></div>' +
+      renderRecentEntriesPanel();
+  }
+
+  const cards = '' +
+    statCard('Samples (n)', s.n) +
+    statCard('Mean', fmtNum(s.mean) + (activeSpec && activeSpec.unit ? (' ' + activeSpec.unit) : '')) +
+    statCard('Process \u03c3 (from MR)', s.sigma!=null ? fmtNum(s.sigma) : '\u2014') +
+    statCardCls('Cpk', s.cpk!=null ? fmtNum(s.cpk) : '\u2014', cpkClass(s.cpk)) +
+    statCardCls('Out of Spec', s.outOfSpec + ' / ' + s.n, s.outOfSpec>0 ? 'bad' : 'good');
+
+  const legend = '' +
+    '<div class="chart-legend-note">' +
+      '<div class="legend-item"><span class="legend-swatch" style="border-color:#0064E0"></span>Measured value (red point = out of spec)</div>' +
+      '<div class="legend-item"><span class="legend-swatch dashed" style="border-color:#8595A4"></span>Center line / UCL / LCL (process control, from moving range)</div>' +
+      '<div class="legend-item"><span class="legend-swatch dashed" style="border-color:#E41E3F"></span>USL / LSL (customer spec limit)</div>' +
+    '</div>';
+
+  return renderSelectorRow(true) +
+    '<div class="card-grid">' + cards + '</div>' +
+    '<div class="panel"><div class="chart-wrap"><canvas id="spcCanvas"></canvas></div>' + legend + '</div>' +
+    renderRecentEntriesPanel();
+}
+
+function statCard(label, value){ return statCardCls(label, value, ''); }
+function statCardCls(label, value, cls){
+  return '<div class="stat-card"><div class="stat-label">' + escAttrText(label) + '</div><div class="stat-value ' + cls + '">' + value + '</div></div>';
+}
+
+/* ---------- Chart.js drawing (runs after innerHTML is rebuilt) ---------- */
+let chartInstance = null;
+function drawChart(){
+  const canvas = document.getElementById('spcCanvas');
+  if(!canvas) return;
+  if(typeof Chart === 'undefined'){ setTimeout(drawChart, 150); return; }
+  if(chartInstance){ chartInstance.destroy(); chartInstance = null; }
+
+  const spec = (state.specByModel[state.model] || []).find(p=>paramKey(p.parameter_code,p.port)===state.spcParam);
+  const pts = state.spcMeasurements;
+  const s = state.spcStats;
+  if(!spec || !pts.length || !s) return;
+
+  const labels = pts.map(p=>p.serial);
+  const values = pts.map(p=>Number(p.value));
+  const flat = (v)=> labels.map(()=>v);
+  const pointColors = values.map(v=> evalPass(spec,v)===false ? '#E41E3F' : '#0064E0');
+
+  const datasets = [{
+    label: spec.parameter_label + (spec.unit ? (' (' + spec.unit + ')') : '') + (spec.port ? (' \u2014 ' + spec.port) : ''),
+    data: values,
+    borderColor: '#0064E0',
+    backgroundColor: '#0064E0',
+    pointBackgroundColor: pointColors,
+    pointBorderColor: pointColors,
+    pointRadius: 3,
+    borderWidth: 1.5,
+    tension: 0,
+    spanGaps: true
+  }];
+
+  if(s.mean!=null){ datasets.push({ label:'Center Line', data: flat(s.mean), borderColor:'#8595A4', borderDash:[4,4], pointRadius:0, borderWidth:1.5 }); }
+  if(s.ucl!=null){ datasets.push({ label:'UCL', data: flat(s.ucl), borderColor:'#8595A4', borderDash:[2,2], pointRadius:0, borderWidth:1 }); }
+  if(s.lcl!=null){ datasets.push({ label:'LCL', data: flat(s.lcl), borderColor:'#8595A4', borderDash:[2,2], pointRadius:0, borderWidth:1 }); }
+  if(spec.usl!=null){ datasets.push({ label:'USL (Spec)', data: flat(Number(spec.usl)), borderColor:'#E41E3F', borderDash:[6,3], pointRadius:0, borderWidth:1.5 }); }
+  if(spec.lsl!=null){ datasets.push({ label:'LSL (Spec)', data: flat(Number(spec.lsl)), borderColor:'#E41E3F', borderDash:[6,3], pointRadius:0, borderWidth:1.5 }); }
+  if(spec.limit_type==='target' && spec.target!=null){ datasets.push({ label:'Target', data: flat(Number(spec.target)), borderColor:'#F2A918', borderDash:[6,3], pointRadius:0, borderWidth:1.5 }); }
+
+  chartInstance = new Chart(canvas.getContext('2d'), {
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      interaction:{ mode:'nearest', intersect:false },
+      plugins:{
+        legend:{ position:'top', labels:{ boxWidth:14, font:{ family:"'Google Sans','Noto Sans KR',sans-serif", size:11 } } },
+        tooltip:{ callbacks:{ title:(items)=> 'Serial: ' + items[0].label } }
+      },
+      scales:{
+        x:{ ticks:{ maxRotation:60, minRotation:0, autoSkip:true, font:{ size:10 } }, grid:{ display:false } },
+        y:{ title:{ display:true, text: spec.unit || '' }, grid:{ color:'#EEF1F4' } }
+      }
+    }
+  });
+}
+
+/* ---------- root render ---------- */
+const SECURITY_NOTICE = 'This data is proprietary and confidential. It is maintained under strict, enterprise-grade security \u2014 encrypted in transit, protected by row-level access policies at the database layer, and accessible to authorized BCT personnel only.';
+
+function render(){
+  const active = document.activeElement;
+  const activeId = active && active.id ? active.id : null;
+  // Reading/restoring selection only applies to text-like inputs (text, search, url, tel,
+  // password); other types (number, date, email...) return null or throw depending on the
+  // browser, so this is wrapped defensively and never blocks the rest of render().
+  let selStart = null, selEnd = null;
+  try{
+    if(active && typeof active.selectionStart === 'number') selStart = active.selectionStart;
+    if(active && typeof active.selectionEnd === 'number') selEnd = active.selectionEnd;
+  }catch(e){ selStart = null; selEnd = null; }
+
+  let html;
+  if(state.authView==='checking'){
+    html = '<div class="empty-note" style="padding:120px 20px;text-align:center">Checking sign-in status\u2026</div>';
+  } else if(state.authView==='login'){
+    html = renderHeader() + renderLoginScreen();
+  } else {
+    const pageHead = '<div class="page-head"><h1>SPC Chart</h1><p>Statistical process control for adjustment &amp; test measurements, with spec limits overlaid.</p></div>';
+    html = renderHeader() +
+      '<div class="content">' + pageHead + renderSpcTab() + '</div>' +
+      '<div class="security-footer">\ud83d\udd12 ' + SECURITY_NOTICE + '</div>' +
+      (state.toast ? '<div class="toast">' + escAttrText(state.toast) + '</div>' : '');
+  }
+
+  document.getElementById('app').innerHTML = html;
+
+  if(activeId){
+    const el = document.getElementById(activeId);
+    if(el && typeof el.focus === 'function'){
+      el.focus();
+      if(selStart!=null && el.setSelectionRange){
+        try{ el.setSelectionRange(selStart, selEnd); }catch(e){}
+      }
+    }
+  }
+
+  if(state.authView==='app'){
+    if(typeof requestAnimationFrame === 'function'){ requestAnimationFrame(drawChart); } else { setTimeout(drawChart, 0); }
+  }
+}
+
+render();
+initAuth();
+
+/* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, portRank, sortComponentTypes, formatFrequencyKHz };
+
+</script>
+</body>
+</html>

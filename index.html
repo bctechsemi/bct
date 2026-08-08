@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BCT - OPS Hub</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700;800&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bct-blue:#1F4E9C; --bct-blue-deep:#153B78; --bct-blue-pale:#EAF1FC; --bct-blue-pale-2:#F4F8FE;
+    --canvas:#FFFFFF; --surface:#F6F9FD;
+    --ink:#0B1220; --steel:#5B6472; --steel-soft:#8A93A3;
+    --hairline:#E2E8F3; --hairline-strong:#CBD8ED;
+    --font-en:'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-ko:'Gowun Batang', serif;
+    --font-mono:'JetBrains Mono', ui-monospace, monospace;
+    --r-lg:18px; --r-md:14px; --r-full:999px;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--canvas); color:var(--ink);
+    font-family:var(--font-en); -webkit-font-smoothing:antialiased;
+    min-height:100vh; display:flex; flex-direction:column;
+  }
+  body.lang-ko{ font-family:var(--font-ko); }
+  body.lang-ko h1, body.lang-ko h2, body.lang-ko h3,
+  body.lang-ko p, body.lang-ko span, body.lang-ko a, body.lang-ko li{ font-family:var(--font-ko); }
+  .font-en{ font-family:var(--font-en) !important; }
+  a{ color:inherit; }
+  ::selection{ background:var(--bct-blue-pale); color:var(--bct-blue-deep); }
+  :focus-visible{ outline:2px solid var(--bct-blue); outline-offset:3px; }
+
+  .wrap{ max-width:1280px; margin:0 auto; width:100%; position:relative; flex:1; display:flex; flex-direction:column; }
+  .guide-l, .guide-r{ position:absolute; top:0; bottom:0; width:1px; background:var(--hairline); display:none; }
+  .guide-l{ left:0; } .guide-r{ right:0; }
+  @media (min-width:900px){ .guide-l, .guide-r{ display:block; } }
+
+  .nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px clamp(20px,4vw,48px); border-bottom:1px solid var(--hairline);
+  }
+  .nav-brand{ display:flex; align-items:center; gap:14px; }
+  .nav-brand img{ height:44px; width:auto; }
+  .nav-wordmark{ font-family:var(--font-en) !important; font-weight:800; font-size:19px; color:var(--ink); letter-spacing:-.3px; }
+  .nav-tag{ display:block; font-family:var(--font-mono); font-size:10.5px; color:var(--bct-blue); letter-spacing:.06em; text-transform:uppercase; margin-top:1px; }
+  .lang-toggle{
+    display:flex; align-items:center; gap:2px; padding:3px; border-radius:var(--r-full);
+    background:var(--surface); border:1px solid var(--hairline);
+  }
+  .lang-btn{
+    font-family:var(--font-en) !important; font-size:12.5px; font-weight:600; padding:6px 14px; border-radius:var(--r-full);
+    border:none; background:transparent; color:var(--steel); cursor:pointer; transition:background .15s, color .15s;
+  }
+  .lang-btn.active{ background:var(--bct-blue); color:#fff; }
+
+  .hero{
+    display:grid; grid-template-columns:1.15fr 0.85fr; gap:clamp(24px,4vw,56px); align-items:center;
+    padding:clamp(24px,4vw,44px) clamp(20px,4vw,48px) clamp(20px,3vw,32px);
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:11.5px;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--bct-blue); margin:0 0 16px;
+  }
+  .eyebrow::before{ content:''; width:7px; height:7px; border-radius:50%; background:var(--bct-blue); box-shadow:0 0 0 4px var(--bct-blue-pale); }
+  .hero h1{
+    font-family:var(--font-en); font-weight:700; font-size:clamp(28px,3.4vw,44px); line-height:1.12; letter-spacing:-1px;
+    color:var(--ink); margin:0 0 16px; max-width:16ch;
+  }
+  body.lang-ko .hero h1{ font-family:var(--font-ko); font-weight:700; letter-spacing:-.3px; }
+  .hero p.sub{ font-size:clamp(14.5px,1.3vw,16.5px); line-height:1.6; color:var(--steel); max-width:46ch; margin:0 0 22px; }
+  .stat-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .stat-chip{
+    display:flex; align-items:baseline; gap:6px; padding:8px 14px; border-radius:var(--r-full);
+    background:var(--surface); border:1px solid var(--hairline);
+  }
+  .stat-chip .num{ font-family:var(--font-mono); font-weight:700; font-size:13.5px; color:var(--bct-blue-deep); }
+  .stat-chip .lbl{ font-size:12px; color:var(--steel); }
+
+  .window-visual{ display:flex; align-items:center; justify-content:center; }
+  .window-visual svg{ width:100%; height:auto; max-width:340px; }
+
+  .workspace{ padding:8px clamp(20px,4vw,48px) clamp(24px,4vw,40px); flex:1; display:flex; flex-direction:column; }
+  .section-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
+  .section-head h2{
+    font-family:var(--font-en); font-weight:700; font-size:clamp(18px,1.8vw,22px); letter-spacing:-.3px; margin:0; color:var(--ink);
+  }
+  body.lang-ko .section-head h2{ font-family:var(--font-ko); }
+  .section-head p{ font-size:13.5px; color:var(--steel-soft); margin:0; }
+
+  .card-grid{ display:grid; grid-template-columns:repeat(5, 1fr); gap:14px; flex:1; }
+  @media (max-width:1100px){ .card-grid{ grid-template-columns:repeat(3, 1fr); } }
+  @media (max-width:640px){ .card-grid{ grid-template-columns:1fr; } }
+
+  .tool-card{
+    position:relative; display:flex; flex-direction:column; gap:12px; padding:20px 18px;
+    background:var(--canvas); border:1px solid var(--hairline); border-radius:var(--r-lg);
+    text-decoration:none; color:inherit; transition:border-color .15s, transform .15s, box-shadow .15s, background .15s;
+  }
+  .tool-card:hover{ border-color:var(--bct-blue); transform:translateY(-3px); box-shadow:0 14px 28px -18px rgba(31,78,156,.35); background:var(--bct-blue-pale-2); }
+  .tool-card.customer{ background:var(--surface); border-style:dashed; }
+  .tool-card.customer:hover{ background:var(--bct-blue-pale-2); border-style:solid; }
+  .badge{
+    align-self:flex-start; font-family:var(--font-en) !important; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    padding:4px 10px; border-radius:var(--r-full);
+  }
+  .badge.internal{ background:var(--bct-blue-pale); color:var(--bct-blue-deep); }
+  .badge.customer{ background:rgba(91,100,114,.1); color:var(--steel); }
+  .tool-card h3{ font-family:var(--font-en); font-weight:700; font-size:15.5px; margin:0; letter-spacing:-.1px; color:var(--ink); }
+  body.lang-ko .tool-card h3{ font-family:var(--font-ko); }
+  .tool-card p{ font-size:12.5px; line-height:1.5; color:var(--steel); margin:0; flex:1; }
+  .card-bottom{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:10px; border-top:1px solid var(--hairline); }
+  .file-tag{ font-family:var(--font-mono) !important; font-size:10px; color:var(--steel-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .card-arrow{
+    flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:var(--surface); color:var(--steel-soft); font-family:var(--font-en) !important; font-size:13px;
+    transition:background .15s, color .15s, transform .15s;
+  }
+  .tool-card:hover .card-arrow{ background:var(--bct-blue); color:#fff; transform:translate(2px,-2px); }
+
+  .footer{
+    padding:14px clamp(20px,4vw,48px); border-top:1px solid var(--hairline);
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .footer-security{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--steel); }
+  .footer-fine{ font-size:11px; color:var(--steel-soft); }
+
+  @media (max-width:900px){
+    .hero{ grid-template-columns:1fr; }
+    .window-visual{ order:-1; max-width:220px; margin:0 auto; }
+  }
+</style>
+</head>
+<body class="lang-en">
+
+<div class="wrap">
+<div class="guide-l"></div><div class="guide-r"></div>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT logo">
+    <div>
+      <span class="nav-wordmark">BCT</span>
+      <span class="nav-tag" data-i18n="nav.tag">OPS HUB</span>
+    </div>
+  </div>
+  <div class="lang-toggle" role="group" aria-label="Language">
+    <button class="lang-btn active" id="btnEn" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btnKo" onclick="setLang('ko')">한국어</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div>
+    <span class="eyebrow font-en">BCT × ASENDIA</span>
+    <h1 data-i18n="hero.title">See every system, through one window.</h1>
+    <p class="sub" data-i18n="hero.sub">Sales, production, and quality control — connected in a single view.</p>
+    <div class="stat-row">
+      <div class="stat-chip"><span class="num font-en">8</span><span class="lbl" data-i18n="hero.stat1">components tracked</span></div>
+      <div class="stat-chip"><span class="num font-en">5</span><span class="lbl" data-i18n="hero.stat2">connected systems</span></div>
+      <div class="stat-chip"><span class="num font-en">2</span><span class="lbl" data-i18n="hero.stat3">internal + customer views</span></div>
+    </div>
+  </div>
+  <div class="window-visual" aria-hidden="true">
+    <svg id="windowSvg" viewBox="0 0 300 300" fill="none">
+      <rect x="4" y="4" width="292" height="292" fill="#1F4E9C"></rect>
+      <rect x="62" y="62" width="176" height="176" fill="#F5F6F8"></rect>
+      <g opacity="0.55">
+        <path d="M62 112h176M62 150h176M62 188h176" stroke="#D9E2F0" stroke-width="1"></path>
+        <path d="M112 62v176M150 62v176M188 62v176" stroke="#D9E2F0" stroke-width="1"></path>
+      </g>
+      <path id="windowLinkPath" d="M112 112 L188 150 L150 188" stroke="#1F4E9C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6">
+        <animate attributeName="d" dur="8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.33;0.66;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1"
+          values="M112 112 L188 150 L150 188;M132 98 L172 132 L138 202;M98 132 L202 162 L162 178;M112 112 L188 150 L150 188"></animate>
+      </path>
+      <circle class="win-pt" cx="112" cy="112" r="6" fill="#1F4E9C">
+        <animate attributeName="cx" dur="8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.33;0.66;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1" values="112;132;98;112"></animate>
+        <animate attributeName="cy" dur="8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.33;0.66;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1" values="112;98;132;112"></animate>
+      </circle>
+      <circle class="win-pt" cx="188" cy="150" r="6" fill="#1F4E9C">
+        <animate attributeName="cx" dur="8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.33;0.66;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1" values="188;172;202;188"></animate>
+        <animate attributeName="cy" dur="8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.33;0.66;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1" values="150;132;162;150"></animate>
+      </circle>
+      <circle class="win-pt" cx="150" cy="188" r="6" fill="#1F4E9C">
+        <animate attributeName="cx" dur="8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.33;0.66;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1" values="150;138;162;150"></animate>
+        <animate attributeName="cy" dur="8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.33;0.66;1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1; 0.45 0 0.55 1" values="188;202;178;188"></animate>
+      </circle>
+      <rect x="4" y="4" width="292" height="292" stroke="#153B78" stroke-width="1" opacity="0.25"></rect>
+    </svg>
+  </div>
+</header>
+
+<main class="workspace">
+  <div class="section-head">
+    <h2 data-i18n="section.title">Your workspace</h2>
+    <p data-i18n="section.sub">Pick a system below — from customer order to final quality data.</p>
+  </div>
+
+  <div class="card-grid">
+    <a class="tool-card" href="bct_asendia_po_status_admin.html">
+      <span class="badge internal" data-i18n="badge.sales">Sales team</span>
+      <h3 data-i18n="card.salesTitle">PO management</h3>
+      <p data-i18n="card.salesDesc">Track ASENDIA purchase orders end to end.</p>
+      <div class="card-bottom">
+        <span class="file-tag">bct_asendia_po_status_admin.html</span>
+        <span class="card-arrow">↗</span>
+      </div>
+    </a>
+
+    <a class="tool-card" href="bct_asendia_po_status.html">
+      <span class="badge internal" data-i18n="badge.production">Production team</span>
+      <h3 data-i18n="card.prodTitle">Production &amp; NCM</h3>
+      <p data-i18n="card.prodDesc">Progress tracking and nonconformance management.</p>
+      <div class="card-bottom">
+        <span class="file-tag">bct_asendia_po_status.html</span>
+        <span class="card-arrow">↗</span>
+      </div>
+    </a>
+
+    <a class="tool-card customer" href="bct_asendia_service_progress.html">
+      <span class="badge customer" data-i18n="badge.customer">Customer view</span>
+      <h3 data-i18n="card.progTitle">Production status</h3>
+      <p data-i18n="card.progDesc">Read-only production visibility for ASENDIA.</p>
+      <div class="card-bottom">
+        <span class="file-tag">bct_asendia_service_progress.html</span>
+        <span class="card-arrow">↗</span>
+      </div>
+    </a>
+
+    <a class="tool-card" href="bct_asendia_qc.html">
+      <span class="badge internal" data-i18n="badge.production">Production team</span>
+      <h3 data-i18n="card.qcTitle">Quality control</h3>
+      <p data-i18n="card.qcDesc">Measurement entry and SPC monitoring.</p>
+      <div class="card-bottom">
+        <span class="file-tag">bct_asendia_qc.html</span>
+        <span class="card-arrow">↗</span>
+      </div>
+    </a>
+
+    <a class="tool-card customer" href="bct_asendia_spc.html">
+      <span class="badge customer" data-i18n="badge.customer">Customer view</span>
+      <h3 data-i18n="card.spcTitle">SPC chart</h3>
+      <p data-i18n="card.spcDesc">Read-only SPC charts for ASENDIA.</p>
+      <div class="card-bottom">
+        <span class="file-tag">bct_asendia_spc.html</span>
+        <span class="card-arrow">↗</span>
+      </div>
+    </a>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-security">🔒 <span data-i18n="footer.security">Internal systems require BCT sign-in. Customer-facing pages are read-only.</span></div>
+  <div class="footer-fine font-en">© 2018 BCT</div>
+</footer>
+</div>
+
+<script>
+var translations = {
+  en: {
+    'nav.tag': 'OPS HUB',
+    'hero.title': 'See every system, through one window.',
+    'hero.sub': 'Sales, production, and quality control — connected in a single view.',
+    'hero.stat1': 'components tracked',
+    'hero.stat2': 'connected systems',
+    'hero.stat3': 'internal + customer views',
+    'section.title': 'Your workspace',
+    'section.sub': 'Pick a system below — from customer order to final quality data.',
+    'badge.sales': 'Sales team',
+    'badge.production': 'Production team',
+    'badge.customer': 'Customer view',
+    'card.salesTitle': 'PO management',
+    'card.salesDesc': 'Track ASENDIA purchase orders end to end.',
+    'card.prodTitle': 'Production &amp; NCM',
+    'card.prodDesc': 'Progress tracking and nonconformance management.',
+    'card.progTitle': 'Production status',
+    'card.progDesc': 'Read-only production visibility for ASENDIA.',
+    'card.qcTitle': 'Quality control',
+    'card.qcDesc': 'Measurement entry and SPC monitoring.',
+    'card.spcTitle': 'SPC chart',
+    'card.spcDesc': 'Read-only SPC charts for ASENDIA.',
+    'footer.security': 'Internal systems require BCT sign-in. Customer-facing pages are read-only.'
+  },
+  ko: {
+    'nav.tag': '운영 허브',
+    'hero.title': '하나의 창으로, 모든 시스템을 보다.',
+    'hero.sub': '영업, 생산, 품질관리를 하나의 화면에서 확인하세요.',
+    'hero.stat1': '추적 컴포넌트',
+    'hero.stat2': '연결된 시스템',
+    'hero.stat3': '내부 · 고객용 화면',
+    'section.title': '워크스페이스',
+    'section.sub': '고객 발주부터 품질 데이터까지 — 아래에서 시스템을 선택하세요.',
+    'badge.sales': '영업부',
+    'badge.production': '생산부',
+    'badge.customer': '고객제공용',
+    'card.salesTitle': 'PO 관리',
+    'card.salesDesc': 'ASENDIA 발주를 접수부터 완료까지 관리합니다.',
+    'card.prodTitle': '생산 관리',
+    'card.prodDesc': '생산 진행률과 부적합을 관리합니다.',
+    'card.progTitle': '생산관리현황',
+    'card.progDesc': 'ASENDIA 제공용 읽기 전용 생산현황입니다.',
+    'card.qcTitle': '품질관리',
+    'card.qcDesc': '측정 데이터 입력과 SPC 관리입니다.',
+    'card.spcTitle': 'SPC 차트',
+    'card.spcDesc': 'ASENDIA 제공용 읽기 전용 SPC 데이터입니다.',
+    'footer.security': '내부 시스템은 BCT 로그인이 필요합니다. 고객 제공 화면은 읽기 전용입니다.'
+  }
+};
+
+function setLang(lang){
+  document.documentElement.lang = lang;
+  document.body.classList.toggle('lang-ko', lang === 'ko');
+  document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+  document.getElementById('btnKo').classList.toggle('active', lang === 'ko');
+  var dict = translations[lang];
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var key = el.getAttribute('data-i18n');
+    if(dict[key]) el.innerHTML = dict[key];
+  });
+  try{ localStorage.setItem('bct_hub_lang', lang); }catch(e){}
+}
+
+(function(){
+  var saved = null;
+  try{ saved = localStorage.getItem('bct_hub_lang'); }catch(e){}
+  setLang(saved === 'ko' ? 'ko' : 'en');
+})();
+
+(function(){
+  // SMIL <animate> elements don't respect the prefers-reduced-motion CSS media
+  // query on their own, so strip them by hand for people who've asked for less
+  // motion - the shapes keep their static base cx/cy/d values either way.
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    var svg = document.getElementById('windowSvg');
+    if(svg) svg.querySelectorAll('animate').forEach(function(el){ el.remove(); });
+  }
+})();
+</script>
+</body>
+</html>

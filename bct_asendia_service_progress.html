@@ -398,6 +398,12 @@ function progressOf(r){
   else if(pct>0){ label='진행중'; cls='badge-amber'; }
   return { done, total, pct, label, cls };
 }
+function customerProgressOf(r){
+  if(r.hide_progress){
+    return { done:0, total:(r.ordered_set==null?0:r.ordered_set), pct:0, label:'미착수', cls:'badge-gray' };
+  }
+  return progressOf(r);
+}
 function totalAmountOf(r){
   if(r.total_amount!=null) return r.total_amount;
   if(r.ordered_set!=null && r.unit_price!=null) return r.ordered_set*r.unit_price;
@@ -655,10 +661,11 @@ const PO_SORT_ACCESSORS = {
   erp_code_asendia: r=>r.erp_code_asendia,
   ordered_item: r=>r.ordered_item,
   ordered_set: r=>r.ordered_set,
-  completed_set: r=>r.completed_set,
-  progress: r=>progressOf(r).pct,
+  completed_set: r=>customerProgressOf(r).done,
+  progress: r=>customerProgressOf(r).pct,
   delivery_date: r=>r.delivery_date,
-  serial_number: r=>r.serial_number
+  serial_number: r=>r.serial_number,
+  note: r=>r.note
 };
 const NCM_SORT_ACCESSORS = {
   model: r=>r.model,
@@ -724,6 +731,8 @@ function renderNcmTable(){
 
 /* ---------- set-component (BOM) progress (읽기 전용) ---------- */
 async function toggleComponents(poId){
+  const rec = state.records.find(r=>String(r.id)===String(poId));
+  if(rec && rec.hide_progress) return;
   if(String(state.expandedPoId)===String(poId)){
     state.expandedPoId = null;
     render();
@@ -805,9 +814,11 @@ function setStatusFilter(k){ state.statusFilter = k; render(); }
 function renderTable(){
   const filtered = filteredServiceRecords();
   const rows = filtered.map(r=>{
-    const p = progressOf(r);
+    const p = customerProgressOf(r);
     const isExpanded = String(state.expandedPoId)===String(r.id);
-    const toggleBtn = '<button class="toggle-btn" onclick="toggleComponents(\'' + r.id + '\')" title="구성품 보기">' + (isExpanded?'▾':'▸') + '</button>';
+    const toggleBtn = r.hide_progress
+      ? '<span class="toggle-btn" style="opacity:.35;cursor:default" title="진행 정보 비공개"></span>'
+      : '<button class="toggle-btn" onclick="toggleComponents(\'' + r.id + '\')" title="구성품 보기">' + (isExpanded?'▾':'▸') + '</button>';
     const mainRow = '<tr>' +
       '<td>' + toggleBtn + '</td>' +
       '<td class="num">' + dash(r.po_number) + '</td>' +
@@ -816,24 +827,25 @@ function renderTable(){
       '<td>' + dash(r.erp_code_asendia) + '</td>' +
       '<td style="white-space:normal;min-width:220px">' + dash(r.ordered_item) + '</td>' +
       '<td class="num">' + qty(r.ordered_set) + '</td>' +
-      '<td class="num">' + qty(r.completed_set) + '</td>' +
+      '<td class="num">' + qty(p.done) + '</td>' +
       '<td><div class="progress-wrap"><div class="progress-track"><div class="progress-fill" style="width:' + p.pct + '%"></div></div><div class="progress-text num">' + p.pct + '%</div></div></td>' +
       '<td><span class="badge ' + p.cls + '">' + p.label + '</span></td>' +
       '<td>' + dash(r.delivery_date) + '</td>' +
       '<td>' + dash(r.serial_number) + '</td>' +
+      '<td style="white-space:normal;min-width:160px">' + dash(r.note) + '</td>' +
     '</tr>';
     const expandRow = isExpanded
-      ? '<tr><td colspan="12" style="padding:0;background:var(--surface-soft)"><div style="position:sticky;left:0;max-width:640px;padding:14px 16px;box-sizing:border-box">' + renderComponentPanel() + '</div></td></tr>'
+      ? '<tr><td colspan="13" style="padding:0;background:var(--surface-soft)"><div style="position:sticky;left:0;max-width:640px;padding:14px 16px;box-sizing:border-box">' + renderComponentPanel() + '</div></td></tr>'
       : '';
     return mainRow + expandRow;
   }).join('');
-  const body = filtered.length ? rows : '<tr><td colspan="12"><div class="empty-note">조건에 맞는 PO 항목이 없습니다.</div></td></tr>';
+  const body = filtered.length ? rows : '<tr><td colspan="13"><div class="empty-note">조건에 맞는 PO 항목이 없습니다.</div></td></tr>';
   return '' +
   '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll"' + (state.expandedPoId ? ' style="max-height:none"' : '') + '>' +
   '<table class="table"><thead><tr>' +
     '<th></th>' + poTh('발주번호','po_number') + poTh('발행일','po_date') + poTh('요청납기(NBD)','asendia_nbd') + poTh('ERP코드','erp_code_asendia') +
     poTh('품목명','ordered_item') + poTh('발주수량','ordered_set') + poTh('완료수량','completed_set') + poTh('진행률','progress') + poTh('상태','progress') +
-    poTh('납품일','delivery_date') + poTh('시리얼번호','serial_number') +
+    poTh('납품일','delivery_date') + poTh('시리얼번호','serial_number') + poTh('비고','note') +
   '</tr></thead><tbody>' + body + '</tbody></table>' +
   '</div></div>';
 }

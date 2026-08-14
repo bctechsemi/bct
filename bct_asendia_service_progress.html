@@ -251,6 +251,10 @@ const state = {
   expandedPoId: null,
   componentRows: [],
   componentsLoading: false,
+  poSortKey:'po_date',
+  poSortDir:'desc',
+  ncmSortKey:'issued_date',
+  ncmSortDir:'desc',
   session:null,
   profile:null,
   authView:'checking',
@@ -616,14 +620,69 @@ function ncmBadgeClass(status){
 }
 function setNcmStatus(s){ state.ncmStatus = s; render(); }
 function setNcmQuery(v){ state.ncmQuery = v; render(); }
+/* ---------- sorting ---------- */
+function cmpVal(a,b){
+  if(a==null && b==null) return 0;
+  if(a==null) return -1;
+  if(b==null) return 1;
+  if(typeof a==='number' && typeof b==='number') return a-b;
+  return String(a).localeCompare(String(b),'ko');
+}
+function setPoSort(key){
+  if(state.poSortKey===key){ state.poSortDir = state.poSortDir==='asc'?'desc':'asc'; }
+  else { state.poSortKey = key; state.poSortDir = 'asc'; }
+  render();
+}
+function setNcmSort(key){
+  if(state.ncmSortKey===key){ state.ncmSortDir = state.ncmSortDir==='asc'?'desc':'asc'; }
+  else { state.ncmSortKey = key; state.ncmSortDir = 'asc'; }
+  render();
+}
+function poTh(label, key){
+  const active = state.poSortKey===key;
+  const arrow = active ? (state.poSortDir==='asc' ? ' \u25B2' : ' \u25BC') : '';
+  return '<th onclick="setPoSort(\'' + key + '\')" style="cursor:pointer;user-select:none" title="\uD074\uB9AD\uD558\uC5EC \uC815\uB82C">' + label + arrow + '</th>';
+}
+function ncmTh(label, key){
+  const active = state.ncmSortKey===key;
+  const arrow = active ? (state.ncmSortDir==='asc' ? ' \u25B2' : ' \u25BC') : '';
+  return '<th onclick="setNcmSort(\'' + key + '\')" style="cursor:pointer;user-select:none" title="\uD074\uB9AD\uD558\uC5EC \uC815\uB82C">' + label + arrow + '</th>';
+}
+const PO_SORT_ACCESSORS = {
+  po_number: r=>r.po_number,
+  po_date: r=>r.po_date,
+  asendia_nbd: r=>r.asendia_nbd,
+  erp_code_asendia: r=>r.erp_code_asendia,
+  ordered_item: r=>r.ordered_item,
+  ordered_set: r=>r.ordered_set,
+  completed_set: r=>r.completed_set,
+  progress: r=>progressOf(r).pct,
+  delivery_date: r=>r.delivery_date,
+  serial_number: r=>r.serial_number
+};
+const NCM_SORT_ACCESSORS = {
+  model: r=>r.model,
+  component: r=>r.component,
+  issued_date: r=>r.issued_date,
+  quantity: r=>r.quantity,
+  failure_mode: r=>r.failure_mode,
+  noti_date_to_asendia: r=>r.noti_date_to_asendia,
+  asendia_engineer: r=>r.asendia_engineer,
+  progress: r=>r.progress,
+  replacement_received_date: r=>r.replacement_received_date
+};
+
 function filteredNcmRecords(){
   const q = state.ncmQuery.trim().toLowerCase();
-  return state.ncmRecords.filter(r=>{
+  const list = state.ncmRecords.filter(r=>{
     const matchesStatus = state.ncmStatus==='all' ? true : r.progress===state.ncmStatus;
     if(!matchesStatus) return false;
     if(!q) return true;
     return [r.model, r.component, r.failure_mode, r.asendia_engineer].some(v=>v && String(v).toLowerCase().includes(q));
   });
+  const acc = NCM_SORT_ACCESSORS[state.ncmSortKey] || NCM_SORT_ACCESSORS.issued_date;
+  const dir = state.ncmSortDir==='desc' ? -1 : 1;
+  return list.slice().sort((a,b)=>cmpVal(acc(a),acc(b))*dir);
 }
 
 function renderNcmStatusBar(){
@@ -657,8 +716,8 @@ function renderNcmTable(){
   return '' +
   '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll">' +
   '<table class="table"><thead><tr>' +
-    '<th>모델</th><th>모듈</th><th>발생일</th><th>수량</th><th>불량증상</th>' +
-    '<th>ASENDIA통보일</th><th>ASENDIA담당자</th><th>진행상태</th><th>교환품수령일</th>' +
+    ncmTh('모델','model') + ncmTh('모듈','component') + ncmTh('발생일','issued_date') + ncmTh('수량','quantity') + ncmTh('불량증상','failure_mode') +
+    ncmTh('ASENDIA통보일','noti_date_to_asendia') + ncmTh('ASENDIA담당자','asendia_engineer') + ncmTh('진행상태','progress') + ncmTh('교환품수령일','replacement_received_date') +
   '</tr></thead><tbody>' + body + '</tbody></table>' +
   '</div></div>';
 }
@@ -717,13 +776,16 @@ function renderComponentPanel(){
 
 function filteredServiceRecords(){
   const q = state.query.trim().toLowerCase();
-  return state.records.filter(r=>{
+  const list = state.records.filter(r=>{
     if(r.po_category!=='services') return false;
     const matchesStatus = state.statusFilter==='inprogress' ? !r.delivery_date : true;
     if(!matchesStatus) return false;
     if(!q) return true;
     return [r.po_number, r.ordered_item, r.oem_code, r.erp_code_asendia].some(v=>v && String(v).toLowerCase().includes(q));
   });
+  const acc = PO_SORT_ACCESSORS[state.poSortKey] || PO_SORT_ACCESSORS.po_date;
+  const dir = state.poSortDir==='desc' ? -1 : 1;
+  return list.slice().sort((a,b)=>cmpVal(acc(a),acc(b))*dir);
 }
 
 function renderStatusBar(){
@@ -769,9 +831,9 @@ function renderTable(){
   return '' +
   '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll"' + (state.expandedPoId ? ' style="max-height:none"' : '') + '>' +
   '<table class="table"><thead><tr>' +
-    '<th></th><th>발주번호</th><th>발행일</th><th>요청납기(NBD)</th><th>ERP코드</th>' +
-    '<th>품목명</th><th>발주수량</th><th>완료수량</th><th>진행률</th><th>상태</th>' +
-    '<th>납품일</th><th>시리얼번호</th>' +
+    '<th></th>' + poTh('발주번호','po_number') + poTh('발행일','po_date') + poTh('요청납기(NBD)','asendia_nbd') + poTh('ERP코드','erp_code_asendia') +
+    poTh('품목명','ordered_item') + poTh('발주수량','ordered_set') + poTh('완료수량','completed_set') + poTh('진행률','progress') + poTh('상태','progress') +
+    poTh('납품일','delivery_date') + poTh('시리얼번호','serial_number') +
   '</tr></thead><tbody>' + body + '</tbody></table>' +
   '</div></div>';
 }

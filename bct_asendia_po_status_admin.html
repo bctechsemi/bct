@@ -487,6 +487,46 @@ async function updateCompleted(id, value){
   }
 }
 
+async function updateNote(id, value){
+  const rec = state.records.find(r=>String(r.id)===String(id));
+  if(!rec) return;
+  const prev = rec.note;
+  rec.note = value;
+  render();
+  if(state.demoMode) return;
+  try{
+    const res = await fetch(TABLE_URL + '?id=eq.' + id, {
+      method:'PATCH', headers: sbHeaders({ 'Prefer':'return=minimal' }),
+      body: JSON.stringify({ note: value || null })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+  } catch(e){
+    rec.note = prev;
+    render();
+    showToast('저장 실패: 비고가 원래대로 되돌아갔습니다. (' + e.message + ')');
+  }
+}
+
+async function updateHideProgress(id, checked){
+  const rec = state.records.find(r=>String(r.id)===String(id));
+  if(!rec) return;
+  const prev = rec.hide_progress;
+  rec.hide_progress = checked;
+  render();
+  if(state.demoMode) return;
+  try{
+    const res = await fetch(TABLE_URL + '?id=eq.' + id, {
+      method:'PATCH', headers: sbHeaders({ 'Prefer':'return=minimal' }),
+      body: JSON.stringify({ hide_progress: checked })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+  } catch(e){
+    rec.hide_progress = prev;
+    render();
+    showToast('저장 실패: 설정이 원래대로 되돌아갔습니다. (' + e.message + ')');
+  }
+}
+
 async function deleteRecord(id, poNumber){
   const ok = window.confirm('발주번호 "' + poNumber + '" 항목을 삭제할까요?\n이 작업은 되돌릴 수 없습니다.');
   if(!ok) return;
@@ -947,7 +987,9 @@ const PO_SORT_ACCESSORS = {
   total_amount: r=>totalAmountOf(r),
   delivery_date: r=>r.delivery_date,
   invoice_date: r=>r.invoice_date,
-  serial_number: r=>r.serial_number
+  serial_number: r=>r.serial_number,
+  note: r=>r.note,
+  hide_progress: r=>r.hide_progress ? 1 : 0
 };
 const NCM_SORT_ACCESSORS = {
   model: r=>r.model,
@@ -989,6 +1031,8 @@ function renderTable(){
     const completedCell = hasComponents
       ? '<td class="num" title="구성품 진행률로 자동 계산됩니다">' + qty(r.completed_set) + '</td>'
       : '<td><input type="number" class="completed-input num" min="0" max="' + (r.ordered_set||0) + '" value="' + (r.completed_set==null?'':r.completed_set) + '" onchange="updateCompleted(\'' + r.id + '\',this.value)"></td>';
+    const noteCell = '<td><input type="text" class="input" style="min-width:160px;height:32px;padding:0 8px;font-size:12px" value="' + escAttr(r.note||'') + '" placeholder="비고" onchange="updateNote(\'' + r.id + '\',this.value)"></td>';
+    const hideCell = '<td style="text-align:center"><input type="checkbox" ' + (r.hide_progress?'checked':'') + ' onchange="updateHideProgress(\'' + r.id + '\',this.checked)" title="체크 시 고객사 화면에서 0% 미착수로 표시됩니다"></td>';
     const mainRow = '<tr>' +
       '<td>' + toggleBtn + '</td>' +
       '<td class="num">' + dash(r.po_number) + '</td>' +
@@ -1007,15 +1051,16 @@ function renderTable(){
       '<td>' + dash(r.delivery_date) + '</td>' +
       '<td>' + dash(r.invoice_date) + '</td>' +
       '<td>' + dash(r.serial_number) + '</td>' +
+      noteCell + hideCell +
       '<td><div style="display:flex;gap:6px"><button class="btn btn-sm btn-ghost" onclick="openEditModal(\'' + r.id + '\')">수정</button><button class="btn btn-sm btn-danger" onclick="deleteRecord(\'' + r.id + '\',\'' + String(r.po_number||'').replace(/'/g,"\\'") + '\')">삭제</button></div></td>' +
     '</tr>';
     const expandRow = isExpanded
-      ? '<tr><td colspan="18" style="padding:0;background:var(--surface-soft)"><div style="position:sticky;left:0;max-width:640px;padding:14px 16px;box-sizing:border-box">' + renderComponentPanel(r.id) + '</div></td></tr>'
+      ? '<tr><td colspan="20" style="padding:0;background:var(--surface-soft)"><div style="position:sticky;left:0;max-width:640px;padding:14px 16px;box-sizing:border-box">' + renderComponentPanel(r.id) + '</div></td></tr>'
       : '';
     return mainRow + expandRow;
   }).join('');
 
-  const body = filtered.length ? rows : '<tr><td colspan="18"><div class="empty-note">조건에 맞는 PO 항목이 없습니다.</div></td></tr>';
+  const body = filtered.length ? rows : '<tr><td colspan="20"><div class="empty-note">조건에 맞는 PO 항목이 없습니다.</div></td></tr>';
 
   return '' +
   '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll"' + (state.expandedPoId ? ' style="max-height:none"' : '') + '>' +
@@ -1023,7 +1068,8 @@ function renderTable(){
     '<th></th>' + poTh('발주번호','po_number') + poTh('구분','po_category') + poTh('발행일','po_date') + poTh('요청납기(NBD)','asendia_nbd') + poTh('ERP코드','erp_code_asendia') +
     poTh('품목명','ordered_item') + poTh('OEM Code','oem_code') +
     poTh('발주수량','ordered_set') + poTh('완료수량','completed_set') + poTh('진행률','progress') + poTh('상태','progress') +
-    poTh('단가','unit_price') + poTh('합계금액','total_amount') + poTh('납품일','delivery_date') + poTh('계산서발행일','invoice_date') + poTh('시리얼번호','serial_number') + '<th>관리</th>' +
+    poTh('단가','unit_price') + poTh('합계금액','total_amount') + poTh('납품일','delivery_date') + poTh('계산서발행일','invoice_date') + poTh('시리얼번호','serial_number') +
+    poTh('비고','note') + poTh('미공개','hide_progress') + '<th>관리</th>' +
   '</tr></thead><tbody>' + body + '</tbody></table>' +
   '</div></div>';
 }
@@ -1303,6 +1349,8 @@ function render(){
   const activeId = active && active.id ? active.id : null;
   const selStart = active && typeof active.selectionStart === 'number' ? active.selectionStart : null;
   const selEnd = active && typeof active.selectionEnd === 'number' ? active.selectionEnd : null;
+  const prevScrollEl = document.querySelector('.table-scroll');
+  const savedScrollLeft = prevScrollEl ? prevScrollEl.scrollLeft : null;
 
   let html;
   if(state.authView==='checking'){
@@ -1337,6 +1385,13 @@ function render(){
   }
 
   document.getElementById('app').innerHTML = html;
+
+  if(savedScrollLeft != null){
+    const newScrollEl = document.querySelector('.table-scroll');
+    if(newScrollEl) newScrollEl.scrollLeft = savedScrollLeft;
+    const newTopEl = document.querySelector('.table-scroll-top');
+    if(newTopEl) newTopEl.scrollLeft = savedScrollLeft;
+  }
 
   if(activeId){
     const el = document.getElementById(activeId);

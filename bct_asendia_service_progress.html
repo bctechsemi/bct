@@ -867,6 +867,8 @@ function render(){
   const activeId = active && active.id ? active.id : null;
   const selStart = active && typeof active.selectionStart === 'number' ? active.selectionStart : null;
   const selEnd = active && typeof active.selectionEnd === 'number' ? active.selectionEnd : null;
+  const prevScrollEl = document.querySelector('.table-scroll');
+  const savedScrollLeft = prevScrollEl ? prevScrollEl.scrollLeft : null;
 
   let html;
   if(state.authView==='checking'){
@@ -900,6 +902,13 @@ function render(){
   }
 
   document.getElementById('app').innerHTML = html;
+
+  if(savedScrollLeft != null){
+    const newScrollEl = document.querySelector('.table-scroll');
+    if(newScrollEl) newScrollEl.scrollLeft = savedScrollLeft;
+    const newTopEl = document.querySelector('.table-scroll-top');
+    if(newTopEl) newTopEl.scrollLeft = savedScrollLeft;
+  }
 
   if(activeId){
     const el = document.getElementById(activeId);

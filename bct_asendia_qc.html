@@ -108,7 +108,8 @@
   .panel h2{ font-family:var(--font); font-size:15px; font-weight:700; color:var(--ink-deep); margin:0 0 16px; }
   .panel-head-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .panel-head-row h2{ margin:0; }
-  .collapse-chevron{ font-size:12.5px; font-weight:700; color:var(--steel); white-space:nowrap; user-select:none; }
+  .collapse-chevron{ font-size:12.5px; font-weight:700; color:var(--steel); white-space:nowrap; user-select:none; margin-left:10px; }
+  .spec-alerts-title{ cursor:pointer; display:flex; align-items:center; margin:0; }
   .unit-info-summary{ font-family:var(--font); font-weight:400; font-size:13px; color:var(--steel); margin-left:8px; }
   .recent-entries-toolbar{ display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
 
@@ -215,7 +216,22 @@
   }
   .badge-green{ background:var(--success); color:#fff; }
   .badge-red{ background:var(--critical); color:#fff; }
+  .badge-amber{ background:var(--attention); color:#fff; }
   .badge-gray{ background:var(--stone); color:#fff; }
+
+  /* ---- Spec Alerts ---- */
+  .spec-alerts-panel{ margin-bottom:20px; }
+  .alerts-clean-note{ color:var(--success); font-size:13.5px; font-weight:600; padding:8px 0; }
+  .alerts-truncated-note{ color:var(--steel); font-size:12px; margin-bottom:14px; }
+  .alert-section{ margin-top:18px; }
+  .alert-section:first-of-type{ margin-top:0; }
+  .alert-section-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .alert-section-head h3{ margin:0; font-family:var(--font); font-size:14px; font-weight:700; color:var(--ink-deep); }
+  .alert-section-hint{ font-weight:400; font-size:12px; color:var(--steel); }
+  .alert-row{ cursor:pointer; }
+  .alert-row:hover{ background:var(--surface-soft); }
+  .alert-value-bad{ color:var(--critical); font-weight:700; }
+  .alert-value-warn{ color:var(--attention); font-weight:700; }
 
   /* ---- chart ---- */
   .chart-wrap{ position:relative; height:420px; }
@@ -396,7 +412,12 @@ const state = {
   spcStats:null,
   spcRangePreset:'all',            // '1m' | '3m' | '6m' | '1y' | 'all' | 'custom'
   spcRangeStart:'',                // used when spcRangePreset==='custom'
-  spcRangeEnd:''
+  spcRangeEnd:'',
+  specAlertsLoading:false,
+  specAlertsData:null,             // { specOut:[...], nearLimit:[...], lowCpk:[...], truncated:bool }
+  specAlertsLoadedForType:null,    // componentType the alerts were last computed for (avoids redundant reloads on model-only changes)
+  specAlertsCollapsed:true,        // folded by default
+  specAlertsShowAll:{ specOut:false, nearLimit:false, lowCpk:false }
 };
 
 /* ---------- auth ---------- */
@@ -644,7 +665,14 @@ function onModelReady(){
   state.spcParam = spec.length ? (spec.find(p=>paramKey(p.parameter_code,p.port)===state.spcParam) ? state.spcParam : paramKey(spec[0].parameter_code, spec[0].port)) : null;
   render();
   loadRecentEntries();
-  if(state.section==='spc') loadSpcData();
+  if(state.section==='spc'){
+    loadSpcData();
+    // Alerts scan the whole component type (all models), not just the
+    // selected model, so only reload when the type actually changed -
+    // switching models within the same type would otherwise refetch the
+    // same alert data redundantly.
+    if(state.specAlertsLoadedForType !== state.componentType) loadSpecAlerts();
+  }
 }
 
 /* Builds the PostgREST filter for the Recent Entries search box. Serial is
@@ -823,12 +851,12 @@ function applySpcRange(){
 
 function setSpcRangePreset(preset){
   state.spcRangePreset = preset;
-  if(preset !== 'custom'){ applySpcRange(); }
+  if(preset !== 'custom'){ applySpcRange(); loadSpecAlerts(); }
   else { render(); } // wait for the user to actually pick both custom dates before filtering
 }
 function setSpcRangeCustom(which, value){
   if(which === 'start') state.spcRangeStart = value; else state.spcRangeEnd = value;
-  if(state.spcRangeStart && state.spcRangeEnd) applySpcRange();
+  if(state.spcRangeStart && state.spcRangeEnd){ applySpcRange(); loadSpecAlerts(); }
   else render();
 }
 
@@ -858,10 +886,116 @@ function computeStats(spec, values){
   return { n, mean, sigma, ucl, lcl, cp, cpk, outOfControl, outOfSpec };
 }
 
+/* ---------- Spec Alerts (scans the whole current component type, not just
+   the selected model/parameter) ---------- */
+async function loadSpecAlerts(){
+  if(!state.componentType){ state.specAlertsData = null; render(); return; }
+  state.specAlertsLoading = true; render();
+  const { start, end } = computeSpcRangeBounds();
+  const ALERTS_ROW_CAP = 5000;
+  let rows;
+  if(state.demoMode){
+    rows = DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType);
+  } else {
+    try{
+      let url = MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) +
+        '&select=model,serial,parameter_code,port,value,measured_date,inspector_name&order=model.asc,serial.asc&limit=' + ALERTS_ROW_CAP;
+      if(start) url += '&measured_date=gte.' + enc(start);
+      if(end) url += '&measured_date=lte.' + enc(end);
+      const res = await fetch(url, { headers: sbHeaders() });
+      rows = res.ok ? await res.json() : [];
+    } catch(e){
+      rows = [];
+    }
+  }
+  if(start) rows = rows.filter(r => r.measured_date >= start);
+  if(end) rows = rows.filter(r => r.measured_date <= end);
+  const truncated = rows.length >= ALERTS_ROW_CAP;
+  state.specAlertsData = computeSpecAlerts(rows);
+  state.specAlertsData.truncated = truncated;
+  state.specAlertsLoadedForType = state.componentType;
+  state.specAlertsLoading = false;
+  render();
+}
+
+/* Groups measurements by (model, parameter_code, port) and flags three kinds
+   of things worth a look:
+   - specOut: individual measurements that fail their spec outright.
+   - nearLimit: individual measurements that PASS but sit within 1.5 process-
+     sigma of the nearest limit - a "close call" that's still in spec today
+     but worth watching.
+   - lowCpk: whole parameter groups (30+ samples) whose process capability
+     index is below 1.33, meaning the process has little margin even though
+     no individual point may have failed yet. */
+function computeSpecAlerts(rows){
+  const NEAR_LIMIT_SIGMA = 1.5;
+  const CPK_THRESHOLD = 1.33;
+  const MIN_N_FOR_CPK = 30;
+
+  const groups = {};
+  rows.forEach(r=>{
+    const key = r.model + '\u0001' + r.parameter_code + '\u0001' + (r.port || '');
+    if(!groups[key]) groups[key] = { model:r.model, parameter_code:r.parameter_code, port:r.port||'', rows:[] };
+    groups[key].rows.push(r);
+  });
+
+  const specOut = [], nearLimit = [], lowCpk = [];
+
+  Object.values(groups).forEach(g=>{
+    const modelSpec = state.specByModel[g.model] || [];
+    const spec = modelSpec.find(p=>p.parameter_code===g.parameter_code && (p.port||'')===g.port);
+    if(!spec || spec.limit_type==='none' || spec.limit_type==='target') return; // "close to target" isn't a meaningful near-limit concept here
+
+    const sortedRows = g.rows.slice().sort((a,b)=> a.serial < b.serial ? -1 : a.serial > b.serial ? 1 : 0);
+    const values = sortedRows.map(r=>Number(r.value)).filter(v=>!Number.isNaN(v));
+    const stats = computeStats(spec, values);
+
+    sortedRows.forEach(r=>{
+      const v = Number(r.value);
+      if(Number.isNaN(v)) return;
+      const pass = evalPass(spec, v);
+      if(pass === false){
+        specOut.push({ model:g.model, parameter_code:g.parameter_code, port:g.port, spec, value:v, row:r });
+      } else if(pass === true && stats.sigma && stats.sigma > 0){
+        let distance = null;
+        if(spec.limit_type==='upper') distance = Number(spec.usl) - v;
+        else if(spec.limit_type==='lower') distance = v - Number(spec.lsl);
+        else if(spec.limit_type==='range') distance = Math.min(v - Number(spec.lsl), Number(spec.usl) - v);
+        if(distance!=null && distance >= 0){
+          const distanceSigma = distance / stats.sigma;
+          if(distanceSigma < NEAR_LIMIT_SIGMA){
+            nearLimit.push({ model:g.model, parameter_code:g.parameter_code, port:g.port, spec, value:v, row:r, distanceSigma });
+          }
+        }
+      }
+    });
+
+    if(stats.cpk!=null && stats.n >= MIN_N_FOR_CPK && stats.cpk < CPK_THRESHOLD){
+      lowCpk.push({ model:g.model, parameter_code:g.parameter_code, port:g.port, spec, stats });
+    }
+  });
+
+  specOut.sort((a,b)=> a.row.measured_date < b.row.measured_date ? 1 : (a.row.measured_date > b.row.measured_date ? -1 : 0));
+  nearLimit.sort((a,b)=> a.distanceSigma - b.distanceSigma);
+  lowCpk.sort((a,b)=> a.stats.cpk - b.stats.cpk);
+
+  return { specOut, nearLimit, lowCpk };
+}
+
+/* Jumps the chart above straight to the model/parameter a given alert row is
+   about, so clicking an alert doubles as "show me that chart". */
+function jumpToSpcParam(model, code, port){
+  state.model = model;
+  state.spcParam = paramKey(code, port || '');
+  onModelReady();
+}
+function toggleSpecAlertsShowAll(which){ state.specAlertsShowAll[which] = !state.specAlertsShowAll[which]; render(); }
+
 /* ---------- entry actions ---------- */
-function setComponentType(v){ state.componentType = v; state.model = null; state.specByModel = {}; loadSpecForComponent(v); }
+function setComponentType(v){ state.componentType = v; state.model = null; state.specByModel = {}; state.specAlertsData = null; loadSpecForComponent(v); }
 function toggleUnitInfo(){ state.unitInfoCollapsed = !state.unitInfoCollapsed; render(); }
 function toggleMeasuredValues(){ state.measuredValuesCollapsed = !state.measuredValuesCollapsed; render(); }
+function toggleSpecAlerts(){ state.specAlertsCollapsed = !state.specAlertsCollapsed; render(); }
 /* Recent Entries search is explicit-trigger only (Enter key or the Search
    button) rather than search-as-you-type. Any live/debounced auto-search
    still causes a visible refresh at whatever pace the person happens to type,
@@ -873,7 +1007,13 @@ function triggerRecentEntriesSearch(){ loadRecentEntries(); }
 function clearRecentEntriesSearch(){ state.recentEntriesQuery = ''; loadRecentEntries(); }
 function setModel(v){ state.model = v; onModelReady(); }
 function setSpcParam(v){ state.spcParam = v; loadSpcData(); }
-function setSection(s){ state.section = s; render(); if(s==='spc') loadSpcData(); }
+function setSection(s){
+  state.section = s; render();
+  if(s==='spc'){
+    loadSpcData();
+    if(state.specAlertsLoadedForType !== state.componentType) loadSpecAlerts();
+  }
+}
 /* Converts an ISO date 'YYYY-MM-DD' into the YYMMDD prefix used in serials.
    Returns null for an invalid/empty date. */
 function isoDateToYYMMDD(iso){
@@ -1297,6 +1437,129 @@ function renderSpcRangeBar(){
   return '<div class="spc-range-bar"><span class="range-label">Range:</span><div class="range-pills">' + pills + '</div>' + customInputs + '</div>';
 }
 
+function specLimitLabel(spec){
+  if(spec.limit_type==='upper') return '\u2264 ' + fmtNum(spec.usl) + (spec.unit ? (' ' + spec.unit) : '');
+  if(spec.limit_type==='lower') return '\u2265 ' + fmtNum(spec.lsl) + (spec.unit ? (' ' + spec.unit) : '');
+  if(spec.limit_type==='range') return fmtNum(spec.lsl) + ' ~ ' + fmtNum(spec.usl) + (spec.unit ? (' ' + spec.unit) : '');
+  return '\u2014';
+}
+
+function renderSpecOutSection(items){
+  if(!items.length) return '';
+  const showAll = state.specAlertsShowAll.specOut;
+  const shown = showAll ? items : items.slice(0,10);
+  const rows = shown.map(it=>{
+    const label = escAttrText(it.spec.parameter_label) + (it.port ? ' \u2014 ' + escAttrText(it.port) : '');
+    return '<tr class="alert-row" onclick="jumpToSpcParam(\'' + escAttrText(it.model) + '\',\'' + escAttrText(it.parameter_code) + '\',\'' + escAttrText(it.port) + '\')">' +
+      '<td>' + escAttrText(it.model) + '</td>' +
+      '<td>' + label + '</td>' +
+      '<td class="num alert-value-bad">' + fmtNum(it.value) + (it.spec.unit ? (' ' + it.spec.unit) : '') + '</td>' +
+      '<td>' + specLimitLabel(it.spec) + '</td>' +
+      '<td class="num">' + dash(it.row.serial) + '</td>' +
+      '<td>' + dash(it.row.measured_date) + '</td>' +
+      '<td>' + dash(it.row.inspector_name) + '</td>' +
+    '</tr>';
+  }).join('');
+  const moreBtn = items.length > 10 ? '<button class="btn btn-ghost btn-sm" onclick="toggleSpecAlertsShowAll(\'specOut\')">' + (showAll ? 'Show fewer' : 'Show all ' + items.length) + '</button>' : '';
+  return '' +
+  '<div class="alert-section">' +
+    '<div class="alert-section-head"><span class="badge badge-red">' + items.length + '</span><h3>Spec Out</h3></div>' +
+    '<div class="table-wrap"><div class="table-scroll"><table class="table"><thead><tr><th>Model</th><th>Parameter</th><th>Value</th><th>Limit</th><th>Serial</th><th>Date</th><th>Inspector</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' +
+    moreBtn +
+  '</div>';
+}
+
+function renderNearLimitSection(items){
+  if(!items.length) return '';
+  const showAll = state.specAlertsShowAll.nearLimit;
+  const shown = showAll ? items : items.slice(0,10);
+  const rows = shown.map(it=>{
+    const label = escAttrText(it.spec.parameter_label) + (it.port ? ' \u2014 ' + escAttrText(it.port) : '');
+    return '<tr class="alert-row" onclick="jumpToSpcParam(\'' + escAttrText(it.model) + '\',\'' + escAttrText(it.parameter_code) + '\',\'' + escAttrText(it.port) + '\')">' +
+      '<td>' + escAttrText(it.model) + '</td>' +
+      '<td>' + label + '</td>' +
+      '<td class="num alert-value-warn">' + fmtNum(it.value) + (it.spec.unit ? (' ' + it.spec.unit) : '') + '</td>' +
+      '<td>' + specLimitLabel(it.spec) + '</td>' +
+      '<td class="num">' + fmtNum(it.distanceSigma) + '\u03c3</td>' +
+      '<td class="num">' + dash(it.row.serial) + '</td>' +
+      '<td>' + dash(it.row.measured_date) + '</td>' +
+    '</tr>';
+  }).join('');
+  const moreBtn = items.length > 10 ? '<button class="btn btn-ghost btn-sm" onclick="toggleSpecAlertsShowAll(\'nearLimit\')">' + (showAll ? 'Show fewer' : 'Show all ' + items.length) + '</button>' : '';
+  return '' +
+  '<div class="alert-section">' +
+    '<div class="alert-section-head"><span class="badge badge-amber">' + items.length + '</span><h3>Near Limit <span class="alert-section-hint">(in spec, but within 1.5\u03c3 of the edge)</span></h3></div>' +
+    '<div class="table-wrap"><div class="table-scroll"><table class="table"><thead><tr><th>Model</th><th>Parameter</th><th>Value</th><th>Limit</th><th>Margin</th><th>Serial</th><th>Date</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' +
+    moreBtn +
+  '</div>';
+}
+
+function renderLowCpkSection(items){
+  if(!items.length) return '';
+  const showAll = state.specAlertsShowAll.lowCpk;
+  const shown = showAll ? items : items.slice(0,10);
+  const rows = shown.map(it=>{
+    const label = escAttrText(it.spec.parameter_label) + (it.port ? ' \u2014 ' + escAttrText(it.port) : '');
+    return '<tr class="alert-row" onclick="jumpToSpcParam(\'' + escAttrText(it.model) + '\',\'' + escAttrText(it.parameter_code) + '\',\'' + escAttrText(it.port) + '\')">' +
+      '<td>' + escAttrText(it.model) + '</td>' +
+      '<td>' + label + '</td>' +
+      '<td class="num">' + it.stats.n + '</td>' +
+      '<td class="num">' + fmtNum(it.stats.mean) + '</td>' +
+      '<td class="num">' + fmtNum(it.stats.sigma) + '</td>' +
+      '<td class="num alert-value-warn">' + fmtNum(it.stats.cpk) + '</td>' +
+    '</tr>';
+  }).join('');
+  const moreBtn = items.length > 10 ? '<button class="btn btn-ghost btn-sm" onclick="toggleSpecAlertsShowAll(\'lowCpk\')">' + (showAll ? 'Show fewer' : 'Show all ' + items.length) + '</button>' : '';
+  return '' +
+  '<div class="alert-section">' +
+    '<div class="alert-section-head"><span class="badge badge-amber">' + items.length + '</span><h3>Low Process Capability <span class="alert-section-hint">(Cpk below 1.33, 30+ samples)</span></h3></div>' +
+    '<div class="table-wrap"><div class="table-scroll"><table class="table"><thead><tr><th>Model</th><th>Parameter</th><th>n</th><th>Mean</th><th>\u03c3</th><th>Cpk</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>' +
+    moreBtn +
+  '</div>';
+}
+
+function renderSpecAlertsPanel(){
+  if(!state.componentType) return '';
+  const collapsed = state.specAlertsCollapsed;
+  const chevron = '<span class="collapse-chevron">' + (collapsed ? '\u25b8 Expand' : '\u25be Collapse') + '</span>';
+
+  if(state.specAlertsLoading){
+    const header = '<div class="panel-head-row"><h2 class="spec-alerts-title" onclick="toggleSpecAlerts()">Spec Alerts <span class="unit-info-summary">scanning\u2026</span></h2>' + chevron + '</div>';
+    return '<div class="panel spec-alerts-panel">' + header + (collapsed ? '' : '<div class="empty-note" style="padding:30px">Scanning ' + escAttrText(componentTypeLabel(state.componentType)) + ' data\u2026</div>') + '</div>';
+  }
+  const data = state.specAlertsData;
+  if(!data) return '';
+  const total = data.specOut.length + data.nearLimit.length + data.lowCpk.length;
+  const summaryText = total === 0 ? '\u2713 no findings' : (total + ' finding' + (total===1?'':'s'));
+  const header = '' +
+    '<div class="panel-head-row">' +
+      '<h2 class="spec-alerts-title" onclick="toggleSpecAlerts()">Spec Alerts <span class="unit-info-summary">' + summaryText + '</span>' + chevron + '</h2>' +
+      '<button class="btn btn-ghost btn-sm" onclick="loadSpecAlerts()">\u21bb Rescan</button>' +
+    '</div>';
+
+  if(collapsed){
+    return '<div class="panel spec-alerts-panel">' + header + '</div>';
+  }
+
+  const truncatedNote = data.truncated ? '<div class="alerts-truncated-note">Scan capped at 5,000 rows \u2014 narrow the date range above for a complete picture.</div>' : '';
+  if(total === 0){
+    return '' +
+    '<div class="panel spec-alerts-panel">' +
+      header +
+      '<div class="alerts-clean-note">\u2713 No spec-out or at-risk measurements found for ' + escAttrText(componentTypeLabel(state.componentType)) + ' in the selected range.</div>' +
+      truncatedNote +
+    '</div>';
+  }
+  return '' +
+  '<div class="panel spec-alerts-panel">' +
+    header +
+    truncatedNote +
+    renderSpecOutSection(data.specOut) +
+    renderNearLimitSection(data.nearLimit) +
+    renderLowCpkSection(data.lowCpk) +
+  '</div>';
+}
+
 function renderSpcTab(){
   const spec = state.specByModel[state.model] || [];
   if(state.specLoading){
@@ -1309,7 +1572,7 @@ function renderSpcTab(){
   const activeSpec = spec.find(p=>paramKey(p.parameter_code,p.port)===state.spcParam);
 
   if(!s || s.n===0){
-    return renderSelectorRow(true, false) + renderSpcRangeBar() +
+    return renderSelectorRow(true, false) + renderSpcRangeBar() + renderSpecAlertsPanel() +
       '<div class="panel"><div class="empty-note">No measurement data ' + (state.spcRangePreset!=='all' ? 'in this date range' : 'yet') + ' for this parameter.</div></div>' +
       renderRecentEntriesPanel();
   }
@@ -1328,7 +1591,7 @@ function renderSpcTab(){
       '<div class="legend-item"><span class="legend-swatch dashed" style="border-color:#E41E3F"></span>USL / LSL (customer spec limit)</div>' +
     '</div>';
 
-  return renderSelectorRow(true, false) + renderSpcRangeBar() +
+  return renderSelectorRow(true, false) + renderSpcRangeBar() + renderSpecAlertsPanel() +
     '<div class="card-grid">' + cards + '</div>' +
     '<div class="panel"><div class="chart-wrap"><canvas id="spcCanvas"></canvas></div>' + legend + '</div>' +
     renderRecentEntriesPanel();
@@ -1447,7 +1710,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam };
 
 </script>
 </body>

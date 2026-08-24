@@ -83,6 +83,15 @@
 
   /* ---- selector row ---- */
   .selector-row{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
+  .spc-range-bar{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+  .range-label{ font-family:var(--font); font-size:12.5px; font-weight:700; color:var(--steel); }
+  .range-pills{ display:inline-flex; gap:2px; padding:3px; background:var(--surface-soft); border:1px solid var(--hairline-soft); border-radius:var(--r-full); }
+  .range-pill{
+    font-family:var(--font); font-weight:700; font-size:12.5px; padding:6px 14px; border-radius:var(--r-full);
+    border:none; background:transparent; color:var(--steel); cursor:pointer; transition:background .15s, color .15s;
+  }
+  .range-pill.active{ background:var(--canvas); color:var(--ink-deep); box-shadow:0 1px 3px rgba(10,19,23,.14); }
+  .range-date-sep{ color:var(--steel); }
   .selector-field{ display:flex; flex-direction:column; gap:6px; min-width:220px; }
   .selector-field label{ font-size:11.5px; font-weight:700; color:var(--slate); text-transform:uppercase; letter-spacing:.4px; }
 
@@ -99,6 +108,9 @@
   .panel h2{ font-family:var(--font); font-size:15px; font-weight:700; color:var(--ink-deep); margin:0 0 16px; }
   .panel-head-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .panel-head-row h2{ margin:0; }
+  .collapse-chevron{ font-size:12.5px; font-weight:700; color:var(--steel); white-space:nowrap; user-select:none; }
+  .unit-info-summary{ font-family:var(--font); font-weight:400; font-size:13px; color:var(--steel); margin-left:8px; }
+  .recent-entries-toolbar{ display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
 
   /* ---- form controls ---- */
   .input, .select{
@@ -107,6 +119,7 @@
     padding:0 14px; height:44px; width:100%;
   }
   .input:focus, .select:focus{ outline:none; border:2px solid var(--fb-blue); padding:0 13px; }
+  .range-date-input{ width:auto; height:36px; padding:0 10px; }
   select.select{ height:44px; }
   .btn{
     font-family:var(--font); font-weight:700; font-size:12.5px; letter-spacing:-0.1px;
@@ -155,6 +168,33 @@
   .procedure-banner-link .procedure-title{ color:var(--primary); }
   .procedure-sub{ font-size:12px; color:var(--steel); margin-top:2px; }
   .procedure-banner-empty{ color:var(--steel); font-size:12.5px; gap:10px; }
+
+  /* Compact inline SOP link (sits next to Model in the selector row) */
+  .procedure-link-compact{
+    display:flex; align-items:center; gap:8px; align-self:flex-end;
+    height:44px; padding:0 14px; white-space:nowrap;
+    background:var(--surface-soft); border:1px solid var(--hairline-soft); border-radius:var(--r-lg);
+    text-decoration:none; transition:background .12s, border-color .12s;
+  }
+  .procedure-link-compact:hover{ background:var(--canvas); border-color:var(--primary); }
+  .procedure-link-compact .procedure-icon{ font-size:16px; }
+  .procedure-link-compact .procedure-title{ font-weight:700; font-size:12.5px; color:var(--primary); }
+  .procedure-link-compact-empty{ color:var(--steel); font-size:12px; cursor:default; }
+  .procedure-link-compact-empty .procedure-title{ color:var(--steel); font-weight:400; }
+
+  /* Up/down stepper next to the SPC Parameter dropdown */
+  .param-select-row{ display:flex; gap:6px; align-items:stretch; }
+  .param-select-row .select{ flex:1; min-width:0; }
+  .param-stepper{ display:flex; flex-direction:column; height:44px; flex:0 0 auto; }
+  .stepper-btn{
+    flex:1; width:30px; display:flex; align-items:center; justify-content:center;
+    background:var(--surface-soft); border:1px solid var(--hairline); color:var(--ink-deep);
+    font-size:8px; cursor:pointer; padding:0; line-height:1;
+  }
+  .stepper-btn:first-child{ border-radius:var(--r-lg) var(--r-lg) 0 0; border-bottom:none; }
+  .stepper-btn:last-child{ border-radius:0 0 var(--r-lg) var(--r-lg); }
+  .stepper-btn:hover:not(:disabled){ background:var(--canvas); border-color:var(--primary); color:var(--primary); }
+  .stepper-btn:disabled{ opacity:.35; cursor:not-allowed; }
 
   /* ---- table ---- */
   .table-wrap{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); overflow:hidden; }
@@ -308,10 +348,8 @@ function portLabel(port){ return port ? port : 'General'; }
    For port-less components this reduces to the plain parameter_code, unchanged from before. */
 function paramKey(code, port){ return port ? (code + '@' + port) : code; }
 
-/* Preferred model order (highest-volume / most active models first), then alphabetical.
-   APG-1513 has two variants in the data (TEOS/ECO); TEOS is listed first since it has
-   production history. Adjust this list if the priority should differ. */
-const MODEL_PRIORITY = ['AGL-1004H','APG-2012H','APG-1513(TEOS)','APG-1513(ECO)','APG-2013H','MP12M-20'];
+/* Preferred model order (highest-volume / most active models first), then alphabetical. */
+const MODEL_PRIORITY = ['AGL-1004H','APG-2012H','APG-1513','APG-2013H','MP12M-20'];
 function modelRank(m){ const i = MODEL_PRIORITY.indexOf(m); return i===-1 ? 999 : i; }
 function sortModels(models){
   return models.slice().sort((a,b)=>{
@@ -346,12 +384,19 @@ const state = {
   entryInspectorCustom:false,      // true when "Enter manually" is selected in the inspector dropdown
   entryValues:{},                  // parameter_code -> raw string as typed (parsed to Number on evaluate/submit)
   entrySubmitting:false,
+  unitInfoCollapsed:false,
+  measuredValuesCollapsed:false,
+  recentEntriesQuery:'',
   recentEntriesRaw:[],
 
   // SPC
   spcParam:null,
-  spcMeasurements:[],
-  spcStats:null
+  spcMeasurementsAll:[],           // full fetched history for the selected parameter (before range filtering)
+  spcMeasurements:[],              // range-filtered view actually charted/statted
+  spcStats:null,
+  spcRangePreset:'all',            // '1m' | '3m' | '6m' | '1y' | 'all' | 'custom'
+  spcRangeStart:'',                // used when spcRangePreset==='custom'
+  spcRangeEnd:''
 };
 
 /* ---------- auth ---------- */
@@ -602,15 +647,40 @@ function onModelReady(){
   if(state.section==='spc') loadSpcData();
 }
 
+/* Builds the PostgREST filter for the Recent Entries search box. Serial is
+   matched as a substring (this also naturally covers "search by date", since
+   serials embed the date as their YYMMDD prefix). If the query looks like a
+   full ISO date (YYYY-MM-DD), also OR-match it against measured_date directly -
+   useful since the visible Date column shows that format, not YYMMDD. */
+function recentEntriesSearchFilter(q){
+  const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(q);
+  if(isIsoDate){
+    return 'or=(serial.ilike.*' + enc(q) + '*,measured_date.eq.' + enc(q) + ')';
+  }
+  return 'serial=ilike.*' + enc(q) + '*';
+}
+
 async function loadRecentEntries(){
   if(!state.model){ state.recentEntriesRaw = []; render(); return; }
+  const q = state.recentEntriesQuery.trim();
   if(state.demoMode){
-    state.recentEntriesRaw = DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model);
+    let rows = DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model);
+    if(q){
+      const ql = q.toLowerCase();
+      const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(q);
+      rows = rows.filter(r => (r.serial||'').toLowerCase().includes(ql) || (isIsoDate && r.measured_date===q));
+    }
+    state.recentEntriesRaw = rows;
     render();
     return;
   }
   try{
-    const res = await fetch(MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&select=*&order=serial.desc&limit=400', { headers: sbHeaders() });
+    // Searching queries the full table (not capped to the recent-400 window),
+    // so older entries that have scrolled out of the default view are still reachable.
+    const filter = q ? recentEntriesSearchFilter(q) : '';
+    const url = MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) +
+      (filter ? '&' + filter : '') + '&select=*&order=serial.desc&limit=' + (q ? 1000 : 400);
+    const res = await fetch(url, { headers: sbHeaders() });
     state.recentEntriesRaw = res.ok ? await res.json() : [];
   } catch(e){
     state.recentEntriesRaw = [];
@@ -702,27 +772,64 @@ async function downloadAllEntries(){
 }
 
 async function loadSpcData(){
-  if(!state.model || !state.spcParam){ state.spcMeasurements = []; state.spcStats = null; render(); return; }
+  if(!state.model || !state.spcParam){ state.spcMeasurementsAll = []; state.spcMeasurements = []; state.spcStats = null; render(); return; }
   const activeSpec = (state.specByModel[state.model] || []).find(p=>paramKey(p.parameter_code,p.port)===state.spcParam);
-  if(!activeSpec){ state.spcMeasurements = []; state.spcStats = null; render(); return; }
+  if(!activeSpec){ state.spcMeasurementsAll = []; state.spcMeasurements = []; state.spcStats = null; render(); return; }
   const code = activeSpec.parameter_code;
   const port = activeSpec.port || '';
   let rows;
   if(state.demoMode){
     rows = DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model && r.parameter_code===code && (r.port||'')===port)
-      .map(r=>({ serial:r.serial, value:r.value }))
+      .map(r=>({ serial:r.serial, value:r.value, measured_date:r.measured_date }))
       .sort((a,b)=> a.serial < b.serial ? -1 : a.serial > b.serial ? 1 : 0);
   } else {
     try{
-      const res = await fetch(MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&parameter_code=eq.' + enc(code) + '&port=eq.' + enc(port) + '&select=serial,value&order=serial.asc&limit=2000', { headers: sbHeaders() });
+      const res = await fetch(MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&parameter_code=eq.' + enc(code) + '&port=eq.' + enc(port) + '&select=serial,value,measured_date&order=serial.asc&limit=2000', { headers: sbHeaders() });
       rows = res.ok ? await res.json() : [];
     } catch(e){
       rows = [];
     }
   }
+  state.spcMeasurementsAll = rows;
+  applySpcRange();
+}
+
+/* Returns the [start, end] ISO date bounds (inclusive) for the current range
+   preset, or nulls for 'all' (no filtering). String comparison against
+   measured_date works directly since ISO dates sort lexicographically. */
+function computeSpcRangeBounds(){
+  const preset = state.spcRangePreset;
+  if(preset === 'all') return { start:null, end:null };
+  if(preset === 'custom') return { start: state.spcRangeStart || null, end: state.spcRangeEnd || null };
+  const end = new Date();
+  const start = new Date();
+  if(preset === '1m') start.setMonth(start.getMonth()-1);
+  else if(preset === '3m') start.setMonth(start.getMonth()-3);
+  else if(preset === '6m') start.setMonth(start.getMonth()-6);
+  else if(preset === '1y') start.setFullYear(start.getFullYear()-1);
+  return { start: start.toISOString().slice(0,10), end: end.toISOString().slice(0,10) };
+}
+
+function applySpcRange(){
+  const { start, end } = computeSpcRangeBounds();
+  let rows = state.spcMeasurementsAll || [];
+  if(start) rows = rows.filter(r => r.measured_date >= start);
+  if(end) rows = rows.filter(r => r.measured_date <= end);
   state.spcMeasurements = rows;
+  const activeSpec = (state.specByModel[state.model] || []).find(p=>paramKey(p.parameter_code,p.port)===state.spcParam);
   state.spcStats = computeStats(activeSpec, rows.map(r=>Number(r.value)));
   render();
+}
+
+function setSpcRangePreset(preset){
+  state.spcRangePreset = preset;
+  if(preset !== 'custom'){ applySpcRange(); }
+  else { render(); } // wait for the user to actually pick both custom dates before filtering
+}
+function setSpcRangeCustom(which, value){
+  if(which === 'start') state.spcRangeStart = value; else state.spcRangeEnd = value;
+  if(state.spcRangeStart && state.spcRangeEnd) applySpcRange();
+  else render();
 }
 
 function computeStats(spec, values){
@@ -753,6 +860,17 @@ function computeStats(spec, values){
 
 /* ---------- entry actions ---------- */
 function setComponentType(v){ state.componentType = v; state.model = null; state.specByModel = {}; loadSpecForComponent(v); }
+function toggleUnitInfo(){ state.unitInfoCollapsed = !state.unitInfoCollapsed; render(); }
+function toggleMeasuredValues(){ state.measuredValuesCollapsed = !state.measuredValuesCollapsed; render(); }
+/* Recent Entries search is explicit-trigger only (Enter key or the Search
+   button) rather than search-as-you-type. Any live/debounced auto-search
+   still causes a visible refresh at whatever pace the person happens to type,
+   which is exactly what felt like constant refreshing - so typing itself now
+   never re-renders or hits the network; only pressing Enter or clicking
+   Search does. */
+function setRecentEntriesQueryDraft(v){ state.recentEntriesQuery = v; }
+function triggerRecentEntriesSearch(){ loadRecentEntries(); }
+function clearRecentEntriesSearch(){ state.recentEntriesQuery = ''; loadRecentEntries(); }
 function setModel(v){ state.model = v; onModelReady(); }
 function setSpcParam(v){ state.spcParam = v; loadSpcData(); }
 function setSection(s){ state.section = s; render(); if(s==='spc') loadSpcData(); }
@@ -938,7 +1056,7 @@ function renderHeader(){
 }
 
 /* ---------- render: selector row (shared) ---------- */
-function renderSelectorRow(includeParam){
+function renderSelectorRow(includeParam, includeSopLink){
   const spec = state.specByModel[state.model] || [];
   const models = sortModels(Object.keys(state.specByModel));
   const typeOptions = state.componentTypes.map(t=>'<option value="' + t + '" ' + (t===state.componentType?'selected':'') + '>' + componentTypeLabel(t) + '</option>').join('');
@@ -948,11 +1066,15 @@ function renderSelectorRow(includeParam){
   let out = '<div class="selector-row">' +
     '<div class="selector-field"><label>Component Type</label><select class="select" onchange="setComponentType(this.value)">' + typeOptions + '</select></div>' +
     '<div class="selector-field"><label>Model</label><select class="select" onchange="setModel(this.value)" ' + (models.length?'':'disabled') + '>' + modelOptions + '</select></div>';
+  if(includeSopLink){
+    out += renderProcedureLinkCompact();
+  }
   if(includeParam){
     const sortedSpec = spec.slice().sort((a,b)=>{
       const rp = portRank(a.port) - portRank(b.port);
       return rp !== 0 ? rp : paramRank(a.parameter_code) - paramRank(b.parameter_code);
     });
+    const paramKeys = sortedSpec.map(p=>paramKey(p.parameter_code, p.port));
     const paramOptions = sortedSpec.length
       ? sortedSpec.map(p=>{
           const key = paramKey(p.parameter_code, p.port);
@@ -960,29 +1082,55 @@ function renderSelectorRow(includeParam){
           return '<option value="' + escAttrText(key) + '" ' + (key===state.spcParam?'selected':'') + '>' + label + '</option>';
         }).join('')
       : '<option value="">No parameters</option>';
-    out += '<div class="selector-field"><label>Parameter</label><select class="select" onchange="setSpcParam(this.value)" ' + (spec.length?'':'disabled') + '>' + paramOptions + '</select></div>';
+    const idx = paramKeys.indexOf(state.spcParam);
+    const atStart = idx <= 0;
+    const atEnd = idx === -1 || idx >= paramKeys.length - 1;
+    out += '' +
+    '<div class="selector-field"><label>Parameter</label><div class="param-select-row">' +
+      '<select class="select" onchange="setSpcParam(this.value)" ' + (spec.length?'':'disabled') + '>' + paramOptions + '</select>' +
+      '<div class="param-stepper">' +
+        '<button class="stepper-btn" onclick="stepSpcParam(-1)" ' + (atStart?'disabled':'') + ' title="Previous parameter" aria-label="Previous parameter">\u25b2</button>' +
+        '<button class="stepper-btn" onclick="stepSpcParam(1)" ' + (atEnd?'disabled':'') + ' title="Next parameter" aria-label="Next parameter">\u25bc</button>' +
+      '</div>' +
+    '</div></div>';
   }
   out += '</div>';
   return out;
 }
 
-function renderProcedureBanner(){
+/* Steps the SPC Parameter selection to the previous (-1) or next (+1) entry
+   in the same sorted order the dropdown itself uses, so the arrows and the
+   dropdown always agree on what "next" means. Clamped at both ends rather
+   than wrapping. */
+function stepSpcParam(direction){
+  const spec = state.specByModel[state.model] || [];
+  const sortedSpec = spec.slice().sort((a,b)=>{
+    const rp = portRank(a.port) - portRank(b.port);
+    return rp !== 0 ? rp : paramRank(a.parameter_code) - paramRank(b.parameter_code);
+  });
+  const keys = sortedSpec.map(p=>paramKey(p.parameter_code, p.port));
+  if(!keys.length) return;
+  const idx = keys.indexOf(state.spcParam);
+  let newIdx = (idx === -1 ? 0 : idx + direction);
+  if(newIdx < 0) newIdx = 0;
+  if(newIdx > keys.length - 1) newIdx = keys.length - 1;
+  if(newIdx === idx) return;
+  state.spcParam = keys[newIdx];
+  loadSpcData();
+}
+
+function renderProcedureLinkCompact(){
   if(!state.model) return '';
   const info = state.modelInfoByModel[state.model];
   const url = info ? resolveDocUrl(info.doc_path) : null;
   if(info && url){
     const docLabel = (info.doc_number || 'Adjustment Procedure') + (info.doc_revision ? (' \u00b7 Rev ' + info.doc_revision) : '');
-    const freqLabel = formatFrequencyKHz(info.frequency_khz);
-    const sub = 'Official adjustment procedure \u00b7 ' + escAttrText(state.model) +
-      (info.max_power_w ? (' \u00b7 ' + info.max_power_w + 'W') : '') +
-      (freqLabel ? (' \u00b7 ' + freqLabel) : '');
     return '' +
-    '<a class="procedure-banner procedure-banner-link" href="' + escAttrText(url) + '" target="_blank" rel="noopener noreferrer">' +
-      '<span class="procedure-icon">\ud83d\udcc4</span>' +
-      '<div><div class="procedure-title">' + escAttrText(docLabel) + '</div><div class="procedure-sub">' + sub + '</div></div>' +
+    '<a class="procedure-link-compact" href="' + escAttrText(url) + '" target="_blank" rel="noopener noreferrer" title="Open the official adjustment procedure for ' + escAttrText(state.model) + '">' +
+      '<span class="procedure-icon">\ud83d\udcc4</span><span class="procedure-title">' + escAttrText(docLabel) + '</span>' +
     '</a>';
   }
-  return '<div class="procedure-banner procedure-banner-empty"><span class="procedure-icon">\ud83d\udcc4</span><span>No adjustment procedure on file yet for ' + escAttrText(state.model) + '.</span></div>';
+  return '<div class="procedure-link-compact procedure-link-compact-empty"><span class="procedure-icon">\ud83d\udcc4</span><span>No procedure on file</span></div>';
 }
 
 /* ---------- render: Data Entry tab ---------- */
@@ -1047,24 +1195,35 @@ function renderParamFieldsByPort(spec){
 function renderEntryTab(){
   const spec = state.specByModel[state.model] || [];
   if(state.specLoading){
-    return renderSelectorRow(false) + '<div class="empty-note" style="padding:60px 20px">Loading spec limits\u2026</div>';
+    return renderSelectorRow(false, true) + '<div class="empty-note" style="padding:60px 20px">Loading spec limits\u2026</div>';
   }
   if(!spec.length){
-    return renderSelectorRow(false) + '<div class="panel"><div class="empty-note">No spec data available yet for ' + componentTypeLabel(state.componentType) + '. Run the Main_Amp-style setup for this component to enable data entry.</div></div>';
+    return renderSelectorRow(false, true) + '<div class="panel"><div class="empty-note">No spec data available yet for ' + componentTypeLabel(state.componentType) + '. Run the Main_Amp-style setup for this component to enable data entry.</div></div>';
   }
 
   const paramFields = renderParamFieldsByPort(spec);
+  const filledCount = spec.filter(p => {
+    const v = state.entryValues[paramKey(p.parameter_code, p.port)];
+    return v !== undefined && v !== null && v !== '';
+  }).length;
 
   const form = '' +
     '<div class="panel">' +
-      '<h2>Unit Information</h2>' +
+      '<div class="panel-head-row" style="cursor:pointer" onclick="toggleUnitInfo()">' +
+        '<h2>Unit Information' + (state.unitInfoCollapsed ? (' <span class="unit-info-summary">' + escAttrText(state.entrySerial || 'no serial yet') + '</span>') : '') + '</h2>' +
+        '<span class="collapse-chevron">' + (state.unitInfoCollapsed ? '\u25b8 Expand' : '\u25be Collapse') + '</span>' +
+      '</div>' +
+      (state.unitInfoCollapsed ? '' :
       '<div class="meta-grid">' +
         '<div class="form-field"><label>Serial <span class="form-hint" style="font-weight:400">(YYMMDD auto-filled from date)</span></label><input class="input" id="entry_serial" placeholder="YYMMDD-NNNN" value="' + escAttrText(state.entrySerial) + '" oninput="setEntryField(\'entrySerial\', this.value)"></div>' +
         '<div class="form-field"><label>Measured Date</label><input class="input" id="entry_date" type="date" value="' + escAttrText(state.entryDate) + '" oninput="setEntryField(\'entryDate\', this.value)"></div>' +
         '<div class="form-field"><label>Inspector</label>' + renderInspectorField() + '</div>' +
+      '</div>') +
+      '<div class="panel-head-row" style="cursor:pointer;margin-top:20px" onclick="toggleMeasuredValues()">' +
+        '<h2>Measured Values' + (state.measuredValuesCollapsed ? (' <span class="unit-info-summary">' + filledCount + ' / ' + spec.length + ' filled</span>') : '') + '</h2>' +
+        '<span class="collapse-chevron">' + (state.measuredValuesCollapsed ? '\u25b8 Expand' : '\u25be Collapse') + '</span>' +
       '</div>' +
-      '<h2>Measured Values</h2>' +
-      paramFields +
+      (state.measuredValuesCollapsed ? '' : paramFields) +
       '<div class="form-actions">' +
         '<button class="btn btn-ghost" onclick="clearEntryForm()">Clear</button>' +
         '<button class="btn btn-primary" onclick="submitEntry()" ' + (state.entrySubmitting?'disabled':'') + '>' + (state.entrySubmitting?'Saving\u2026':'Save Measurement') + '</button>' +
@@ -1072,12 +1231,14 @@ function renderEntryTab(){
     '</div>' +
     renderRecentEntriesPanel();
 
-  return renderSelectorRow(false) + renderProcedureBanner() + form;
+  return renderSelectorRow(false, true) + form;
 }
 
 function renderRecentEntriesPanel(){
   const spec = state.specByModel[state.model] || [];
-  const groups = groupUnits(state.recentEntriesRaw).slice(0,30);
+  const q = state.recentEntriesQuery.trim();
+  let groups = groupUnits(state.recentEntriesRaw);
+  if(!q) groups = groups.slice(0,30);
   const rows = groups.map(g=>{
     let result = 'unknown', cls='badge-gray', label='\u2014';
     if(spec.length){
@@ -1096,10 +1257,18 @@ function renderRecentEntriesPanel(){
       '<td><button class="btn btn-ghost btn-sm" onclick="loadEntryForEdit(\'' + g.serial + '\')">Edit</button></td>' +
     '</tr>';
   }).join('');
-  const body = groups.length ? rows : '<tr><td colspan="6"><div class="empty-note">No measurements recorded yet for this model.</div></td></tr>';
+  const emptyMsg = q ? 'No entries match "' + escAttrText(state.recentEntriesQuery) + '".' : 'No measurements recorded yet for this model.';
+  const body = groups.length ? rows : '<tr><td colspan="6"><div class="empty-note">' + emptyMsg + '</div></td></tr>';
+  const countNote = q ? (groups.length + ' match' + (groups.length===1?'':'es') + ' \u00b7 searching full history for this model') : 'Showing 30 most recent \u00b7 search to find older entries';
   return '' +
   '<div class="panel">' +
     '<div class="panel-head-row"><h2>Recent Entries</h2><button class="btn btn-ghost btn-sm" onclick="downloadAllEntries()">\u2b07 Download All (CSV)</button></div>' +
+    '<div class="recent-entries-toolbar">' +
+      '<input class="input" style="max-width:280px" placeholder="Search by serial or date, then press Enter (e.g. 260723 or 2026-07-23)" value="' + escAttrText(state.recentEntriesQuery) + '" oninput="setRecentEntriesQueryDraft(this.value)" onkeydown="if(event.key===\'Enter\') triggerRecentEntriesSearch()">' +
+      '<button class="btn btn-ghost btn-sm" onclick="triggerRecentEntriesSearch()">Search</button>' +
+      (q ? '<button class="btn btn-ghost btn-sm" onclick="clearRecentEntriesSearch()">\u2715 Clear</button>' : '') +
+      '<span class="form-hint">' + countNote + '</span>' +
+    '</div>' +
     '<div class="table-wrap"><div class="table-scroll"><table class="table"><thead><tr>' +
       '<th>Serial</th><th>Date</th><th>Inspector</th><th>Params Filled</th><th>Result</th><th></th>' +
     '</tr></thead><tbody>' + body + '</tbody></table></div></div>' +
@@ -1114,20 +1283,34 @@ function cpkClass(v){
   return 'bad';
 }
 
+function renderSpcRangeBar(){
+  const preset = state.spcRangePreset;
+  const presets = [['1m','1M'],['3m','3M'],['6m','6M'],['1y','1Y'],['all','All'],['custom','Custom']];
+  const pills = presets.map(([key,label])=>
+    '<button class="range-pill ' + (preset===key?'active':'') + '" onclick="setSpcRangePreset(\'' + key + '\')">' + label + '</button>'
+  ).join('');
+  const customInputs = preset === 'custom'
+    ? '<input type="date" class="input range-date-input" value="' + escAttrText(state.spcRangeStart) + '" onchange="setSpcRangeCustom(\'start\', this.value)">' +
+      '<span class="range-date-sep">\u2013</span>' +
+      '<input type="date" class="input range-date-input" value="' + escAttrText(state.spcRangeEnd) + '" onchange="setSpcRangeCustom(\'end\', this.value)">'
+    : '';
+  return '<div class="spc-range-bar"><span class="range-label">Range:</span><div class="range-pills">' + pills + '</div>' + customInputs + '</div>';
+}
+
 function renderSpcTab(){
   const spec = state.specByModel[state.model] || [];
   if(state.specLoading){
-    return renderSelectorRow(true) + '<div class="empty-note" style="padding:60px 20px">Loading spec limits\u2026</div>';
+    return renderSelectorRow(true, false) + '<div class="empty-note" style="padding:60px 20px">Loading spec limits\u2026</div>';
   }
   if(!spec.length){
-    return renderSelectorRow(true) + '<div class="panel"><div class="empty-note">No spec data available yet for ' + componentTypeLabel(state.componentType) + '.</div></div>';
+    return renderSelectorRow(true, false) + '<div class="panel"><div class="empty-note">No spec data available yet for ' + componentTypeLabel(state.componentType) + '.</div></div>';
   }
   const s = state.spcStats;
   const activeSpec = spec.find(p=>paramKey(p.parameter_code,p.port)===state.spcParam);
 
   if(!s || s.n===0){
-    return renderSelectorRow(true) + renderProcedureBanner() +
-      '<div class="panel"><div class="empty-note">No measurement data yet for this parameter.</div></div>' +
+    return renderSelectorRow(true, false) + renderSpcRangeBar() +
+      '<div class="panel"><div class="empty-note">No measurement data ' + (state.spcRangePreset!=='all' ? 'in this date range' : 'yet') + ' for this parameter.</div></div>' +
       renderRecentEntriesPanel();
   }
 
@@ -1145,7 +1328,7 @@ function renderSpcTab(){
       '<div class="legend-item"><span class="legend-swatch dashed" style="border-color:#E41E3F"></span>USL / LSL (customer spec limit)</div>' +
     '</div>';
 
-  return renderSelectorRow(true) + renderProcedureBanner() +
+  return renderSelectorRow(true, false) + renderSpcRangeBar() +
     '<div class="card-grid">' + cards + '</div>' +
     '<div class="panel"><div class="chart-wrap"><canvas id="spcCanvas"></canvas></div>' + legend + '</div>' +
     renderRecentEntriesPanel();
@@ -1264,7 +1447,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam };
 
 </script>
 </body>

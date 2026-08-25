@@ -143,6 +143,7 @@
   .form-field{ display:flex; flex-direction:column; gap:6px; }
   .form-field label{ font-size:12px; color:var(--slate); font-weight:700; display:flex; align-items:center; gap:6px; }
   .unit-tag{ font-size:10.5px; font-weight:600; color:var(--steel); background:var(--surface-soft); padding:1px 7px; border-radius:var(--r-full); }
+  .voltage-flag{ color:var(--critical); font-weight:700; }
   .param-input-row{ display:flex; align-items:center; gap:8px; }
   .param-input-row .input{ flex:1; }
   .form-hint{ font-size:11px; color:var(--steel); margin-top:1px; }
@@ -304,6 +305,56 @@ function sbHeaders(extra){
   }, extra || {});
 }
 
+/* De-duplicates concurrent refresh attempts: if several requests hit a 401 at
+   nearly the same moment, they all await the same in-flight refresh instead
+   of each firing their own (Supabase rotates refresh tokens on use, so a
+   second concurrent refresh with the same now-consumed token would fail). */
+let refreshInFlight = null;
+function refreshSessionOnce(){
+  if(!refreshInFlight){
+    refreshInFlight = refreshSession().finally(()=>{ refreshInFlight = null; });
+  }
+  return refreshInFlight;
+}
+
+/* Drop-in replacement for fetch() on authenticated Supabase requests. Access
+   tokens expire (typically after an hour); if that happens mid-session the
+   very next save/load would otherwise fail with "JWT expired" until the page
+   is reloaded. This transparently refreshes the token and retries the request
+   once on a 401, so the person never sees that error at all.
+   `options.headers`, if given, is the "extra" headers object exactly as you'd
+   pass to sbHeaders() (e.g. {'Prefer':'return=representation'}) - sbFetch
+   builds the full auth headers itself, fresh, on both the first attempt and
+   the retry. */
+async function sbFetch(url, options){
+  options = options || {};
+  const extraHeaders = options.headers || {};
+  const fetchOptions = Object.assign({}, options, { headers: sbHeaders(extraHeaders) });
+  let res = await fetch(url, fetchOptions);
+  if(res.status === 401 && state.session){
+    const refreshed = await refreshSessionOnce();
+    if(refreshed){
+      fetchOptions.headers = sbHeaders(extraHeaders);
+      res = await fetch(url, fetchOptions);
+    }
+  }
+  return res;
+}
+
+/* Proactively refreshes the access token shortly before it would expire, so
+   sbFetch's retry-on-401 path is a safety net rather than the normal path.
+   Runs only once authenticated; harmless if called again (checked via a flag). */
+let sessionKeepAliveStarted = false;
+function startSessionKeepAlive(){
+  if(sessionKeepAliveStarted || !IS_CONFIGURED) return;
+  sessionKeepAliveStarted = true;
+  setInterval(()=>{
+    if(state.authView === 'app' && state.session && state.session.expires_at && state.session.expires_at < Date.now() + 120000){
+      refreshSessionOnce();
+    }
+  }, 4 * 60 * 1000);
+}
+
 const COMPONENT_TYPE_LABELS = { 'Saw_Filter': 'Saw Filter (Rdet)' };
 function componentTypeLabel(t){ return COMPONENT_TYPE_LABELS[t] || t.replace(/_/g,' '); }
 /* Preferred display order for component types when known; anything else (a brand new
@@ -339,7 +390,7 @@ const PARAM_ORDER = [
   'ins_loss_low','ins_loss_center','ins_loss_high',
   'isolation_low','isolation_center','isolation_high',
   // Exciter
-  'bias1','bias2','int_out_6v','int_idc_6v','int_out_8v',
+  'bias1','bias2','int_out_6v','int_idc_6v','int_out_8v','int_idc_8v',
   'int_flat_low','int_flat_center','int_flat_high',
   'ext_out_6v','ext_out','ext_z_low','ext_z_center','ext_z_high',
   // RF Sensor
@@ -467,7 +518,7 @@ async function initAuth(){
   state.authView = state.session ? 'app' : 'login';
   state.loading = false;
   render();
-  if(state.authView==='app'){ bootData(); }
+  if(state.authView==='app'){ bootData(); startSessionKeepAlive(); }
 }
 
 async function login(){
@@ -498,7 +549,7 @@ async function login(){
   }
   state.authLoading = false;
   render();
-  if(state.authView==='app'){ bootData(); }
+  if(state.authView==='app'){ bootData(); startSessionKeepAlive(); }
 }
 
 async function logout(){
@@ -589,7 +640,7 @@ async function loadComponentTypes(){
     return;
   }
   try{
-    const res = await fetch(MODELS_URL + '?select=component_type', { headers: sbHeaders() });
+    const res = await sbFetch(MODELS_URL + '?select=component_type');
     if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
     const rows = await res.json();
     const types = Array.from(new Set(rows.map(r=>r.component_type)));
@@ -624,7 +675,7 @@ async function loadSpecForComponent(type){
     return;
   }
   try{
-    const res = await fetch(SPEC_URL + '?component_type=eq.' + enc(type) + '&select=*&order=model.asc,parameter_code.asc,port.asc', { headers: sbHeaders() });
+    const res = await sbFetch(SPEC_URL + '?component_type=eq.' + enc(type) + '&select=*&order=model.asc,parameter_code.asc,port.asc');
     if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
     const rows = await res.json();
     state.specByModel = groupByModel(rows);
@@ -648,7 +699,7 @@ async function loadModelInfo(type){
     return;
   }
   try{
-    const res = await fetch(MODELS_URL + '?component_type=eq.' + enc(type) + '&select=*', { headers: sbHeaders() });
+    const res = await sbFetch(MODELS_URL + '?component_type=eq.' + enc(type) + '&select=*');
     const rows = res.ok ? await res.json() : [];
     const byModel = {};
     rows.forEach(r=>{ byModel[r.model] = r; });
@@ -708,7 +759,7 @@ async function loadRecentEntries(){
     const filter = q ? recentEntriesSearchFilter(q) : '';
     const url = MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) +
       (filter ? '&' + filter : '') + '&select=*&order=serial.desc&limit=' + (q ? 1000 : 400);
-    const res = await fetch(url, { headers: sbHeaders() });
+    const res = await sbFetch(url);
     state.recentEntriesRaw = res.ok ? await res.json() : [];
   } catch(e){
     state.recentEntriesRaw = [];
@@ -724,10 +775,9 @@ async function fetchAllMeasurements(componentType, model){
   let offset = 0;
   let all = [];
   while(true){
-    const res = await fetch(
+    const res = await sbFetch(
       MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
-      '&select=*&order=serial.asc&offset=' + offset + '&limit=' + pageSize,
-      { headers: sbHeaders() }
+      '&select=*&order=serial.asc&offset=' + offset + '&limit=' + pageSize
     );
     if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
     const rows = await res.json();
@@ -812,7 +862,7 @@ async function loadSpcData(){
       .sort((a,b)=> a.serial < b.serial ? -1 : a.serial > b.serial ? 1 : 0);
   } else {
     try{
-      const res = await fetch(MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&parameter_code=eq.' + enc(code) + '&port=eq.' + enc(port) + '&select=serial,value,measured_date&order=serial.asc&limit=2000', { headers: sbHeaders() });
+      const res = await sbFetch(MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&parameter_code=eq.' + enc(code) + '&port=eq.' + enc(port) + '&select=serial,value,measured_date&order=serial.asc&limit=2000');
       rows = res.ok ? await res.json() : [];
     } catch(e){
       rows = [];
@@ -902,7 +952,7 @@ async function loadSpecAlerts(){
         '&select=model,serial,parameter_code,port,value,measured_date,inspector_name&order=model.asc,serial.asc&limit=' + ALERTS_ROW_CAP;
       if(start) url += '&measured_date=gte.' + enc(start);
       if(end) url += '&measured_date=lte.' + enc(end);
-      const res = await fetch(url, { headers: sbHeaders() });
+      const res = await sbFetch(url);
       rows = res.ok ? await res.json() : [];
     } catch(e){
       rows = [];
@@ -1100,9 +1150,9 @@ async function submitEntry(){
 
   state.entrySubmitting = true; render();
   try{
-    const res = await fetch(MEASUREMENTS_URL + '?on_conflict=component_type,model,serial,parameter_code,port', {
+    const res = await sbFetch(MEASUREMENTS_URL + '?on_conflict=component_type,model,serial,parameter_code,port', {
       method:'POST',
-      headers: Object.assign(sbHeaders(), { 'Prefer':'resolution=merge-duplicates,return=representation' }),
+      headers: { 'Prefer':'resolution=merge-duplicates,return=representation' },
       body: JSON.stringify(rows)
     });
     if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
@@ -1306,6 +1356,16 @@ function groupSpecByPort(spec){
   return Object.keys(byPort).sort((a,b)=>portRank(a)-portRank(b)).map(port=>({ port, rows: byPort[port] }));
 }
 
+/* Highlights the "6V"/"8V" control-voltage markers in Data Entry field
+   labels in red, so the two internal-mode test points (set via the Excite
+   Control JIG's control voltage) are easy to tell apart at a glance.
+   Data Entry only, per request - other label usages (SPC dropdown, Spec
+   Alerts rows) are left plain. Word-boundary-guarded so it only matches a
+   standalone "6V"/"8V", not e.g. the "6V" inside "36V" if that ever appears. */
+function highlightVoltageLabel(label){
+  return escAttrText(label).replace(/(?<!\d)([68]V)(?!\d)/g, '<span class="voltage-flag">$1</span>');
+}
+
 function renderParamField(p){
   const key = paramKey(p.parameter_code, p.port);
   const v = state.entryValues[key];
@@ -1314,7 +1374,7 @@ function renderParamField(p){
   const badgeCls = result===null ? 'pending' : (result ? 'pass' : 'fail');
   const badgeLabel = result===null ? '\u2014' : (result ? 'PASS' : 'FAIL');
   return '<div class="form-field">' +
-    '<label>' + escAttrText(p.parameter_label) + ' <span class="unit-tag">' + escAttrText(p.unit||'') + '</span></label>' +
+    '<label>' + highlightVoltageLabel(p.parameter_label) + ' <span class="unit-tag">' + escAttrText(p.unit||'') + '</span></label>' +
     '<div class="param-input-row">' +
       '<input type="text" inputmode="decimal" autocomplete="off" class="input" id="pv_' + escAttrText(key) + '" value="' + escAttrText(displayVal) + '" oninput="setParamValue(\'' + p.parameter_code + '\', \'' + (p.port||'') + '\', this.value)">' +
       '<span class="live-badge ' + badgeCls + '">' + badgeLabel + '</span>' +
@@ -1710,7 +1770,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel };
 
 </script>
 </body>

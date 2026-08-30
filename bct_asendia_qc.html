@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" defer></script>
 <style>
   :root{
     /* ---- Meta-derived design tokens (shared with the other BCT x ASENDIA pages) ---- */
@@ -837,14 +837,12 @@ const SIMPLE_LAYOUTS = {
       {label:'Output', code:'freq_out_check', formatter:(v)=> (v===1||v==='1') ? 'O' : ((v===0||v==='0') ? 'X' : '')}
     ]
   },
-  // Note: the source RF Sensor template only shows the Type A columns (ISOLATION/
-  // COUPLING/VOLTAGE). Real data spans 3 sensor types with different parameter
-  // sets (Type B/C add FWD/REF isolation+coupling, RL Center, and REF mV instead
-  // of the Type A fields), so this layout is deliberately extended with those
-  // extra columns to keep every model's data in one sheet - Type A rows leave the
-  // extra columns blank and vice versa.
+  // Matches the source template exactly (ISOLATION/COUPLING/VOLTAGE only).
+  // Type B/C models (fwd_iso_center, ref_iso_center, fwd_rl_center, etc.) simply
+  // won't have those specific values in this sheet - by request, not extended
+  // with extra columns beyond what the original template shows.
   'RF Sensor': {
-    groups: [ [4,6,'ISOLATION'], [7,9,'COUPLING'], [10,11,'VOLTAGE'], [12,13,'FWD (Type B/C)'], [14,15,'REF (Type B/C)'], [16,17,'RL Center (Type C)'], [18,18,'REF (mV)'] ],
+    groups: [ [4,6,'ISOLATION'], [7,9,'COUPLING'], [10,11,'VOLTAGE'] ],
     cols: [
       {label:'LOW (FREQ)', code:'iso_low'},
       {label:'CENTER (FREQ)', code:'iso_center'},
@@ -853,14 +851,7 @@ const SIMPLE_LAYOUTS = {
       {label:'COUPLING (Real)', code:'coupling_real'},
       {label:'COUPLING (Image)', code:'coupling_image'},
       {label:'FWD', code:'fwd_v'},
-      {label:'REF', code:'ref_v'},
-      {label:'ISO (Center)', code:'fwd_iso_center'},
-      {label:'COUPLING (dB)', code:'fwd_coupling_db'},
-      {label:'ISO (Center)', code:'ref_iso_center'},
-      {label:'COUPLING (dB)', code:'ref_coupling_db'},
-      {label:'FWD RL (Center)', code:'fwd_rl_center'},
-      {label:'REF RL (Center)', code:'ref_rl_center'},
-      {label:'REF (mV)', code:'ref_m_v'}
+      {label:'REF', code:'ref_v'}
     ]
   }
 };
@@ -908,6 +899,11 @@ const PORT_LAYOUTS = {
   'LPF': {
     portCountByModel: () => 1,
     pairLabels1: ['Port1'],
+    // LPF has no real "port" dimension in the DB - every row (in_real/image,
+    // out_real/image, ins_loss alike) is stored with port='' since it's a
+    // single 2-port passive device, not a multi-port one like Combiner/Splitter.
+    // Only the "Port1" label shown in the sheet is synthetic/display-only.
+    lookupPortAsEmpty: true,
     groups: [ [5,10,'Retrun Loss (S11)'], [11,16,'Return Loss (S22)'], [17,19,'Insertion Loss (S21)'] ],
     perPortCols: [
       {label:'Real\n(Low)', code:'in_real_low'}, {label:'Image\n(Low)', code:'in_image_low'},
@@ -982,9 +978,10 @@ function buildPortSheet(componentType, layout, groups){
 
     for(let i=0;i<nPorts;i++){
       const port = 'Port' + (i+1);
+      const lookupPort = layout.lookupPortAsEmpty ? '' : port; // LPF: DB has no real port dimension, everything is stored at port=''
       const row = [i===0 ? g.model : '', i===0 ? (g.inspector_name || '') : '', i===0 ? g.serial : '', pairLabels[i] || port];
       layout.perPortCols.forEach(c=>{
-        const v = g.values[paramKey(c.code, port)];
+        const v = g.values[paramKey(c.code, lookupPort)];
         row.push(v===undefined || v===null ? '' : v);
       });
       layout.sharedCols.forEach(c=>{
@@ -994,7 +991,7 @@ function buildPortSheet(componentType, layout, groups){
         } else row.push('');
       });
       layout.insLossCols.forEach(c=>{
-        const v = g.values[paramKey(c.code, port)];
+        const v = g.values[paramKey(c.code, lookupPort)];
         row.push(v===undefined || v===null ? '' : v);
       });
       layout.isolationCols.forEach(c=>{
@@ -1078,6 +1075,57 @@ async function loadDownloadCenterModels(type){
   render();
 }
 
+/* ---------- Excel styling for Download Center exports ---------- */
+const XLSX_FONT = { name:'Arial', size:10 };
+const XLSX_HEADER_FONT = { name:'Arial', size:10, bold:true };
+const XLSX_HEADER_FILL = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFDCE6F1' } }; // light pastel blue
+const XLSX_THIN_BORDER = { top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} };
+
+/* Saw_Filter has just 1 header row (no grouped super-header); every other
+   layout has 2 (group row + column-title row). */
+function headerRowCountFor(componentType){ return componentType === 'Saw_Filter' ? 1 : 2; }
+
+/* Writes {rows, merges} out as a styled .xlsx and triggers a browser download.
+   Arial 10pt throughout; header rows bold with a light blue fill; gridlines
+   off; every cell (header and data) gets a thin border on all sides. */
+async function writeStyledWorkbook(sheetData, headerRowCount, filename){
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Data', { views: [{ showGridLines:false }] });
+
+  sheetData.rows.forEach(row => ws.addRow(row));
+
+  const totalCols = Math.max.apply(null, sheetData.rows.map(r=>r.length));
+  const totalRows = sheetData.rows.length;
+
+  for(let r=1; r<=totalRows; r++){
+    for(let c=1; c<=totalCols; c++){
+      const cell = ws.getCell(r, c);
+      const isHeader = r <= headerRowCount;
+      cell.font = isHeader ? XLSX_HEADER_FONT : XLSX_FONT;
+      if(isHeader) cell.fill = XLSX_HEADER_FILL;
+      cell.border = XLSX_THIN_BORDER;
+      if(isHeader){
+        const wrap = typeof cell.value === 'string' && cell.value.indexOf('\n') !== -1;
+        cell.alignment = { wrapText:wrap, vertical:'center', horizontal:'center' };
+      }
+    }
+  }
+
+  (sheetData.merges || []).forEach(m=>{
+    ws.mergeCells(m.s.r+1, m.s.c+1, m.e.r+1, m.e.c+1);
+  });
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
 async function runDownloadCenterExport(){
   const componentType = state.downloadCenterComponentType;
   const model = state.downloadCenterModel;
@@ -1103,13 +1151,9 @@ async function runDownloadCenterExport(){
         state.downloadCenterLoading = false; render();
         return;
       }
-      const ws = XLSX.utils.aoa_to_sheet(sheetData.rows);
-      if(sheetData.merges.length) ws['!merges'] = sheetData.merges;
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Data');
       const modelLabel = model === '__ALL__' ? 'AllModels' : model;
       const filename = componentType + '_' + modelLabel + '_' + todayISO() + '.xlsx';
-      XLSX.writeFile(wb, filename);
+      await writeStyledWorkbook(sheetData, headerRowCountFor(componentType), filename);
       showToast('Downloaded ' + groups.length + ' units \u2014 ' + filename);
     }
   } catch(e){
@@ -2062,7 +2106,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor };
 
 </script>
 </body>

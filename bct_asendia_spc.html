@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <style>
   :root{
     /* ---- Meta-derived design tokens (shared with the other BCT x ASENDIA pages) ---- */
@@ -107,6 +108,9 @@
   .panel h2{ font-family:var(--font); font-size:15px; font-weight:700; color:var(--ink-deep); margin:0 0 16px; }
   .panel-head-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .panel-head-row h2{ margin:0; }
+  .collapse-chevron{ font-size:12.5px; font-weight:700; color:var(--steel); white-space:nowrap; user-select:none; margin-left:10px; }
+  .collapsible-title{ cursor:pointer; display:flex; align-items:center; margin:0; }
+  .download-center-panel{ margin-bottom:20px; }
 
   /* ---- form controls ---- */
   .input, .select{
@@ -351,7 +355,14 @@ const state = {
   spcStats:null,
   spcRangePreset:'all',
   spcRangeStart:'',
-  spcRangeEnd:''
+  spcRangeEnd:'',
+
+  // Download Center
+  downloadCenterCollapsed:true,
+  downloadCenterComponentType:'',
+  downloadCenterModel:'__ALL__',
+  downloadCenterModelsByType:{},
+  downloadCenterLoading:false
 };
 
 /* ---------- auth ---------- */
@@ -586,17 +597,267 @@ async function loadRecentEntries(){
   render();
 }
 
-/* Fetches every measurement row for (componentType, model), paginating past
-   PostgREST's default row cap so "download all" is really all, not just the
-   400-row preview the Recent Entries table uses. */
-async function fetchAllMeasurements(componentType, model){
+/* ============================================================
+   Download Center: reconstructs each component type's native wide-format
+   Excel layout (matching the customer's own working files) from the DB's
+   long-format measurement rows. Lets the person filter by Component Type
+   and Model (or "All Models") before exporting, rather than being limited
+   to whatever model happens to be selected in SPC Chart.
+============================================================ */
+
+const SIMPLE_LAYOUTS = {
+  'Main_Amp': {
+    groups: [ [4,4,'Bias Current (mA)'], [5,7,'Input Return Loss'], [8,9,'Output Center (800W)'], [10,13,'Flatness (800W)'] ],
+    cols: [
+      {label:'BIAS CURRENT', code:'bias'},
+      {label:'Impedance (Low Freq)', code:'rl_low'},
+      {label:'Impedance (Center)', code:'rl_center'},
+      {label:'Impedance (High Freq)', code:'rl_high'},
+      {label:'Input power (dBm)', code:'oc_pin'},
+      {label:'Current (A)', code:'oc_idc'},
+      {label:'Low Freq (dBm)', code:'flat_low_pin'},
+      {label:'Low Freq (A)', code:'flat_low_idc'},
+      {label:'HIGH Freq (dBm)', code:'flat_high_pin'},
+      {label:'HIGH Freq (A)', code:'flat_high_idc'}
+    ]
+  },
+  'Driver': {
+    groups: [ [4,4,'Bias Current (mA)'], [5,7,'Input Return Loss'], [8,9,'Output @50W'], [10,11,'Output @100W'], [12,14,'Flatness @20W'] ],
+    cols: [
+      {label:'BIAS CURRENT', code:'bias'},
+      {label:'Impedance (Low Freq)', code:'rl_low'},
+      {label:'Impedance (Center)', code:'rl_center'},
+      {label:'Impedance (High Freq)', code:'rl_high'},
+      {label:'Input power (dBm)', code:'oc50_pin'},
+      {label:'Current (A)', code:'oc50_idc'},
+      {label:'Input power (dBm)', code:'oc100_pin'},
+      {label:'Current (A)', code:'oc100_idc'},
+      {label:'Power (Low Freq)[W]', code:'flat_low'},
+      {label:'Power (Center)[W]', code:'flat_center'},
+      {label:'Power (High Freq)[W]', code:'flat_high'}
+    ]
+  },
+  'Exciter': {
+    groups: [ [4,5,'Bias Current (mA)'], [6,12,'Internal Mode'], [13,13,'External Mode'], [14,17,'External Output'], [18,18,'Freq'] ],
+    cols: [
+      {label:'Bias1', code:'bias1'},
+      {label:'Bias2', code:'bias2'},
+      {label:'Output (dBm) @6V', code:'int_out_6v'},
+      {label:'Current (A) @6V', code:'int_idc_6v'},
+      {label:'Output (dBm) @8V', code:'int_out_8v'},
+      {label:'Current (A) @8V', code:'int_idc_8v'},
+      {label:'Output (Low Freq)', code:'int_flat_low'},
+      {label:'Output (Center Freq)', code:'int_flat_center'},
+      {label:'Output (High Freq)', code:'int_flat_high'},
+      {label:'Output (dBm) @6V', code:'ext_out_6v'},
+      {label:'Output (dBm)', code:'ext_out'},
+      {label:'Impedance (Low Freq)', code:'ext_z_low'},
+      {label:'Impedance (Center)', code:'ext_z_center'},
+      {label:'Impedance (High Freq)', code:'ext_z_high'},
+      {label:'Output', code:'freq_out_check', formatter:(v)=> (v===1||v==='1') ? 'O' : ((v===0||v==='0') ? 'X' : '')}
+    ]
+  },
+  // Note: the source RF Sensor template only shows the Type A columns (ISOLATION/
+  // COUPLING/VOLTAGE). Real data spans 3 sensor types with different parameter
+  // sets (Type B/C add FWD/REF isolation+coupling, RL Center, and REF mV instead
+  // of the Type A fields), so this layout is deliberately extended with those
+  // extra columns to keep every model's data in one sheet - Type A rows leave the
+  // extra columns blank and vice versa.
+  'RF Sensor': {
+    groups: [ [4,6,'ISOLATION'], [7,9,'COUPLING'], [10,11,'VOLTAGE'], [12,13,'FWD (Type B/C)'], [14,15,'REF (Type B/C)'], [16,17,'RL Center (Type C)'], [18,18,'REF (mV)'] ],
+    cols: [
+      {label:'LOW (FREQ)', code:'iso_low'},
+      {label:'CENTER (FREQ)', code:'iso_center'},
+      {label:'HIGH (FREQ)', code:'iso_high'},
+      {label:'COUPLING (dB)', code:'coupling_db'},
+      {label:'COUPLING (Real)', code:'coupling_real'},
+      {label:'COUPLING (Image)', code:'coupling_image'},
+      {label:'FWD', code:'fwd_v'},
+      {label:'REF', code:'ref_v'},
+      {label:'ISO (Center)', code:'fwd_iso_center'},
+      {label:'COUPLING (dB)', code:'fwd_coupling_db'},
+      {label:'ISO (Center)', code:'ref_iso_center'},
+      {label:'COUPLING (dB)', code:'ref_coupling_db'},
+      {label:'FWD RL (Center)', code:'fwd_rl_center'},
+      {label:'REF RL (Center)', code:'ref_rl_center'},
+      {label:'REF (mV)', code:'ref_m_v'}
+    ]
+  }
+};
+
+const PORT_LAYOUTS = {
+  'Combiner': {
+    portCountByModel: (model) => ['APG-2012H','APG-2013H'].includes(model) ? 3 : 2,
+    pairLabels3: ['Port1 (Port1 & Port2)','Port2 (Port2 & Port3)','Port3 (Port3 & Port1)'],
+    pairLabels2: ['Port1 (Port1 & Port2)'],
+    groups: [ [5,10,'Retrun Loss (S11)'], [11,16,'Return Loss (S22)'], [17,19,'Insertion Loss (S21)'], [20,22,'Isolation'] ],
+    perPortCols: [
+      {label:'Real\n(Low)', code:'s11_real_low'}, {label:'Image\n(Low)', code:'s11_image_low'},
+      {label:'Real\n(Center)', code:'s11_real_center'}, {label:'Image\n(Center)', code:'s11_image_center'},
+      {label:'Real\n(High)', code:'s11_real_high'}, {label:'Image\n(High)', code:'s11_image_high'}
+    ],
+    sharedCols: [
+      {label:'Real\n(Low)', code:'s22_real_low'}, {label:'Image\n(Low)', code:'s22_image_low'},
+      {label:'Real\n(Center)', code:'s22_real_center'}, {label:'Image\n(Center)', code:'s22_image_center'},
+      {label:'Real\n(High)', code:'s22_real_high'}, {label:'Image\n(High)', code:'s22_image_high'}
+    ],
+    insLossCols: [ {label:'Low\nFreq', code:'ins_loss_low'}, {label:'Center\nFreq', code:'ins_loss_center'}, {label:'High\nFreq', code:'ins_loss_high'} ],
+    isolationCols: [ {label:'Low\nFreq', code:'isolation_low'}, {label:'Center\nFreq', code:'isolation_center'}, {label:'High\nFreq', code:'isolation_high'} ]
+  },
+  'Splitter': {
+    portCountByModel: (model) => ['APG-2012H','APG-2013H'].includes(model) ? 3 : 2,
+    pairLabels3: ['Port1 (Port1 & Port2)','Port2 (Port2 & Port3)','Port3 (Port3 & Port1)'],
+    pairLabels2: ['Port1 (Port1 & Port2)'],
+    groups: [ [5,10,'Retrun Loss (S22)'], [11,16,'Return Loss (S11)'], [17,19,'Insertion Loss (S21)'], [20,22,'Isolation'] ],
+    perPortCols: [
+      {label:'Real\n(Low)', code:'out_real_low'}, {label:'Image\n(Low)', code:'out_image_low'},
+      {label:'Real\n(Center)', code:'out_real_center'}, {label:'Image\n(Center)', code:'out_image_center'},
+      {label:'Real\n(High)', code:'out_real_high'}, {label:'Image\n(High)', code:'out_image_high'}
+    ],
+    sharedCols: [
+      {label:'Real\n(Low)', code:'in_real_low'}, {label:'Image\n(Low)', code:'in_image_low'},
+      {label:'Real\n(Center)', code:'in_real_center'}, {label:'Image\n(Center)', code:'in_image_center'},
+      {label:'Real\n(High)', code:'in_real_high'}, {label:'Image\n(High)', code:'in_image_high'}
+    ],
+    insLossCols: [ {label:'Low\nFreq', code:'ins_loss_low'}, {label:'Center\nFreq', code:'ins_loss_center'}, {label:'High\nFreq', code:'ins_loss_high'} ],
+    isolationCols: [ {label:'Low\nFreq', code:'isolation_low'}, {label:'Center\nFreq', code:'isolation_center'}, {label:'High\nFreq', code:'isolation_high'} ]
+  },
+  'LPF': {
+    portCountByModel: () => 1,
+    pairLabels1: ['Port1'],
+    groups: [ [5,10,'Retrun Loss (S11)'], [11,16,'Return Loss (S22)'], [17,19,'Insertion Loss (S21)'] ],
+    perPortCols: [
+      {label:'Real\n(Low)', code:'in_real_low'}, {label:'Image\n(Low)', code:'in_image_low'},
+      {label:'Real\n(Center)', code:'in_real_center'}, {label:'Image\n(Center)', code:'in_image_center'},
+      {label:'Real\n(High)', code:'in_real_high'}, {label:'Image\n(High)', code:'in_image_high'}
+    ],
+    sharedCols: [
+      {label:'Real\n(Low)', code:'out_real_low'}, {label:'Image\n(Low)', code:'out_image_low'},
+      {label:'Real\n(Center)', code:'out_real_center'}, {label:'Image\n(Center)', code:'out_image_center'},
+      {label:'Real\n(High)', code:'out_real_high'}, {label:'Image\n(High)', code:'out_image_high'}
+    ],
+    insLossCols: [ {label:'Low\nFreq', code:'ins_loss_low'}, {label:'Center\nFreq', code:'ins_loss_center'}, {label:'High\nFreq', code:'ins_loss_high'} ],
+    isolationCols: []
+  }
+};
+
+function groupUnitsByModel(rawRows){
+  const byKey = {};
+  rawRows.forEach(r=>{
+    const key = r.model + '\u0001' + r.serial;
+    if(!byKey[key]) byKey[key] = { model:r.model, serial:r.serial, measured_date:r.measured_date, inspector_name:r.inspector_name, values:{} };
+    byKey[key].values[paramKey(r.parameter_code, r.port)] = r.value;
+  });
+  return Object.values(byKey).sort((a,b)=>{
+    if(a.model !== b.model) return a.model < b.model ? -1 : 1;
+    return a.serial < b.serial ? -1 : (a.serial > b.serial ? 1 : 0);
+  });
+}
+
+function buildSimpleSheet(componentType, layout, groups){
+  const header2 = ['MODEL','INSPECTOR','SERIAL'].concat(layout.cols.map(c=>c.label));
+  const header1 = new Array(header2.length).fill(null);
+  header1[0] = '-';
+  layout.groups.forEach(([startCol,,label])=>{ header1[startCol-1] = label; });
+
+  const rows = [header1, header2];
+  groups.forEach(g=>{
+    const row = [g.model, g.inspector_name || '', g.serial];
+    layout.cols.forEach(c=>{
+      let v = g.values[paramKey(c.code,'')];
+      if(v===undefined || v===null) v = '';
+      else if(c.formatter) v = c.formatter(v);
+      row.push(v);
+    });
+    rows.push(row);
+  });
+
+  const merges = [ { s:{r:0,c:0}, e:{r:0,c:2} } ];
+  layout.groups.forEach(([startCol,endCol])=>{
+    if(endCol>startCol) merges.push({ s:{r:0,c:startCol-1}, e:{r:0,c:endCol-1} });
+  });
+  return { rows, merges };
+}
+
+function buildPortSheet(componentType, layout, groups){
+  const header2 = ['MODEL','INSPECTOR','SERIAL','Port (Isolation)']
+    .concat(layout.perPortCols.map(c=>c.label))
+    .concat(layout.sharedCols.map(c=>c.label))
+    .concat(layout.insLossCols.map(c=>c.label))
+    .concat(layout.isolationCols.map(c=>c.label));
+  const header1 = new Array(header2.length).fill(null);
+  if(componentType === 'LPF'){ header1[0]='-'; header1[1]='-'; header1[2]='-'; header1[3]='-'; }
+  layout.groups.forEach(([startCol,,label])=>{ header1[startCol-1] = label; });
+
+  const rows = [header1, header2];
+  const merges = [];
+
+  groups.forEach(g=>{
+    const nPorts = layout.portCountByModel(g.model);
+    const pairLabels = nPorts===3 ? layout.pairLabels3 : (nPorts===2 ? layout.pairLabels2 : layout.pairLabels1);
+    const blockStartRow = rows.length;
+
+    for(let i=0;i<nPorts;i++){
+      const port = 'Port' + (i+1);
+      const row = [i===0 ? g.model : '', i===0 ? (g.inspector_name || '') : '', i===0 ? g.serial : '', pairLabels[i] || port];
+      layout.perPortCols.forEach(c=>{
+        const v = g.values[paramKey(c.code, port)];
+        row.push(v===undefined || v===null ? '' : v);
+      });
+      layout.sharedCols.forEach(c=>{
+        if(i===0){
+          const v = g.values[paramKey(c.code, '')];
+          row.push(v===undefined || v===null ? '' : v);
+        } else row.push('');
+      });
+      layout.insLossCols.forEach(c=>{
+        const v = g.values[paramKey(c.code, port)];
+        row.push(v===undefined || v===null ? '' : v);
+      });
+      layout.isolationCols.forEach(c=>{
+        const pairPort = nPorts===3 ? ['Port1-Port2','Port2-Port3','Port3-Port1'][i] : 'Port1-Port2';
+        const v = g.values[paramKey(c.code, pairPort)];
+        row.push(v===undefined || v===null ? '' : v);
+      });
+      rows.push(row);
+    }
+
+    if(nPorts>1){
+      const blockEndRow = rows.length - 1;
+      [0,1,2].forEach(c=> merges.push({ s:{r:blockStartRow,c}, e:{r:blockEndRow,c} }));
+      const sharedStartCol = 4 + layout.perPortCols.length;
+      layout.sharedCols.forEach((c,i)=> merges.push({ s:{r:blockStartRow,c:sharedStartCol+i}, e:{r:blockEndRow,c:sharedStartCol+i} }));
+    }
+  });
+
+  layout.groups.forEach(([startCol,endCol])=>{
+    if(endCol>startCol) merges.push({ s:{r:0,c:startCol-1}, e:{r:0,c:endCol-1} });
+  });
+  return { rows, merges };
+}
+
+function buildSawFilterSheet(groups){
+  const rows = [ ['MODEL','INSPECTOR','SERIAL','Type','REF Voltage'] ];
+  groups.forEach(g=>{
+    const type = g.model === 'AGL-1004H' ? 'RDET' : 'SAW';
+    const v = g.values[paramKey('ref_voltage','')];
+    rows.push([g.model, g.inspector_name || '', g.serial, type, v===undefined||v===null?'':v]);
+  });
+  return { rows, merges: [] };
+}
+
+/* Fetches every measurement row for a component type (optionally scoped to
+   one model), paginating past PostgREST's default row cap. model === '__ALL__'
+   means no model filter - every model under that component type. */
+async function fetchMeasurementsForDownload(componentType, model){
   const pageSize = 1000;
   let offset = 0;
   let all = [];
   while(true){
     const res = await fetch(
-      MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
-      '&select=*&order=serial.asc&offset=' + offset + '&limit=' + pageSize,
+      MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) +
+      (model !== '__ALL__' ? ('&model=eq.' + enc(model)) : '') +
+      '&select=model,serial,measured_date,inspector_name,parameter_code,value,port&order=model.asc,serial.asc&offset=' + offset + '&limit=' + pageSize,
       { headers: sbHeaders() }
     );
     if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
@@ -608,65 +869,95 @@ async function fetchAllMeasurements(componentType, model){
   return all;
 }
 
-function csvEscape(v){
-  const s = (v===null || v===undefined) ? '' : String(v);
-  return /[",\n]/.test(s) ? ('"' + s.replace(/"/g,'""') + '"') : s;
-}
+function toggleDownloadCenter(){ state.downloadCenterCollapsed = !state.downloadCenterCollapsed; render(); }
 
-function triggerDownload(filename, content){
-  // Leading BOM so Excel (Windows) correctly detects UTF-8 and renders Korean text properly.
-  const blob = new Blob(['\ufeff' + content], { type:'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+async function setDownloadCenterComponentType(v){
+  state.downloadCenterComponentType = v;
+  state.downloadCenterModel = '__ALL__';
+  render();
+  if(v && !state.downloadCenterModelsByType[v]){
+    await loadDownloadCenterModels(v);
+  }
 }
+function setDownloadCenterModel(v){ state.downloadCenterModel = v; render(); }
 
-async function downloadAllEntries(){
-  if(!state.model){ return; }
-  const spec = state.specByModel[state.model] || [];
-  showToast('Preparing download\u2026');
-  let rawRows;
-  try{
-    rawRows = state.demoMode
-      ? DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model)
-      : await fetchAllMeasurements(state.componentType, state.model);
-  } catch(e){
-    showToast('Download failed: ' + e.message);
+async function loadDownloadCenterModels(type){
+  if(state.demoMode){
+    state.downloadCenterModelsByType[type] = Array.from(new Set(DEMO_MEASUREMENTS.filter(r=>r.component_type===type).map(r=>r.model))).sort();
+    render();
     return;
   }
-  const groups = groupUnits(rawRows).slice().sort((a,b)=> a.serial < b.serial ? -1 : a.serial > b.serial ? 1 : 0);
-  if(!groups.length){ showToast('No data to download for this model.'); return; }
+  try{
+    const res = await fetch(MODELS_URL + '?component_type=eq.' + enc(type) + '&select=model&order=model.asc', { headers: sbHeaders() });
+    const rows = res.ok ? await res.json() : [];
+    state.downloadCenterModelsByType[type] = rows.map(r=>r.model);
+  } catch(e){
+    state.downloadCenterModelsByType[type] = [];
+  }
+  render();
+}
 
-  const headerCols = ['Serial','Measured Date','Inspector'].concat(
-    spec.map(p=> p.parameter_label + (p.unit ? (' (' + p.unit + ')') : '') + (p.port ? (' [' + p.port + ']') : ''))
-  ).concat(['Result']);
-  const lines = [headerCols.map(csvEscape).join(',')];
-
-  groups.forEach(g=>{
-    const evalSpec = spec.filter(p=>p.limit_type!=='none');
-    const evals = evalSpec.map(p=> evalPass(p, g.values[paramKey(p.parameter_code, p.port)]));
-    let result = '\u2014';
-    if(evalSpec.length){
-      if(evals.some(e=>e===false)) result = 'FAIL';
-      else if(evals.every(e=>e===true)) result = 'PASS';
-      else result = 'PARTIAL';
+async function runDownloadCenterExport(){
+  const componentType = state.downloadCenterComponentType;
+  const model = state.downloadCenterModel;
+  if(!componentType){ showToast('Select a component type first.'); return; }
+  state.downloadCenterLoading = true; render();
+  try{
+    const rawRows = state.demoMode
+      ? DEMO_MEASUREMENTS.filter(r=>r.component_type===componentType && (model==='__ALL__' || r.model===model))
+      : await fetchMeasurementsForDownload(componentType, model);
+    if(!rawRows.length){
+      showToast('No data to download for this selection.');
+    } else {
+      const groups = groupUnitsByModel(rawRows);
+      let sheetData;
+      if(componentType === 'Saw_Filter'){
+        sheetData = buildSawFilterSheet(groups);
+      } else if(PORT_LAYOUTS[componentType]){
+        sheetData = buildPortSheet(componentType, PORT_LAYOUTS[componentType], groups);
+      } else if(SIMPLE_LAYOUTS[componentType]){
+        sheetData = buildSimpleSheet(componentType, SIMPLE_LAYOUTS[componentType], groups);
+      } else {
+        showToast('No export layout defined yet for ' + componentTypeLabel(componentType) + '.');
+        state.downloadCenterLoading = false; render();
+        return;
+      }
+      const ws = XLSX.utils.aoa_to_sheet(sheetData.rows);
+      if(sheetData.merges.length) ws['!merges'] = sheetData.merges;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Data');
+      const modelLabel = model === '__ALL__' ? 'AllModels' : model;
+      const filename = componentType + '_' + modelLabel + '_' + todayISO() + '.xlsx';
+      XLSX.writeFile(wb, filename);
+      showToast('Downloaded ' + groups.length + ' units \u2014 ' + filename);
     }
-    const row = [g.serial, g.measured_date || '', g.inspector_name || ''].concat(
-      spec.map(p=>{
-        const v = g.values[paramKey(p.parameter_code, p.port)];
-        return (v===null || v===undefined) ? '' : v;
-      })
-    ).concat([result]);
-    lines.push(row.map(csvEscape).join(','));
-  });
+  } catch(e){
+    showToast('Download failed: ' + e.message);
+  }
+  state.downloadCenterLoading = false;
+  render();
+}
 
-  const filename = state.componentType + '_' + state.model + '_measurements_' + todayISO() + '.csv';
-  triggerDownload(filename, lines.join('\r\n'));
-  showToast('Downloaded ' + groups.length + ' units \u2014 ' + filename);
+function renderDownloadCenter(){
+  const collapsed = state.downloadCenterCollapsed;
+  const chevron = '<span class="collapse-chevron">' + (collapsed ? '\u25b8 Expand' : '\u25be Collapse') + '</span>';
+  const header = '<div class="panel-head-row"><h2 class="collapsible-title download-center-title" onclick="toggleDownloadCenter()">Download Center' + chevron + '</h2></div>';
+  if(collapsed) return '<div class="panel download-center-panel">' + header + '</div>';
+
+  const typeOptions = '<option value="">Select\u2026</option>' + state.componentTypes.map(t=>'<option value="'+t+'" '+(t===state.downloadCenterComponentType?'selected':'')+'>'+componentTypeLabel(t)+'</option>').join('');
+  const models = state.downloadCenterComponentType ? (state.downloadCenterModelsByType[state.downloadCenterComponentType] || []) : [];
+  const modelOptions = '<option value="__ALL__">All Models</option>' + models.map(m=>'<option value="'+escAttrText(m)+'" '+(m===state.downloadCenterModel?'selected':'')+'>'+escAttrText(m)+'</option>').join('');
+  const canDownload = !!state.downloadCenterComponentType && !state.downloadCenterLoading;
+
+  return '' +
+  '<div class="panel download-center-panel">' +
+    header +
+    '<div class="selector-row">' +
+      '<div class="selector-field"><label>Component Type</label><select class="select" onchange="setDownloadCenterComponentType(this.value)">' + typeOptions + '</select></div>' +
+      '<div class="selector-field"><label>Model</label><select class="select" onchange="setDownloadCenterModel(this.value)" ' + (state.downloadCenterComponentType?'':'disabled') + '>' + modelOptions + '</select></div>' +
+      '<div class="selector-field"><label>&nbsp;</label><button class="btn btn-primary" style="height:44px" onclick="runDownloadCenterExport()" ' + (canDownload?'':'disabled') + '>' + (state.downloadCenterLoading ? 'Preparing\u2026' : '\u2b07 Download Excel') + '</button></div>' +
+    '</div>' +
+  '</div>';
 }
 
 async function loadSpcData(){
@@ -889,7 +1180,7 @@ function renderRecentEntriesPanel(){
   const body = groups.length ? rows : '<tr><td colspan="5"><div class="empty-note">No measurements recorded yet for this model.</div></td></tr>';
   return '' +
   '<div class="panel">' +
-    '<div class="panel-head-row"><h2>Measurement History</h2><button class="btn btn-ghost btn-sm" onclick="downloadAllEntries()">\u2b07 Download All (CSV)</button></div>' +
+    '<div class="panel-head-row"><h2>Measurement History</h2></div>' +
     '<div class="table-wrap"><div class="table-scroll"><table class="table"><thead><tr>' +
       '<th>Serial</th><th>Date</th><th>Inspector</th><th>Params Filled</th><th>Result</th>' +
     '</tr></thead><tbody>' + body + '</tbody></table></div></div>' +
@@ -1039,7 +1330,7 @@ function render(){
   } else {
     const pageHead = '<div class="page-head"><h1>SPC Chart</h1><p>Statistical process control for adjustment &amp; test measurements, with spec limits overlaid.</p></div>';
     html = renderHeader() +
-      '<div class="content">' + pageHead + renderSpcTab() + '</div>' +
+      '<div class="content">' + pageHead + renderDownloadCenter() + renderSpcTab() + '</div>' +
       '<div class="security-footer">\ud83d\udd12 ' + SECURITY_NOTICE + '</div>' +
       (state.toast ? '<div class="toast">' + escAttrText(state.toast) + '</div>' : '');
   }
@@ -1065,7 +1356,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, stepSpcParam };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, stepSpcParam, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels };
 
 </script>
 </body>

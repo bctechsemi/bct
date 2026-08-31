@@ -592,7 +592,7 @@ function formatFrequencyKHz(khz){
   return n + 'kHz';
 }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
-function showToast(msg){ state.toast = msg; render(); setTimeout(()=>{ state.toast=null; render(); }, 2800); }
+function showToast(msg, duration){ state.toast = msg; render(); setTimeout(()=>{ state.toast=null; render(); }, duration || 2800); }
 function enc(v){ return encodeURIComponent(v); }
 function resolveDocUrl(relPath){
   if(!relPath) return null;
@@ -1507,11 +1507,18 @@ async function submitEntry(){
   const date = state.entryDate || todayISO();
   const inspector = (state.entryInspector || '').trim() || null;
   const rows = [];
+  const savedKeys = [];
+  const invalid = []; // { key, label, raw } - non-blank but not parseable as a number
   spec.forEach(p=>{
-    const raw = state.entryValues[paramKey(p.parameter_code, p.port)];
-    if(raw===null || raw===undefined || raw===''){ return; }
+    const key = paramKey(p.parameter_code, p.port);
+    const raw = state.entryValues[key];
+    if(raw===null || raw===undefined || raw===''){ return; } // intentionally left blank - fine, not every parameter always applies
     const n = Number(raw);
-    if(Number.isNaN(n)){ return; }
+    if(Number.isNaN(n)){
+      invalid.push({ key, label: p.parameter_label, raw: String(raw) });
+      return;
+    }
+    savedKeys.push(key);
     rows.push({
       component_type: state.componentType,
       model: state.model,
@@ -1524,7 +1531,11 @@ async function submitEntry(){
       port: p.port || ''
     });
   });
-  if(!rows.length){ showToast('Enter at least one measurement value.'); return; }
+  if(!rows.length && !invalid.length){ showToast('Enter at least one measurement value.'); return; }
+  if(!rows.length){
+    showToast('\u26a0\ufe0f Nothing saved \u2014 ' + invalid.length + ' value' + (invalid.length===1?'':'s') + ' not recognized as a number: ' + invalid.map(x=>x.label+' ("'+x.raw+'")').join(', '), 7000);
+    return;
+  }
 
   if(state.demoMode){
     showToast('Demo mode: entry not saved. Configure Supabase to save real data.');
@@ -1539,9 +1550,17 @@ async function submitEntry(){
       body: JSON.stringify(rows)
     });
     if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
-    showToast('Saved ' + serial + ' (' + rows.length + ' parameters).');
-    state.entryValues = {};
-    state.entrySerial = '';
+    if(invalid.length){
+      // Partial save: clear only the fields that actually saved, and leave the
+      // invalid ones visible in the form so the operator can see and fix them
+      // immediately, rather than silently losing that input on a form-clear.
+      savedKeys.forEach(k => { delete state.entryValues[k]; });
+      showToast('\u26a0\ufe0f Saved ' + serial + ' (' + rows.length + ' parameters) \u2014 but ' + invalid.length + ' value' + (invalid.length===1?'':'s') + ' ' + (invalid.length===1?'was':'were') + ' NOT saved (not a number): ' + invalid.map(x=>x.label+' ("'+x.raw+'")').join(', ') + '. Fix and save again.', 8000);
+    } else {
+      showToast('Saved ' + serial + ' (' + rows.length + ' parameters).');
+      state.entryValues = {};
+      state.entrySerial = '';
+    }
     loadRecentEntries();
     if(state.spcParam) loadSpcData();
   } catch(e){
@@ -2153,7 +2172,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT, submitEntry };
 
 </script>
 </body>

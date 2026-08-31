@@ -748,6 +748,8 @@ function recentEntriesSearchFilter(q){
   return 'serial=ilike.*' + enc(q) + '*';
 }
 
+const RECENT_ENTRIES_UNIT_COUNT = 60;
+
 async function loadRecentEntries(){
   if(!state.model){ state.recentEntriesRaw = []; render(); return; }
   const q = state.recentEntriesQuery.trim();
@@ -763,17 +765,62 @@ async function loadRecentEntries(){
     return;
   }
   try{
-    // Searching queries the full table (not capped to the recent-400 window),
-    // so older entries that have scrolled out of the default view are still reachable.
-    const filter = q ? recentEntriesSearchFilter(q) : '';
-    const url = MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) +
-      (filter ? '&' + filter : '') + '&select=*&order=serial.desc&limit=' + (q ? 1000 : 400);
-    const res = await sbFetch(url);
-    state.recentEntriesRaw = res.ok ? await res.json() : [];
+    if(q){
+      // Searching queries the full table (not capped to the recent window), so
+      // older entries that have scrolled out of the default view are still
+      // reachable. Secondary sort keys make row order deterministic run-to-run.
+      const filter = recentEntriesSearchFilter(q);
+      const url = MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) +
+        '&' + filter + '&select=*&order=serial.desc,parameter_code.asc,port.asc&limit=1000';
+      const res = await sbFetch(url);
+      state.recentEntriesRaw = res.ok ? await res.json() : [];
+    } else {
+      state.recentEntriesRaw = await fetchRecentCompleteUnits(state.componentType, state.model, RECENT_ENTRIES_UNIT_COUNT);
+    }
   } catch(e){
     state.recentEntriesRaw = [];
   }
   render();
+}
+
+/* Fetches whole units for the default Recent Entries view - never a
+   boundary-truncated partial unit. A plain "top N rows" fetch (the previous
+   approach) slices a unit's parameter rows in half whenever the row-count
+   cutoff lands mid-unit, making a fully-saved unit misleadingly show as
+   PARTIAL until enough newer entries eventually push it out of the window
+   entirely (and even then, a query with no secondary sort key among same-
+   serial rows isn't guaranteed to return them in the same order every time,
+   which is why it could intermittently look "fixed" and then wrong again).
+   This fetches the N most recent DISTINCT serials first, then fetches every
+   row for exactly those serials - so a unit is always shown complete or not
+   at all, never sliced. */
+async function fetchRecentCompleteUnits(componentType, model, unitCount){
+  // Step 1: cheap, single-column overfetch to discover distinct serials.
+  // Generous margin so even a ~50-parameter-per-unit component type still
+  // surfaces `unitCount` distinct serials within this window.
+  const overfetchLimit = Math.max(unitCount * 120, 3000);
+  const idRes = await sbFetch(
+    MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
+    '&select=serial&order=serial.desc&limit=' + overfetchLimit
+  );
+  if(!idRes.ok) return [];
+  const idRows = await idRes.json();
+  const serials = [];
+  const seen = new Set();
+  for(const r of idRows){
+    if(!seen.has(r.serial)){ seen.add(r.serial); serials.push(r.serial); }
+    if(serials.length >= unitCount) break;
+  }
+  if(!serials.length) return [];
+
+  // Step 2: fetch every row for exactly those serials - .in.() doesn't impose
+  // a per-serial row cap, so no unit can be truncated here.
+  const inList = serials.map(enc).join(',');
+  const rowsRes = await sbFetch(
+    MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
+    '&serial=in.(' + inList + ')&select=*&limit=10000'
+  );
+  return rowsRes.ok ? await rowsRes.json() : [];
 }
 
 /* ============================================================
@@ -1795,7 +1842,7 @@ function renderRecentEntriesPanel(){
   }).join('');
   const emptyMsg = q ? 'No entries match "' + escAttrText(state.recentEntriesQuery) + '".' : 'No measurements recorded yet for this model.';
   const body = groups.length ? rows : '<tr><td colspan="6"><div class="empty-note">' + emptyMsg + '</div></td></tr>';
-  const countNote = q ? (groups.length + ' match' + (groups.length===1?'':'es') + ' \u00b7 searching full history for this model') : 'Showing 30 most recent \u00b7 search to find older entries';
+  const countNote = q ? (groups.length + ' match' + (groups.length===1?'':'es') + ' \u00b7 searching full history for this model') : ('Showing ' + RECENT_ENTRIES_UNIT_COUNT + ' most recent \u00b7 search to find older entries');
   return '' +
   '<div class="panel">' +
     '<div class="panel-head-row"><h2>Recent Entries</h2></div>' +
@@ -2106,7 +2153,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT };
 
 </script>
 </body>

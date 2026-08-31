@@ -793,34 +793,58 @@ async function loadRecentEntries(){
    which is why it could intermittently look "fixed" and then wrong again).
    This fetches the N most recent DISTINCT serials first, then fetches every
    row for exactly those serials - so a unit is always shown complete or not
-   at all, never sliced. */
+   at all, never sliced.
+
+   Both steps paginate explicitly with offset/limit rather than requesting
+   one large `limit=` value. Supabase's PostgREST layer enforces its own
+   server-side row cap (commonly 1000, configurable, but always silently
+   enforced) that overrides a larger `limit=` in the URL - a request for
+   limit=10000 quietly comes back capped, with no error, no header the caller
+   was checking, nothing. Whichever rows happen to fall on the wrong side of
+   that silent cutoff (there's no ORDER BY guaranteeing "most-recent-first"
+   priority within it) just vanish from the result - which is exactly what
+   made the most-recently-saved unit intermittently show as understaffed
+   here. Pagination keeps requesting the next page (by rows actually
+   received, not an assumed page size) until a truly empty page comes back,
+   so it's correct regardless of what the project's actual cap is set to. */
 async function fetchRecentCompleteUnits(componentType, model, unitCount){
-  // Step 1: cheap, single-column overfetch to discover distinct serials.
-  // Generous margin so even a ~50-parameter-per-unit component type still
-  // surfaces `unitCount` distinct serials within this window.
-  const overfetchLimit = Math.max(unitCount * 120, 3000);
-  const idRes = await sbFetch(
-    MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
-    '&select=serial&order=serial.desc&limit=' + overfetchLimit
-  );
-  if(!idRes.ok) return [];
-  const idRows = await idRes.json();
+  // Step 1: paginate through `serial` values (most recent first) until
+  // `unitCount` distinct serials are found.
+  const idBaseUrl = MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
+    '&select=serial&order=serial.desc';
   const serials = [];
   const seen = new Set();
-  for(const r of idRows){
-    if(!seen.has(r.serial)){ seen.add(r.serial); serials.push(r.serial); }
-    if(serials.length >= unitCount) break;
+  let idOffset = 0;
+  while(serials.length < unitCount){
+    const res = await sbFetch(idBaseUrl + '&offset=' + idOffset + '&limit=1000');
+    if(!res.ok) break;
+    const rows = await res.json();
+    if(!rows.length) break;
+    for(const r of rows){
+      if(!seen.has(r.serial)){ seen.add(r.serial); serials.push(r.serial); }
+      if(serials.length >= unitCount) break;
+    }
+    idOffset += rows.length;
   }
   if(!serials.length) return [];
 
-  // Step 2: fetch every row for exactly those serials - .in.() doesn't impose
-  // a per-serial row cap, so no unit can be truncated here.
+  // Step 2: fetch every row for exactly those serials, paginated so a large
+  // result (many units x many parameters) can't be silently cut short.
+  // Ordered explicitly so pagination is deterministic across requests.
   const inList = serials.map(enc).join(',');
-  const rowsRes = await sbFetch(
-    MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
-    '&serial=in.(' + inList + ')&select=*&limit=10000'
-  );
-  return rowsRes.ok ? await rowsRes.json() : [];
+  const rowsBaseUrl = MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
+    '&serial=in.(' + inList + ')&select=*&order=serial.desc,parameter_code.asc,port.asc';
+  let allRows = [];
+  let rOffset = 0;
+  while(true){
+    const res = await sbFetch(rowsBaseUrl + '&offset=' + rOffset + '&limit=1000');
+    if(!res.ok) break;
+    const rows = await res.json();
+    if(!rows.length) break;
+    allRows = allRows.concat(rows);
+    rOffset += rows.length;
+  }
+  return allRows;
 }
 
 /* ============================================================

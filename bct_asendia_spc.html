@@ -588,31 +588,50 @@ const RECENT_ENTRIES_UNIT_COUNT = 60;
    parameter rows in half whenever the row-count cutoff lands mid-unit,
    making a fully-saved unit misleadingly show as PARTIAL. This fetches the
    N most recent DISTINCT serials first, then fetches every row for exactly
-   those serials, so a unit is always shown complete or not at all. */
+   those serials, so a unit is always shown complete or not at all.
+
+   Both steps paginate explicitly with offset/limit rather than requesting
+   one large `limit=` value. Supabase's PostgREST layer enforces its own
+   server-side row cap (commonly 1000, configurable, but always silently
+   enforced) that overrides a larger `limit=` in the URL with no error and
+   no indication - whichever rows land on the wrong side of that cutoff (with
+   no ORDER BY guaranteeing priority) just vanish from the result. Pagination
+   keeps requesting the next page (by rows actually received, not an assumed
+   page size) until a truly empty page comes back, so it's correct regardless
+   of what the project's actual cap is set to. */
 async function fetchRecentCompleteUnits(componentType, model, unitCount){
-  const overfetchLimit = Math.max(unitCount * 120, 3000);
-  const idRes = await fetch(
-    MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
-    '&select=serial&order=serial.desc&limit=' + overfetchLimit,
-    { headers: sbHeaders() }
-  );
-  if(!idRes.ok) return [];
-  const idRows = await idRes.json();
+  const idBaseUrl = MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
+    '&select=serial&order=serial.desc';
   const serials = [];
   const seen = new Set();
-  for(const r of idRows){
-    if(!seen.has(r.serial)){ seen.add(r.serial); serials.push(r.serial); }
-    if(serials.length >= unitCount) break;
+  let idOffset = 0;
+  while(serials.length < unitCount){
+    const res = await fetch(idBaseUrl + '&offset=' + idOffset + '&limit=1000', { headers: sbHeaders() });
+    if(!res.ok) break;
+    const rows = await res.json();
+    if(!rows.length) break;
+    for(const r of rows){
+      if(!seen.has(r.serial)){ seen.add(r.serial); serials.push(r.serial); }
+      if(serials.length >= unitCount) break;
+    }
+    idOffset += rows.length;
   }
   if(!serials.length) return [];
 
   const inList = serials.map(enc).join(',');
-  const rowsRes = await fetch(
-    MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
-    '&serial=in.(' + inList + ')&select=*&limit=10000',
-    { headers: sbHeaders() }
-  );
-  return rowsRes.ok ? await rowsRes.json() : [];
+  const rowsBaseUrl = MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
+    '&serial=in.(' + inList + ')&select=*&order=serial.desc,parameter_code.asc,port.asc';
+  let allRows = [];
+  let rOffset = 0;
+  while(true){
+    const res = await fetch(rowsBaseUrl + '&offset=' + rOffset + '&limit=1000', { headers: sbHeaders() });
+    if(!res.ok) break;
+    const rows = await res.json();
+    if(!rows.length) break;
+    allRows = allRows.concat(rows);
+    rOffset += rows.length;
+  }
+  return allRows;
 }
 
 async function loadRecentEntries(){

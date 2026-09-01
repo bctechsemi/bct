@@ -750,7 +750,17 @@ function recentEntriesSearchFilter(q){
 
 const RECENT_ENTRIES_UNIT_COUNT = 60;
 
+/* Guards against out-of-order responses: loadRecentEntries() is often called
+   without being awaited (e.g. as a fire-and-forget refresh after a save), so
+   if a second call starts before the first one's request finishes, network
+   timing alone could let the OLDER call's response arrive last and overwrite
+   the newer data with something stale. Each call stamps its own request with
+   a token; only the most-recently-*started* call is allowed to write into
+   state, regardless of which one's response actually arrives first. */
+let recentEntriesRequestToken = 0;
+
 async function loadRecentEntries(){
+  const myToken = ++recentEntriesRequestToken;
   if(!state.model){ state.recentEntriesRaw = []; render(); return; }
   const q = state.recentEntriesQuery.trim();
   if(state.demoMode){
@@ -760,11 +770,13 @@ async function loadRecentEntries(){
       const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(q);
       rows = rows.filter(r => (r.serial||'').toLowerCase().includes(ql) || (isIsoDate && r.measured_date===q));
     }
+    if(myToken !== recentEntriesRequestToken) return; // a newer call has since started - discard this result
     state.recentEntriesRaw = rows;
     render();
     return;
   }
   try{
+    let rows;
     if(q){
       // Searching queries the full table (not capped to the recent window), so
       // older entries that have scrolled out of the default view are still
@@ -773,11 +785,14 @@ async function loadRecentEntries(){
       const url = MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) +
         '&' + filter + '&select=*&order=serial.desc,parameter_code.asc,port.asc&limit=1000';
       const res = await sbFetch(url);
-      state.recentEntriesRaw = res.ok ? await res.json() : [];
+      rows = res.ok ? await res.json() : [];
     } else {
-      state.recentEntriesRaw = await fetchRecentCompleteUnits(state.componentType, state.model, RECENT_ENTRIES_UNIT_COUNT);
+      rows = await fetchRecentCompleteUnits(state.componentType, state.model, RECENT_ENTRIES_UNIT_COUNT);
     }
+    if(myToken !== recentEntriesRequestToken) return; // a newer call has since started - discard this result
+    state.recentEntriesRaw = rows;
   } catch(e){
+    if(myToken !== recentEntriesRequestToken) return;
     state.recentEntriesRaw = [];
   }
   render();
@@ -1612,16 +1627,46 @@ function groupUnits(rawRows){
   return Object.values(bySerial).sort((a,b)=> a.serial < b.serial ? 1 : a.serial > b.serial ? -1 : 0);
 }
 
-function loadEntryForEdit(serial){
-  const g = groupUnits(state.recentEntriesRaw).find(x=>x.serial===serial);
-  if(!g) return;
+async function loadEntryForEdit(serial){
+  // Fetches this ONE serial's data fresh and directly from the DB, rather
+  // than reading from whatever happens to be cached in state.recentEntriesRaw
+  // (the Recent Entries list). That cache is populated by an unawaited
+  // background refresh after every save, so if two saves/reloads for the
+  // same serial ever overlap, an older response can resolve after a newer
+  // one and silently overwrite it with stale, incomplete data - which is
+  // exactly the kind of thing "Edit" must never show, since re-saving from
+  // an incomplete view could look like data went missing even though the DB
+  // is correct. A direct, targeted fetch sidesteps that entirely.
+  if(state.demoMode){
+    const g = groupUnits(DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model && r.serial===serial))[0];
+    if(!g) return;
+    applyEntryForEdit(g);
+    return;
+  }
+  showToast('Loading ' + serial + '\u2026', 1500);
+  try{
+    const res = await sbFetch(
+      MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) +
+      '&serial=eq.' + enc(serial) + '&select=*'
+    );
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+    const rows = await res.json();
+    if(!rows.length){ showToast('No data found for ' + serial + '.'); return; }
+    const g = groupUnits(rows)[0];
+    applyEntryForEdit(g);
+  } catch(e){
+    showToast('Failed to load ' + serial + ': ' + e.message);
+  }
+}
+
+function applyEntryForEdit(g){
   state.section = 'entry';
   state.entrySerial = g.serial;
   state.entryDate = g.measured_date || todayISO();
   state.entryInspector = g.inspector_name || '';
   state.entryInspectorCustom = isCustomInspector(state.entryInspector);
   state.entryValues = Object.assign({}, g.values);
-  showToast('Loaded ' + serial + ' — edit values and save to update.');
+  showToast('Loaded ' + g.serial + ' \u2014 edit values and save to update.');
   render();
   const el = document.getElementById('entry_serial');
   if(el && el.scrollIntoView) el.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -2196,7 +2241,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT, submitEntry };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT, submitEntry, loadEntryForEdit };
 
 </script>
 </body>

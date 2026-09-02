@@ -1543,6 +1543,10 @@ async function submitEntry(){
   if(!state.model || !spec.length){ showToast('Select a model first.'); return; }
   const serial = (state.entrySerial || '').trim();
   if(!serial){ showToast('Serial is required.'); return; }
+  if(!/^\d{6}-\d{4}$/.test(serial)){
+    showToast('\u26a0\ufe0f Invalid Serial format: "' + serial + '". Serial must be exactly 11 characters as YYMMDD-NNNN (6-digit date, a hyphen, 4-digit sequence number). Please re-enter the Serial Number.', 7000);
+    return;
+  }
   const date = state.entryDate || todayISO();
   const inspector = (state.entryInspector || '').trim() || null;
   const rows = [];

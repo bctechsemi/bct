@@ -590,13 +590,13 @@ function exportToExcel(){
   }
 }
 
-const NCM_COMPONENTS = ['Combiner','Driver','Exciter','Main_Amp','Sensor','Splitter','Saw_Filter'];
+const NCM_COMPONENTS = ['Combiner','Driver','Exciter','Main_Amp','RF Sensor','Splitter','Saw_Filter'];
 const NCM_PROGRESS_STEPS = ['접수','통보완료','교환대기','교환완료','종결'];
 const NCM_SEED_DATA = [
   { model:'APG-2012HD', component:'Splitter', issued_date:'2026-04-01', quantity:2, failure_mode:'CAL 실패', noti_date_to_asendia:null, asendia_engineer:null, progress:'접수', replacement_received_date:null },
   { model:'APG-1013H', component:'Combiner', issued_date:'2026-04-01', quantity:10, failure_mode:'COIL 빠짐, CAL 실패', noti_date_to_asendia:null, asendia_engineer:null, progress:'접수', replacement_received_date:null },
   { model:'APG-1513', component:'Saw_Filter', issued_date:'2026-04-09', quantity:30, failure_mode:'VOLTAGE 미달', noti_date_to_asendia:'2026-04-10', asendia_engineer:'J. Smith', progress:'통보완료', replacement_received_date:null },
-  { model:'APG-1513', component:'Sensor', issued_date:'2026-04-15', quantity:25, failure_mode:'VR6 조정 Spec out', noti_date_to_asendia:'2026-04-16', asendia_engineer:'J. Smith', progress:'교환대기', replacement_received_date:null },
+  { model:'APG-1513', component:'RF Sensor', issued_date:'2026-04-15', quantity:25, failure_mode:'VR6 조정 Spec out', noti_date_to_asendia:'2026-04-16', asendia_engineer:'J. Smith', progress:'교환대기', replacement_received_date:null },
   { model:'APG-1513', component:'Driver', issued_date:'2026-04-19', quantity:1, failure_mode:'수삽 불량', noti_date_to_asendia:'2026-04-20', asendia_engineer:'M. Lee', progress:'교환완료', replacement_received_date:'2026-05-02' },
   { model:'AGL-1004HD', component:'Exciter', issued_date:'2026-05-02', quantity:1, failure_mode:'출력불가', noti_date_to_asendia:'2026-05-03', asendia_engineer:'M. Lee', progress:'종결', replacement_received_date:'2026-05-12' }
 ];

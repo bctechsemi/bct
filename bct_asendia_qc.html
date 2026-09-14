@@ -296,6 +296,7 @@ const AUTH_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/auth/v1';
 const SPEC_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_spec_limits';
 const MEASUREMENTS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_measurements';
 const MODELS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_models';
+const DELIVERY_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_delivery_status';
 const SESSION_KEY = 'bct_qc_session_v1';
 
 function sbHeaders(extra){
@@ -477,7 +478,12 @@ const state = {
   downloadCenterComponentType:'',
   downloadCenterModel:'__ALL__',
   downloadCenterModelsByType:{},   // componentType -> [model, ...] (fetched lazily, cached)
-  downloadCenterLoading:false
+  downloadCenterLoading:false,
+
+  // Delivery Status
+  deliveryLoading:false,
+  deliveryRows:[],           // merged: [{serial, measured_date, delivered}]
+  deliveryQuery:''
 };
 
 /* ---------- auth ---------- */
@@ -732,6 +738,9 @@ function onModelReady(){
     // switching models within the same type would otherwise refetch the
     // same alert data redundantly.
     if(state.specAlertsLoadedForType !== state.componentType) loadSpecAlerts();
+  }
+  if(state.section==='delivery'){
+    loadDeliveryStatus();
   }
 }
 
@@ -1485,6 +1494,9 @@ function setSection(s){
     loadSpcData();
     if(state.specAlertsLoadedForType !== state.componentType) loadSpecAlerts();
   }
+  if(s==='delivery'){
+    loadDeliveryStatus();
+  }
 }
 /* Converts an ISO date 'YYYY-MM-DD' into the YYMMDD prefix used in serials.
    Returns null for an invalid/empty date. */
@@ -1676,6 +1688,175 @@ function applyEntryForEdit(g){
   if(el && el.scrollIntoView) el.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 
+/* ---------- Delivery Status ---------- */
+function deliveryDateFromSerial(serial){
+  const m = /^(\d{2})(\d{2})(\d{2})-/.exec(serial || '');
+  if(!m) return null;
+  return '20' + m[1] + '-' + m[2] + '-' + m[3];
+}
+
+function setDeliveryQueryDraft(v){ state.deliveryQuery = v; render(); }
+
+function deliveryFilteredRows(){
+  const q = state.deliveryQuery.trim().toLowerCase();
+  if(!q) return state.deliveryRows;
+  return state.deliveryRows.filter(r => r.serial.toLowerCase().includes(q));
+}
+
+async function loadDeliveryStatus(){
+  if(!state.componentType || !state.model){
+    state.deliveryRows = [];
+    render();
+    return;
+  }
+  state.deliveryLoading = true; render();
+
+  if(state.demoMode){
+    const serials = Array.from(new Set(
+      DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model).map(r=>r.serial)
+    )).sort().reverse();
+    state.deliveryRows = serials.map(s => ({ serial:s, measured_date: deliveryDateFromSerial(s), delivered:false }));
+    state.deliveryLoading = false;
+    render();
+    return;
+  }
+
+  try{
+    const [measRes, statusRes] = await Promise.all([
+      sbFetch(MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&select=serial,measured_date'),
+      sbFetch(DELIVERY_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&select=serial,delivered')
+    ]);
+    if(!measRes.ok){ const t = await measRes.text(); throw new Error('HTTP ' + measRes.status + ' ' + t.slice(0,180)); }
+    const measRows = await measRes.json();
+    const statusRows = statusRes.ok ? await statusRes.json() : [];
+    const deliveredSet = {};
+    statusRows.forEach(r => { deliveredSet[r.serial] = !!r.delivered; });
+
+    const bySerial = {};
+    measRows.forEach(r => { bySerial[r.serial] = r.measured_date; });
+    const serials = Object.keys(bySerial).sort().reverse();
+    state.deliveryRows = serials.map(s => ({
+      serial: s,
+      measured_date: bySerial[s],
+      delivered: deliveredSet[s] === true
+    }));
+    state.connError = null;
+  } catch(e){
+    state.connError = e.message;
+    showToast('Could not load delivery status: ' + e.message);
+  }
+  state.deliveryLoading = false;
+  render();
+}
+
+async function toggleDelivered(serial, checked){
+  const row = state.deliveryRows.find(r => r.serial === serial);
+  if(!row) return;
+  const prev = row.delivered;
+  row.delivered = checked;
+  render();
+
+  if(state.demoMode) return;
+
+  try{
+    const res = await sbFetch(DELIVERY_URL + '?on_conflict=component_type,model,serial', {
+      method:'POST',
+      headers: { 'Prefer':'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        component_type: state.componentType,
+        model: state.model,
+        serial: serial,
+        delivered: checked,
+        delivered_at: checked ? new Date().toISOString() : null
+      })
+    });
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+  } catch(e){
+    row.delivered = prev;
+    render();
+    showToast('Failed to save delivery status: ' + e.message);
+  }
+}
+
+function renderDeliveryTab(){
+  const selector = renderSelectorRow(false, false);
+  if(state.deliveryLoading){
+    return selector + '<div class="empty-note" style="padding:60px 20px">Loading delivery status\u2026</div>';
+  }
+  if(!state.model){
+    return selector + '<div class="empty-note" style="padding:60px 20px">Select a component type and model to view units.</div>';
+  }
+
+  const filtered = deliveryFilteredRows();
+  const deliveredCount = state.deliveryRows.filter(r=>r.delivered).length;
+
+  const renderRow = r => (
+    '<tr>' +
+      '<td>' + escAttrText(r.serial) + '</td>' +
+      '<td>' + dash(r.measured_date) + '</td>' +
+      '<td style="text-align:center"><input type="checkbox" id="delivery_cb_' + escAttrText(r.serial) + '" ' + (r.delivered?'checked':'') + ' onchange="toggleDelivered(\'' + escAttrText(r.serial) + '\', this.checked)"></td>' +
+    '</tr>'
+  );
+  const renderColumn = colRows => (
+    '<div class="table-wrap"><div class="table-scroll"><table class="table"><thead><tr><th>Serial</th><th>Date</th><th>Delivered</th></tr></thead><tbody>' +
+      (colRows.length ? colRows.map(renderRow).join('') : '<tr><td colspan="3"><div class="empty-note">No units match.</div></td></tr>') +
+    '</tbody></table></div></div>'
+  );
+
+  const half = Math.ceil(filtered.length / 2);
+  const leftCol = filtered.slice(0, half);
+  const rightCol = filtered.slice(half);
+  const columns = filtered.length
+    ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' + renderColumn(leftCol) + renderColumn(rightCol) + '</div>'
+    : renderColumn([]);
+
+  return '' +
+    selector +
+    '<div class="panel">' +
+      '<div class="panel-head-row"><h2>' + escAttrText(state.model) + '</h2><span class="unit-info-summary">' + deliveredCount + ' / ' + state.deliveryRows.length + ' delivered</span></div>' +
+      '<div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">' +
+        '<div class="form-field" style="max-width:320px;margin-bottom:0"><label>Search serial (e.g. a date prefix like 260910 to select a whole batch)</label><input class="input" id="delivery_search" placeholder="Search serial\u2026" value="' + escAttrText(state.deliveryQuery) + '" oninput="setDeliveryQueryDraft(this.value)"></div>' +
+        '<button class="btn btn-primary" onclick="markFilteredDelivered(true)">Mark ' + filtered.length + ' visible as delivered</button>' +
+        '<button class="btn btn-ghost" onclick="markFilteredDelivered(false)">Mark ' + filtered.length + ' visible as not delivered</button>' +
+      '</div>' +
+      columns +
+    '</div>';
+}
+
+async function markFilteredDelivered(delivered){
+  const rows = deliveryFilteredRows();
+  if(!rows.length){ showToast('No units match the current filter.'); return; }
+  const ok = window.confirm((delivered ? 'Mark' : 'Unmark') + ' ' + rows.length + ' unit(s) as delivered?');
+  if(!ok) return;
+
+  const prevValues = rows.map(r => r.delivered);
+  rows.forEach(r => { r.delivered = delivered; });
+  render();
+
+  if(state.demoMode) return;
+
+  try{
+    const payload = rows.map(r => ({
+      component_type: state.componentType,
+      model: state.model,
+      serial: r.serial,
+      delivered: delivered,
+      delivered_at: delivered ? new Date().toISOString() : null
+    }));
+    const res = await sbFetch(DELIVERY_URL + '?on_conflict=component_type,model,serial', {
+      method:'POST',
+      headers: { 'Prefer':'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+    showToast(rows.length + ' unit(s) updated.');
+  } catch(e){
+    rows.forEach((r, i) => { r.delivered = prevValues[i]; });
+    render();
+    showToast('Bulk update failed: ' + e.message);
+  }
+}
+
 /* ---------- render: header / login ---------- */
 function renderLoginScreen(){
   const err = state.authError ? '<div class="field-error show">' + escAttrText(state.authError) + '</div>' : '';
@@ -1695,6 +1876,7 @@ function renderHeader(){
   const tabs = '<div class="section-tabs">' +
       '<button class="section-tab ' + (state.section==='entry'?'active':'') + '" onclick="setSection(\'entry\')">Data Entry</button>' +
       '<button class="section-tab ' + (state.section==='spc'?'active':'') + '" onclick="setSection(\'spc\')">SPC Chart</button>' +
+      '<button class="section-tab ' + (state.section==='delivery'?'active':'') + '" onclick="setSection(\'delivery\')">Delivery Status</button>' +
     '</div>';
   return '' +
   '<div class="topbar">' +
@@ -2207,6 +2389,7 @@ function render(){
     if(active && typeof active.selectionStart === 'number') selStart = active.selectionStart;
     if(active && typeof active.selectionEnd === 'number') selEnd = active.selectionEnd;
   }catch(e){ selStart = null; selEnd = null; }
+  const savedScrollY = (typeof window !== 'undefined' && typeof window.scrollY === 'number') ? window.scrollY : null;
 
   let html;
   if(state.authView==='checking'){
@@ -2214,10 +2397,12 @@ function render(){
   } else if(state.authView==='login'){
     html = renderHeader() + renderLoginScreen();
   } else {
-    const bodyContent = state.section==='entry' ? renderEntryTab() : renderSpcTab();
+    const bodyContent = state.section==='entry' ? renderEntryTab() : state.section==='spc' ? renderSpcTab() : renderDeliveryTab();
     const pageHead = state.section==='entry'
       ? '<div class="page-head"><h1>Measurement Data Entry</h1><p>Record adjustment &amp; test results for Services components, one unit at a time.</p></div>'
-      : '<div class="page-head"><h1>SPC Chart</h1><p>Statistical process control for adjustment &amp; test measurements, with spec limits overlaid.</p></div>';
+      : state.section==='spc'
+      ? '<div class="page-head"><h1>SPC Chart</h1><p>Statistical process control for adjustment &amp; test measurements, with spec limits overlaid.</p></div>'
+      : '<div class="page-head"><h1>Delivery Status</h1><p>Mark units as delivered once shipped. Undelivered units are hidden from the customer-facing SPC view.</p></div>';
     html = renderHeader() +
       '<div class="content">' + pageHead + renderDownloadCenter() + bodyContent + '</div>' +
       '<div class="security-footer">\ud83d\udd12 ' + SECURITY_NOTICE + '</div>' +
@@ -2236,6 +2421,10 @@ function render(){
     }
   }
 
+  if(savedScrollY != null && typeof window.scrollTo === 'function'){
+    window.scrollTo(0, savedScrollY);
+  }
+
   if(state.authView==='app' && state.section==='spc'){
     if(typeof requestAnimationFrame === 'function'){ requestAnimationFrame(drawChart); } else { setTimeout(drawChart, 0); }
   }
@@ -2245,7 +2434,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT, submitEntry, loadEntryForEdit };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT, submitEntry, loadEntryForEdit, loadDeliveryStatus, toggleDelivered, deliveryFilteredRows, markFilteredDelivered };
 
 </script>
 </body>

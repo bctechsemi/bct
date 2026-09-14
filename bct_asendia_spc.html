@@ -248,7 +248,7 @@ const CONFIG = {
 const IS_CONFIGURED = !CONFIG.SUPABASE_URL.includes('YOUR-PROJECT-REF') && !CONFIG.SUPABASE_ANON_KEY.includes('YOUR-ANON-PUBLIC-KEY');
 const AUTH_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/auth/v1';
 const SPEC_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_spec_limits';
-const MEASUREMENTS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_measurements';
+const MEASUREMENTS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_measurements_delivered';
 const MODELS_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/component_models';
 const SESSION_KEY = 'bct_qc_session_v1';
 

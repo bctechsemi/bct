@@ -210,6 +210,10 @@
   }
   table.table td{ padding:11px 14px; border-bottom:1px solid var(--hairline-soft); vertical-align:middle; white-space:nowrap; text-align:center; }
   table.table tbody tr:hover{ background:var(--surface-soft); }
+  tr.row-clickable{ cursor:pointer; }
+  .btn-danger{ background:transparent; color:var(--critical); border:2px solid var(--critical-bg); }
+  .btn-danger:hover{ background:var(--critical-bg); border-color:var(--critical); }
+  .row-actions{ white-space:nowrap; }
   .empty-note{ font-size:13px; color:var(--steel); padding:40px 20px; text-align:center; }
 
   .badge{
@@ -1688,6 +1692,36 @@ function applyEntryForEdit(g){
   if(el && el.scrollIntoView) el.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 
+/* Deletes every measurement row for one serial (all parameters for that
+   unit), scoped to the currently selected component type + model so this
+   can never reach across into a different component's data even if two
+   different components happened to reuse the same serial string. */
+async function deleteEntry(serial){
+  const ok = window.confirm('Delete ALL measurement data for serial "' + serial + '"? This cannot be undone.');
+  if(!ok) return;
+
+  if(state.demoMode){
+    showToast('Demo mode: nothing was actually deleted.');
+    return;
+  }
+
+  showToast('Deleting ' + serial + '\u2026', 1500);
+  try{
+    const res = await sbFetch(
+      MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&serial=eq.' + enc(serial),
+      { method:'DELETE' }
+    );
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
+    showToast('Deleted ' + serial + '.');
+    if(state.entrySerial === serial){ state.entryValues = {}; state.entrySerial = ''; }
+    loadRecentEntries();
+    if(state.spcParam) loadSpcData();
+    render();
+  } catch(e){
+    showToast('Delete failed: ' + e.message);
+  }
+}
+
 /* ---------- Delivery Status ---------- */
 function deliveryDateFromSerial(serial){
   const m = /^(\d{2})(\d{2})(\d{2})-/.exec(serial || '');
@@ -2105,13 +2139,16 @@ function renderRecentEntriesPanel(){
       else if(evalSpec.length && evals.every(e=>e===true)){ cls='badge-green'; label='PASS'; }
       else { cls='badge-gray'; label='PARTIAL'; }
     }
-    return '<tr>' +
+    return '<tr class="row-clickable" onclick="loadEntryForEdit(\'' + g.serial + '\')">' +
       '<td class="num">' + dash(g.serial) + '</td>' +
       '<td>' + dash(g.measured_date) + '</td>' +
       '<td>' + dash(g.inspector_name) + '</td>' +
       '<td class="num">' + Object.keys(g.values).length + ' / ' + spec.length + '</td>' +
       '<td><span class="badge ' + cls + '">' + label + '</span></td>' +
-      '<td><button class="btn btn-ghost btn-sm" onclick="loadEntryForEdit(\'' + g.serial + '\')">Edit</button></td>' +
+      '<td class="row-actions">' +
+        '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); loadEntryForEdit(\'' + g.serial + '\')">Edit</button> ' +
+        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteEntry(\'' + g.serial + '\')">Delete</button>' +
+      '</td>' +
     '</tr>';
   }).join('');
   const emptyMsg = q ? 'No entries match "' + escAttrText(state.recentEntriesQuery) + '".' : 'No measurements recorded yet for this model.';
@@ -2434,7 +2471,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT, submitEntry, loadEntryForEdit, loadDeliveryStatus, toggleDelivered, deliveryFilteredRows, markFilteredDelivered };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT, submitEntry, loadEntryForEdit, loadDeliveryStatus, toggleDelivered, deliveryFilteredRows, markFilteredDelivered, deleteEntry };
 
 </script>
 </body>

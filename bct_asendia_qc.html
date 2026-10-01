@@ -1294,17 +1294,41 @@ async function loadSpcData(){
   if(state.demoMode){
     rows = DEMO_MEASUREMENTS.filter(r=>r.component_type===state.componentType && r.model===state.model && r.parameter_code===code && (r.port||'')===port)
       .map(r=>({ serial:r.serial, value:r.value, measured_date:r.measured_date }))
-      .sort((a,b)=> a.serial < b.serial ? -1 : a.serial > b.serial ? 1 : 0);
+      .sort((a,b)=> a.measured_date < b.measured_date ? -1 : a.measured_date > b.measured_date ? 1 : (a.serial < b.serial ? -1 : a.serial > b.serial ? 1 : 0));
   } else {
     try{
-      const res = await sbFetch(MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&parameter_code=eq.' + enc(code) + '&port=eq.' + enc(port) + '&select=serial,value,measured_date&order=serial.asc&limit=2000');
-      rows = res.ok ? await res.json() : [];
+      rows = await fetchAllSpcRows(state.componentType, state.model, code, port);
     } catch(e){
       rows = [];
     }
   }
   state.spcMeasurementsAll = rows;
   applySpcRange();
+}
+
+/* Fetches every measurement for one parameter, paginated with offset/limit
+   rather than a single oversized `limit=` value. Supabase's PostgREST layer
+   enforces its own server-side row cap (commonly 1000) that silently
+   overrides a larger `limit=` in the URL, with no error and no indication -
+   for a long-running model with more history than that cap, a single-request
+   fetch would silently drop the newest readings (the ones sorted past the
+   cutoff), which is exactly the kind of gap that's easy to miss on a chart.
+   Keeps requesting the next page (by rows actually received, not an assumed
+   page size) until a truly empty page comes back. */
+async function fetchAllSpcRows(componentType, model, code, port){
+  const baseUrl = MEASUREMENTS_URL + '?component_type=eq.' + enc(componentType) + '&model=eq.' + enc(model) +
+    '&parameter_code=eq.' + enc(code) + '&port=eq.' + enc(port) + '&select=serial,value,measured_date&order=measured_date.asc,serial.asc';
+  let all = [];
+  let offset = 0;
+  while(true){
+    const res = await sbFetch(baseUrl + '&offset=' + offset + '&limit=1000');
+    if(!res.ok) break;
+    const rows = await res.json();
+    if(!rows.length) break;
+    all = all.concat(rows);
+    offset += rows.length;
+  }
+  return all;
 }
 
 /* Returns the [start, end] ISO date bounds (inclusive) for the current range
@@ -1560,8 +1584,8 @@ async function submitEntry(){
   const serial = (state.entrySerial || '').trim();
   if(!serial){ showToast('Serial is required.'); return; }
   if(!/^\d{6}-\d{4}$/.test(serial)){
-    showToast('\u26a0\ufe0f Invalid Serial format: "' + serial + '". Serial must be exactly 11 characters as YYMMDD-NNNN (6-digit date, a hyphen, 4-digit sequence number). Please re-enter the Serial Number.', 7000);
-    return;
+    const proceed = window.confirm('\u26a0\ufe0f Serial "' + serial + '" doesn\'t match the expected format (YYMMDD-NNNN \u2014 6-digit date, a hyphen, 4-digit sequence number).\n\nSave anyway?');
+    if(!proceed) return;
   }
   const date = state.entryDate || todayISO();
   const inspector = (state.entryInspector || '').trim() || null;
@@ -2471,7 +2495,7 @@ render();
 initAuth();
 
 /* Exposed for support/debugging only (e.g. window.__debug.state in the browser console) */
-window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT, submitEntry, loadEntryForEdit, loadDeliveryStatus, toggleDelivered, deliveryFilteredRows, markFilteredDelivered, deleteEntry };
+window.__debug = { state, computeStats, evalPass, sortModels, componentTypeLabel, paramKey, groupSpecByPort, portRank, sortComponentTypes, formatFrequencyKHz, computeSpcRangeBounds, applySpcRange, recentEntriesSearchFilter, stepSpcParam, computeSpecAlerts, loadSpecAlerts, jumpToSpcParam, sbFetch, refreshSessionOnce, refreshSession, highlightVoltageLabel, SIMPLE_LAYOUTS, PORT_LAYOUTS, groupUnitsByModel, buildSimpleSheet, buildPortSheet, buildSawFilterSheet, runDownloadCenterExport, loadDownloadCenterModels, writeStyledWorkbook, headerRowCountFor, fetchRecentCompleteUnits, groupUnits, loadRecentEntries, RECENT_ENTRIES_UNIT_COUNT, submitEntry, loadEntryForEdit, loadDeliveryStatus, toggleDelivered, deliveryFilteredRows, markFilteredDelivered, deleteEntry, fetchAllSpcRows, loadSpcData };
 
 </script>
 </body>

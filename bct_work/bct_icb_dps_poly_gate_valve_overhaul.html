@@ -45,7 +45,7 @@ input,select,textarea{ font-family:inherit; }
 .btn{
   display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:var(--r-full);
   border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff;
-  font-family:var(--font-en); font-weight:600; font-size:12.5px; cursor:pointer;
+  font-family:var(--font-en); font-weight:600; font-size:12.5px; cursor:pointer; text-decoration:none;
 }
 .btn:hover{ background:rgba(255,255,255,.18); }
 .btn.primary{ background:var(--amber); border-color:var(--amber); color:#1F1400; }
@@ -233,6 +233,10 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
     <div class="sub">DPS POLY GATE VALVE · OVERHAUL</div>
   </div>
   <div class="spacer"></div>
+  <a class="btn" id="btnSop" href="bct_sop_dps_poly_gate_valve_overhaul.html" target="_blank" rel="noopener" title="Standard Work Procedure (작업절차서) 새 탭에서 열기">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+    SOP 보기
+  </a>
   <button class="btn primary" id="btnPdf">PDF 다운로드</button>
 </div>
 <div class="note-bar">값을 입력하거나 사진/서명 파일을 선택하면 우측 성적서가 실시간으로 채워집니다. 완성 후 상단의 <span class="en-inline">PDF</span> 다운로드 버튼을 사용하세요.</div>

@@ -831,34 +831,41 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
       return;
     }
     var sheets = Array.prototype.slice.call(document.querySelectorAll(".a4-sheet"));
+    // ※ 중요: html2pdf.js는 넘겨준 요소를 복제해 자체 컨테이너에 넣는다.
+    //   이때 position:fixed/absolute 같은 인라인 위치 지정이 함께 복제되면 컨테이너 높이가
+    //   0으로 무너져 "빈 PDF"가 나온다. 따라서 exportWrap에는 위치 스타일을 주지 않고
+    //   (일반 흐름), DOM에 붙이지도 않은 채 그대로 전달한다.
     var exportWrap = document.createElement("div");
-    exportWrap.style.position = "fixed";
-    exportWrap.style.left = "-99999px";
-    exportWrap.style.top = "0";
+    exportWrap.style.width = "210mm";
+    exportWrap.style.background = "#fff";
     sheets.forEach(function(sheet, i){
       var clone = sheet.cloneNode(true);
       clone.style.transform = "none";
       clone.style.width = "210mm";
-      clone.style.minHeight = "297mm";
+      // 297mm 정확히 맞추면 반올림(1123px)으로 1px 넘쳐 빈 페이지가 끼므로 살짝 작게 고정
+      clone.style.minHeight = "0";
+      clone.style.height = "296mm";
+      clone.style.overflow = "hidden";
       clone.style.boxShadow = "none";
+      clone.style.margin = "0";
       if (i < sheets.length - 1){
         clone.style.breakAfter = "page";
         clone.style.pageBreakAfter = "always";
       }
       exportWrap.appendChild(clone);
     });
-    document.body.appendChild(exportWrap);
     var opt = {
       margin: 0, filename: fname,
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2.5, useCORS: true, backgroundColor: "#ffffff" },
+      html2canvas: { scale: 2.5, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0 },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       pagebreak: { mode: ["css", "legacy"] }
     };
-    html2pdf().set(opt).from(exportWrap).save().then(function(){
-      document.body.removeChild(exportWrap);
-    }).catch(function(){
-      document.body.removeChild(exportWrap);
+    var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    ready.then(function(){
+      return html2pdf().set(opt).from(exportWrap).save();
+    }).catch(function(err){
+      alert("PDF 생성 중 오류가 발생했습니다: " + (err && err.message ? err.message : err));
     });
   });
 })();

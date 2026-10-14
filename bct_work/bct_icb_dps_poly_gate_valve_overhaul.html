@@ -250,7 +250,7 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
       <div class="pgroup-head"><span class="pgroup-num">01</span><span class="pgroup-title">기본정보</span></div>
       <div class="field-row">
         <div class="field"><label>입고일 (RECEIVED)</label><input type="date" id="f_received"></div>
-        <div class="field"><label>반출일 (SHIPPED OUT)</label><input type="date" id="f_shipped"></div>
+        <div class="field"><label>작업완료일 (WORK COMPLETED)</label><input type="date" id="f_shipped"></div>
       </div>
       <div class="field-row">
         <div class="field full"><label>Serial Number</label><input type="text" id="f_serial" placeholder="예: DZ-PG-022-1"></div>
@@ -260,7 +260,7 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
         <div class="field"><label>검사자 (INSPECTOR)</label><input type="text" id="f_inspector" placeholder="예: 권용일"></div>
       </div>
       <div class="field-row">
-        <div class="field full"><label>문서번호 (반출일 기준 자동생성)</label><input type="text" id="f_docno" disabled></div>
+        <div class="field full"><label>문서번호 (작업완료일 기준 자동생성)</label><input type="text" id="f_docno" disabled></div>
       </div>
     </div>
 
@@ -350,7 +350,7 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
           <div class="sec-title"><span class="num">01</span>기본정보<span class="en">BASIC INFORMATION</span></div>
           <div class="info-grid">
             <div class="info-cell"><div class="lbl">입고일 <span class="en">RECEIVED (IN)</span></div><div class="val" id="p_received">-</div></div>
-            <div class="info-cell"><div class="lbl">반출일 <span class="en">SHIPPED OUT</span></div><div class="val" id="p_shipped">-</div></div>
+            <div class="info-cell"><div class="lbl">작업완료일 <span class="en">WORK COMPLETED</span></div><div class="val" id="p_shipped">-</div></div>
             <div class="info-cell"><div class="lbl">Serial Number</div><div class="val" id="p_serial">-</div></div>
             <div class="info-cell"><div class="lbl">작업자 <span class="en">OPERATOR</span></div><div class="val ko" id="p_operator">-</div></div>
             <div class="info-cell" style="grid-column:span 2;"><div class="lbl">검사자 <span class="en">INSPECTOR</span></div><div class="val ko" id="p_inspector">-</div></div>
@@ -618,7 +618,7 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
   function render(){
     // doc number + issue date derived from shipped date
     var shipped = state.basic.shipped;
-    var docNo = shipped ? ("BCT-TI-DGV-" + shipped.replace(/-/g,"")) : "BCT-TI-DGV-(반출일 입력 필요)";
+    var docNo = shipped ? ("BCT-TI-DGV-" + shipped.replace(/-/g,"")) : "BCT-TI-DGV-(작업완료일 입력 필요)";
     $("f_docno").value = docNo;
     $("p_docno").textContent = docNo;
     $("p_issuedate").textContent = fmtDate(shipped);

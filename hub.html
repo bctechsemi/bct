@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BCT — Business Hub</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#1F4E9C; --deep:#153B78; --deeper:#0F2C5C; --night:#0A1F42;
+  --pale:#EAF1FC; --amber:#C98A2B; --good:#2FB57E;
+  --mist:#C7D5EC; --mist2:#9FB3D6;
+  --font:'Google Sans','Gowun Batang',-apple-system,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);color:#fff;background:var(--night);-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+
+/* ---------- background layers ---------- */
+#net{position:fixed;inset:0;z-index:0}
+.blob{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}
+.b1{width:640px;height:640px;background:#1F4E9C;opacity:.55;top:-220px;right:-140px;animation:drift1 18s ease-in-out infinite}
+.b2{width:480px;height:480px;background:#C98A2B;opacity:.14;bottom:-200px;left:-120px;animation:drift2 22s ease-in-out infinite}
+.b3{width:380px;height:380px;background:#2B6BD1;opacity:.22;top:40%;left:38%;animation:drift1 26s ease-in-out infinite reverse}
+@keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(-80px,60px)}}
+@keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(90px,-50px)}}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ---------- page shell ---------- */
+.page{position:relative;z-index:2;height:100vh;display:grid;grid-template-rows:auto 1fr auto;padding:22px clamp(20px,3.2vw,48px) 0}
+
+/* nav */
+nav{display:flex;align-items:center;justify-content:space-between;gap:20px}
+nav .logo img{height:28px;filter:brightness(0) invert(1);display:block}
+.status{display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;color:var(--mist2)}
+.status .pill{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.04);backdrop-filter:blur(10px)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 rgba(47,181,126,.6);animation:ping 2s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(47,181,126,.6)}70%{box-shadow:0 0 0 9px rgba(47,181,126,0)}100%{box-shadow:0 0 0 0 rgba(47,181,126,0)}}
+#clock{color:#fff;font-weight:700}
+
+/* main */
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:clamp(28px,4vw,64px);align-items:center;min-height:0;padding:clamp(12px,2.5vh,32px) 0}
+
+/* hero */
+.hero{position:relative}
+.eyebrow{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--mist)}
+.eyebrow i{width:26px;height:1px;background:var(--amber)}
+h1{font-weight:700;font-size:clamp(64px,9.5vw,150px);line-height:.86;letter-spacing:-.05em;margin:clamp(14px,2.4vh,26px) 0 0}
+h1 .bct{display:block;background:linear-gradient(100deg,#fff 30%,#9FC0F5 50%,#fff 70%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sheen 6s ease-in-out infinite}
+@keyframes sheen{0%,100%{background-position:100% 0}50%{background-position:0 0}}
+.rot{display:block;font-size:clamp(26px,3.3vw,50px);letter-spacing:-.03em;font-weight:600;color:rgba(255,255,255,.32);margin-top:clamp(10px,1.6vh,18px);height:1.15em;overflow:hidden;position:relative}
+.rot span{color:#fff}
+.rot .word{display:inline-block;color:var(--amber);transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .55s}
+.rot .word.out{transform:translateY(-110%);opacity:0}
+.rot .word.pre{transform:translateY(110%);opacity:0;transition:none}
+.lede{font-size:clamp(14px,1.15vw,17px);line-height:1.7;color:var(--mist);max-width:40ch;margin:clamp(14px,2.6vh,28px) 0 0}
+.stats{display:flex;gap:clamp(20px,3vw,40px);margin-top:clamp(16px,3.2vh,36px);padding-top:clamp(14px,2.4vh,24px);border-top:1px solid rgba(255,255,255,.12)}
+.stats b{display:block;font-size:clamp(26px,2.6vw,38px);font-weight:700;letter-spacing:-.03em;line-height:1}
+.stats b em{font-style:normal;color:var(--amber);font-size:.55em;margin-left:2px}
+.stats span{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mist2);margin-top:6px;display:block}
+.frames{position:absolute;right:4%;top:-4%;width:96px;height:96px;pointer-events:none}
+.frames div{position:absolute;border:1px solid rgba(255,255,255,.26)}
+.frames div:first-child{inset:0;animation:spin 30s linear infinite}
+.frames div:last-child{inset:24px;border-color:rgba(255,255,255,.5);animation:spin 20s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* bento */
+.bento{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:14px;perspective:1200px}
+.card{--mx:50%;--my:50%;position:relative;border-radius:22px;padding:clamp(18px,2.2vh,26px) clamp(18px,1.8vw,26px);
+  background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.11);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  overflow:hidden;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.8,.2,1),border-color .3s,background .3s;display:flex;flex-direction:column;min-height:0}
+.card:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(420px circle at var(--mx) var(--my),rgba(120,165,240,.18),transparent 45%)}
+.card:after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;opacity:0;transition:opacity .3s;
+  background:radial-gradient(260px circle at var(--mx) var(--my),rgba(201,138,43,.75),transparent 60%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.card:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.06)}
+.card:hover:before,.card:hover:after{opacity:1}
+.c-sales{grid-row:span 2}
+.c-cm{background:rgba(31,78,156,.32);border-color:rgba(120,165,240,.28)}
+
+.head{display:flex;align-items:flex-start;gap:14px;position:relative;margin-bottom:clamp(12px,2vh,20px)}
+.ico{width:44px;height:44px;border-radius:13px;flex:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#fff}
+.ico svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.card:hover .ico{background:var(--amber);border-color:var(--amber)}
+.head h3{font-size:clamp(19px,1.6vw,24px);font-weight:700;letter-spacing:-.02em;margin:1px 0 2px;line-height:1.15}
+.head p{margin:0;font-size:13px;color:var(--mist2)}
+.num{position:absolute;right:16px;top:8px;font-family:var(--mono);font-size:11px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.08em}
+
+.rows{display:flex;flex-direction:column;gap:8px;margin-top:auto;position:relative}
+.row{display:flex;align-items:center;gap:12px;padding:clamp(10px,1.5vh,14px) 14px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(10,31,66,.45);transition:all .3s cubic-bezier(.2,.8,.2,1)}
+.row .txt{flex:1;min-width:0}
+.row .t{font-weight:600;font-size:15px;line-height:1.25}
+.row .d{font-size:11.5px;color:var(--mist2);font-family:var(--mono);letter-spacing:.03em;margin-top:2px}
+a.row:hover{background:#fff;color:var(--deep);border-color:#fff;transform:translateX(5px)}
+a.row:hover .d{color:var(--primary)}
+a.row:hover .tag.live{background:var(--deep)}
+div.row{opacity:.5}
+.arrow{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.55;transition:transform .3s}
+a.row:hover .arrow{transform:translate(2px,-2px);opacity:1}
+.tag{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.tag.live{background:rgba(47,181,126,.18);color:#7FE0B5;display:inline-flex;align-items:center;gap:5px}
+.tag.live:before{content:"";width:5px;height:5px;border-radius:50%;background:var(--good);animation:blink 1.6s infinite}
+a.row:hover .tag.live{color:#fff}
+@keyframes blink{50%{opacity:.25}}
+.tag.soon{background:rgba(255,255,255,.08);color:var(--mist2)}
+
+/* coming-soon progress shimmer */
+.soonbar{margin-top:auto;position:relative}
+.soonbar .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--mist2);text-transform:uppercase;margin-bottom:8px}
+.soonbar .track{height:4px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+.soonbar .track:after{content:"";position:absolute;top:0;bottom:0;width:35%;border-radius:4px;background:linear-gradient(90deg,transparent,var(--amber),transparent);animation:scan 2.6s ease-in-out infinite}
+@keyframes scan{0%{left:-35%}100%{left:100%}}
+
+/* sales mini chart */
+.spark{position:relative;height:clamp(54px,9vh,96px);margin:0 0 clamp(10px,1.6vh,16px)}
+.spark svg{width:100%;height:100%;overflow:visible}
+.spark path.line{fill:none;stroke:var(--amber);stroke-width:2;stroke-linecap:round;stroke-dasharray:600;stroke-dashoffset:600;animation:draw 2.4s .8s cubic-bezier(.4,0,.2,1) forwards}
+.spark path.area{fill:url(#ga);opacity:0;animation:fade 1.4s 2s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes fade{to{opacity:1}}
+
+/* ticker */
+.ticker{height:42px;border-top:1px solid rgba(255,255,255,.1);margin:0 calc(-1 * clamp(20px,3.2vw,48px));overflow:hidden;display:flex;align-items:center;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.track-t{display:flex;gap:44px;white-space:nowrap;animation:tick 40s linear infinite;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist2)}
+.track-t span{display:inline-flex;align-items:center;gap:10px}
+.track-t i{width:4px;height:4px;background:var(--amber);border-radius:50%}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* entrance */
+.in{opacity:0;transform:translateY(26px);filter:blur(6px);animation:enter 1s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes enter{to{opacity:1;transform:none;filter:none}}
+
+/* responsive: allow scroll when the screen is too small for one page */
+@media (max-width:980px),(max-height:640px){
+  body{overflow:auto}
+  .page{height:auto;min-height:100vh}
+  main{grid-template-columns:1fr;padding:32px 0}
+  .c-sales{grid-row:auto}
+  .frames{display:none}
+}
+@media (max-width:620px){
+  .bento{grid-template-columns:1fr}
+  .status .pill.hide-m{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.in{opacity:1;transform:none;filter:none}}
+</style>
+</head>
+<body>
+
+<canvas id="net"></canvas>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<div class="grain"></div>
+
+<div class="page">
+  <nav class="in" style="animation-delay:.1s">
+    <a class="logo" href="./"><img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT"></a>
+    <div class="status">
+      <div class="pill hide-m"><span class="dot"></span>3 SYSTEMS ONLINE</div>
+      <div class="pill">KST&nbsp;<span id="clock">--:--:--</span></div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="frames"><div></div><div></div></div>
+      <div class="eyebrow in" style="animation-delay:.25s"><i></i>BCT Co., Ltd. · Business Hub</div>
+      <h1 class="in" style="animation-delay:.4s">
+        <span class="bct">BCT</span>
+        <span class="rot">One window for&nbsp;<span class="word" id="word">Sales</span></span>
+      </h1>
+      <p class="lede in" style="animation-delay:.6s">견적·거래명세, 위탁생산, 수리, 개발까지 — BCT의 모든 업무 시스템을 하나의 창에서 연결합니다.</p>
+      <div class="stats in" style="animation-delay:.75s">
+        <div><b data-count="4">0</b><span>Business Areas</span></div>
+        <div><b data-count="3">0</b><span>Live Systems</span></div>
+        <div><b data-count="2">0</b><span>CM Partners</span></div>
+      </div>
+    </section>
+
+    <section class="bento">
+      <!-- 01 Sales -->
+      <div class="card c-sales in" style="animation-delay:.5s">
+        <span class="num">01</span>
+        <div class="head">
+          <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-9"/><path d="M15 7h5v5"/></svg></div>
+          <div><h3>Sales</h3><p>견적부터 거래명세, 회계까지</p></div>
+        </div>
+        <div class="spark">
+          <svg viewBox="0 0 300 90" preserveAspectRatio="none">
+            <defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#C98A2B" stop-opacity=".35"/><stop offset="1" stop-color="#C98A2B" stop-opacity="0"/></linearGradient></defs>
+            <path class="area" d="M0,78 C30,72 45,60 70,62 S110,40 140,46 S185,28 210,30 S260,12 300,8 L300,90 L0,90Z"/>
+            <path class="line" d="M0,78 C30,72 45,60 70,62 S110,40 140,46 S185,28 210,30 S260,12 300,8"/>
+          </svg>
+        </div>
+        <div class="rows">
+          <div class="row">
+            <div class="txt"><div class="t">견적 시스템</div><div class="d">QUOTATION</div></div>
+            <span class="tag soon">Soon</span>
+          </div>
+          <a class="row" href="./bct_transaction_statement.html">
+            <div class="txt"><div class="t">거래명세서</div><div class="d">TRANSACTION STATEMENT</div></div>
+            <span class="tag live">Live</span>
+            <svg class="arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a class="row" href="https://login.ecount.com/" target="_blank" rel="noopener">
+            <div class="txt"><div class="t">Ecount</div><div class="d">ERP · 이카운트</div></div>
+            <span class="tag live">Live</span>
+            <svg class="arrow" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- 02 CM -->
+      <div class="card c-cm in" style="animation-delay:.62s">
+        <span class="num">02</span>
+        <div class="head">
+          <div class="ico"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2.5"/><path d="M9.5 9.5h5v5h-5z"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></div>
+          <div><h3>Contract Manufacturing</h3><p>고객사별 OPS Hub</p></div>
+        </div>
+        <div class="rows">
+          <a class="row" href="https://bctechsemi.github.io/bct/" target="_blank" rel="noopener">
+            <div class="txt"><div class="t">ASENDIA</div><div class="d">OPS HUB</div></div>
+            <span class="tag live">Live</span>
+            <svg class="arrow" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></svg>
+          </a>
+          <div class="row">
+            <div class="txt"><div class="t">HS HiTek</div><div class="d">OPS HUB</div></div>
+            <span class="tag soon">Soon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 03 Repair + 04 Dev share the remaining cell -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0">
+        <div class="card in" style="animation-delay:.74s">
+          <span class="num">03</span>
+          <div class="head">
+            <div class="ico"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></div>
+          </div>
+          <div class="head" style="margin-top:-6px"><div><h3>Repair Service</h3><p>수리 접수·이력</p></div></div>
+          <div class="soonbar"><div class="lbl"><span>Connecting</span><span>Soon</span></div><div class="track"></div></div>
+        </div>
+        <div class="card in" style="animation-delay:.86s">
+          <span class="num">04</span>
+          <div class="head">
+            <div class="ico"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></div>
+          </div>
+          <div class="head" style="margin-top:-6px"><div><h3>Development</h3><p>신제품 개발</p></div></div>
+          <div class="soonbar"><div class="lbl"><span>Connecting</span><span>Soon</span></div><div class="track"></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="ticker in" style="animation-delay:1s">
+    <div class="track-t" id="tick"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- KST clock ---------- */
+const clk=document.getElementById('clock');
+const fmt=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const tickClock=()=>clk.textContent=fmt.format(new Date());
+tickClock();setInterval(tickClock,1000);
+
+/* ---------- rotating word ---------- */
+const words=['Sales','Manufacturing','Repair','Development'];
+const w=document.getElementById('word');let wi=0;
+setInterval(()=>{
+  w.classList.add('out');
+  setTimeout(()=>{
+    wi=(wi+1)%words.length;w.textContent=words[wi];
+    w.classList.remove('out');w.classList.add('pre');
+    void w.offsetWidth;w.classList.remove('pre');
+  },550);
+},2600);
+
+/* ---------- count-up ---------- */
+setTimeout(()=>document.querySelectorAll('[data-count]').forEach(el=>{
+  const n=+el.dataset.count;let i=0;
+  const t=setInterval(()=>{el.textContent=String(++i).padStart(2,'0');if(i>=n)clearInterval(t)},180);
+}),1000);
+
+/* ---------- ticker ---------- */
+const items=['Sales','Quotation','Transaction Statement','Ecount ERP','Contract Manufacturing','ASENDIA OPS Hub','HS HiTek','Repair Service','Development','RF Power Components'];
+const html=items.map(t=>`<span><i></i>${t}</span>`).join('');
+document.getElementById('tick').innerHTML=html+html;
+
+/* ---------- card spotlight + tilt ---------- */
+const fine=matchMedia('(pointer:fine)').matches;
+document.querySelectorAll('.card').forEach(c=>{
+  c.addEventListener('pointermove',e=>{
+    const r=c.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+    c.style.setProperty('--mx',x+'px');c.style.setProperty('--my',y+'px');
+    if(fine){const rx=((y/r.height)-.5)*-5,ry=((x/r.width)-.5)*5;c.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`;}
+  });
+  c.addEventListener('pointerleave',()=>c.style.transform='');
+});
+
+/* ---------- particle network background ---------- */
+const cv=document.getElementById('net'),ctx=cv.getContext('2d');
+let W,H,P=[],mouse={x:-999,y:-999};
+const DPR=Math.min(devicePixelRatio||1,2);
+function resize(){
+  W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0);
+  const n=Math.round(Math.min(90,W*H/16000));
+  P=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,r:Math.random()*1.4+.6}));
+}
+addEventListener('resize',resize);resize();
+addEventListener('pointermove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});
+addEventListener('pointerleave',()=>{mouse.x=mouse.y=-999});
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function frame(){
+  ctx.clearRect(0,0,W,H);
+  for(const p of P){
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;
+    const dx=p.x-mouse.x,dy=p.y-mouse.y,d=Math.hypot(dx,dy);
+    if(d<140){p.x+=dx/d*.6;p.y+=dy/d*.6}
+  }
+  for(let i=0;i<P.length;i++){
+    const a=P[i];
+    for(let j=i+1;j<P.length;j++){
+      const b=P[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<130){ctx.strokeStyle=`rgba(140,175,235,${(1-d/130)*.22})`;ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+    }
+    const md=Math.hypot(a.x-mouse.x,a.y-mouse.y);
+    if(md<200){ctx.strokeStyle=`rgba(201,138,43,${(1-md/200)*.45})`;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(mouse.x,mouse.y);ctx.stroke();}
+    ctx.fillStyle='rgba(200,218,248,.7)';ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);ctx.fill();
+  }
+  if(!reduce)requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>

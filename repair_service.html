@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>BCT - Repair Service</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+/* Apply saved theme / language before first paint. Default = light, EN. */
+(function(){
+  var d = document.documentElement;
+  try{
+    d.setAttribute('data-theme', localStorage.getItem('bct_repair_theme') === 'dark' ? 'dark' : 'light');
+    d.lang = localStorage.getItem('bct_repair_lang') === 'ko' ? 'ko' : 'en';
+  }catch(e){}
+})();
+</script>
+<style>
+  :root{
+    --canvas:#FFFAF0; --surface-soft:#FAF5E8; --surface-card:#F5F0E0;
+    --ink:#0A0A0A; --body:#3A3A3A; --muted:#6A6A6A; --hairline:#E5E5E5; --on-ink:#FFFFFF;
+    --lavender:#B8A4ED; --peach:#FFB084;
+    --select-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%230A0A0A' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    --font-en:'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-ko:'Google Sans', 'Gowun Batang', serif;      /* Latin & digits -> Google Sans, Hangul -> Gowun Batang */
+    --font-mono:'JetBrains Mono', 'Gowun Batang', ui-monospace, monospace;
+    --font-text:var(--font-en);
+    --r-md:12px; --r-xl:24px; --r-pill:9999px;
+  }
+  :root[lang="ko"]{ --font-text:var(--font-ko); }
+  :root[data-theme="dark"]{
+    --canvas:#0E1717; --surface-soft:#152221; --surface-card:#1D2E2D;
+    --ink:#FFFAF0; --body:#D8D3C6; --muted:#A3A89F; --hairline:#2B3D3C; --on-ink:#0A0A0A;
+    --select-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23FFFAF0' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    color-scheme:dark;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; background:var(--canvas); color:var(--body); font-family:var(--font-text); -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  span,button,select{ font-family:var(--font-text); }
+  .font-en{ font-family:var(--font-en) !important; }
+  :focus-visible{ outline:2px solid var(--ink); outline-offset:3px; }
+  button, select{ font-size:inherit; }
+
+  .bar{ background:var(--canvas); border-bottom:1px solid var(--hairline); flex:0 0 auto; }
+  .bar-in{ display:flex; align-items:center; gap:16px; padding:10px clamp(14px,2.4vw,32px); flex-wrap:wrap; min-height:64px; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand img{ height:34px; width:auto; }
+  :root[data-theme="dark"] .brand img{ filter:brightness(0) invert(1); }   /* logo -> white in dark mode */
+  .brand .wm{ font-family:var(--font-en) !important; font-weight:700; font-size:17px; color:var(--ink); letter-spacing:-.3px; line-height:1.1; display:block; }
+  .brand .tg{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); display:block; margin-top:1px; }
+  .sep{ width:1px; height:28px; background:var(--hairline); }
+
+  .svc-select{
+    height:40px; padding:0 36px 0 14px; border-radius:var(--r-md); border:1px solid var(--hairline);
+    background:var(--canvas) var(--select-arrow) no-repeat right 14px center;
+    appearance:none; -webkit-appearance:none; font-size:14px; font-weight:600; color:var(--ink); max-width:min(460px,100%); cursor:pointer; text-overflow:ellipsis;
+  }
+  .svc-select option{ background:var(--canvas); color:var(--ink); }
+  .tabs{ display:flex; gap:4px; }
+  .tab{ font-size:13px; font-weight:600; padding:8px 16px; border-radius:var(--r-pill); border:none; background:transparent; color:var(--muted); cursor:pointer; white-space:nowrap; }
+  .tab:hover{ color:var(--ink); }
+  .tab.active{ background:var(--surface-card); color:var(--ink); }
+
+  .spacer{ flex:1; }
+  .btn-sec{
+    height:40px; padding:0 18px; border-radius:var(--r-md); border:1px solid var(--hairline); background:var(--canvas); color:var(--ink);
+    font-size:13.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn-sec:hover{ background:var(--surface-soft); }
+  .theme-btn{ width:36px; height:36px; border-radius:50%; border:none; background:var(--surface-card); color:var(--ink); display:grid; place-items:center; cursor:pointer; padding:0; }
+  .theme-btn svg{ width:18px; height:18px; }
+  .theme-btn .i-sun{ display:none; }
+  :root[data-theme="dark"] .theme-btn .i-sun{ display:block; }
+  :root[data-theme="dark"] .theme-btn .i-moon{ display:none; }
+  .lang-toggle{ display:flex; gap:2px; padding:3px; border-radius:var(--r-pill); background:var(--surface-card); }
+  .lang-btn{ font-family:var(--font-en) !important; font-size:12px; font-weight:600; padding:5px 12px; border-radius:var(--r-pill); border:none; background:transparent; color:var(--muted); cursor:pointer; }
+  .lang-btn.active{ background:var(--ink); color:var(--on-ink); }
+
+  .stage{ flex:1; min-height:0; padding:clamp(8px,1.4vw,16px); background:var(--surface-soft); }
+  .frame{ position:relative; width:100%; height:100%; border-radius:var(--r-xl); overflow:hidden; background:#fff; border:1px solid var(--hairline); }
+  iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#fff; }
+  .loader{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:10px; background:var(--canvas); font-size:14px; color:var(--muted); transition:opacity .2s; z-index:2; }
+  .loader.done{ opacity:0; pointer-events:none; }
+  .dot{ width:10px; height:10px; border-radius:50%; background:var(--lavender); }
+  @media (prefers-reduced-motion:no-preference){ .dot{ animation:pulse 1s ease-in-out infinite; } @keyframes pulse{ 50%{ transform:scale(1.5); background:var(--peach); } } }
+
+  @media (max-width:900px){ .sep{ display:none; } .spacer{ display:none; } .bar-in{ gap:10px; } }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">
+      <img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT logo">
+      <span><span class="wm">BCT</span><span class="tg" data-i18n="tag">REPAIR SERVICE</span></span>
+    </div>
+    <span class="sep"></span>
+    <select class="svc-select" id="svcSelect" aria-label="Repair service"></select>
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <span class="spacer"></span>
+    <button class="btn-sec" id="leaveBtn" onclick="leave()" type="button"><span id="leaveIcon">←</span><span id="leaveTxt" data-i18n="back">All services</span></button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" type="button">
+      <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button class="lang-btn active" id="btnEn" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" id="btnKo" onclick="setLang('ko')">한국어</button>
+    </div>
+  </div>
+</header>
+
+<main class="stage">
+  <div class="frame">
+    <div class="loader" id="loader"><span class="dot"></span><span data-i18n="loading">Loading document…</span></div>
+    <iframe id="viewer" title="Repair service document" allow="fullscreen" allowfullscreen referrerpolicy="no-referrer"></iframe>
+  </div>
+</main>
+
+<script>
+/* Real file paths stay here only. The address bar never changes from "repair_service.html". */
+var SERVICES = {
+  dps: {
+    name: { en:'DPS Poly (8") Gate Valve Overhaul Service', ko:'DPS Poly (8인치) Gate Valve 오버홀 서비스' },
+    docs: {
+      sop:  './repair/bct_sop_dps_poly_gate_valve_overhaul.html',
+      cert: './repair/bct_icb_dps_poly_gate_valve_overhaul.html'
+    }
+  },
+  dxz: {
+    name: { en:'AMAT Centura DxZ CVD (8") Heater Lift Assembly Repair Service', ko:'AMAT Centura DxZ CVD (8인치) Heater Lift Assembly 수리 서비스' },
+    docs: {
+      sop:  './repair/dxz_heater_lift_assembly_sop_rev1.html',
+      cert: './repair/bct_icb_dxz_ch_heater_lift_assy_repair.html'
+    }
+  },
+  smif: {
+    name: { en:'DPS2 Mini Environment Cover (SMIF Cover) Overhaul Service', ko:'DPS2 Mini Environment Cover (SMIF Cover) 오버홀 서비스' },
+    docs: {
+      sop:   './repair/bct_smif1000_dps2_mini_env_cover_work_instruction.html',
+      cert:  './repair/bct_icb_smif1000_dps2_mini_env_cover_repair.html',
+      parts: './repair/bct_smif1000_parts_3d_viewer.html'
+    }
+  }
+};
+var DOC_ORDER = ['sop','cert','parts'];
+var translations = {
+  en: { tag:'REPAIR SERVICE', back:'All services', close:'Close', loading:'Loading document…', sop:'Work procedure', cert:'Repair certificate', parts:'Parts 3D viewer',
+        toDark:'Switch to dark mode', toLight:'Switch to light mode' },
+  ko: { tag:'수리 서비스', back:'전체 서비스', close:'창 닫기', loading:'문서를 불러오는 중…', sop:'작업절차서', cert:'수리 인증서', parts:'부품 3D 뷰어',
+        toDark:'다크 모드로 전환', toLight:'라이트 모드로 전환' }
+};
+var lang = 'en', cur = null;
+var isPopup = !!window.opener;          /* opened from the hub as its own window */
+
+function t(k){ return translations[lang][k]; }
+function leave(){
+  if(isPopup){                                                      /* the hub is still open behind this window */
+    window.close();
+    setTimeout(function(){ if(!window.closed) location.href = 'repair_service_hub.html'; }, 300);   /* window refused to close */
+  } else {
+    location.href = 'repair_service_hub.html';
+  }
+}
+
+function readSelection(){
+  var sel = null;
+  try{                                                              /* 1) fresh hand-off from the hub */
+    var h = JSON.parse(localStorage.getItem('bct_repair_handoff') || 'null');
+    if(h && h.ts && (Date.now() - h.ts) < 15000){ sel = { svc:h.svc, doc:h.doc }; }
+    localStorage.removeItem('bct_repair_handoff');
+  }catch(e){}
+  if(!sel){ try{ sel = JSON.parse(sessionStorage.getItem('bct_repair_sel') || 'null'); }catch(e){} }   /* 2) reload in this window */
+  if(!sel && location.hash){                                        /* 3) fallback when storage is blocked */
+    var p = location.hash.slice(1).split('/');
+    sel = { svc:p[0], doc:p[1] };
+  }
+  if(sel && SERVICES[sel.svc]){
+    if(!SERVICES[sel.svc].docs[sel.doc]) sel.doc = 'sop';
+    return sel;
+  }
+  return null;
+}
+
+function show(svc, doc){
+  cur = { svc:svc, doc:doc };
+  try{ sessionStorage.setItem('bct_repair_sel', JSON.stringify(cur)); }catch(e){}
+  var loader = document.getElementById('loader');
+  loader.classList.remove('done');
+  var f = document.getElementById('viewer');
+  f.onload = function(){ loader.classList.add('done'); };
+  f.src = SERVICES[svc].docs[doc];
+  document.getElementById('svcSelect').value = svc;
+  renderTabs();
+}
+
+function renderTabs(){
+  var box = document.getElementById('tabs');
+  box.innerHTML = '';
+  DOC_ORDER.forEach(function(d){
+    if(!SERVICES[cur.svc].docs[d]) return;
+    var b = document.createElement('button');
+    b.className = 'tab' + (d === cur.doc ? ' active' : '');
+    b.setAttribute('role','tab');
+    b.textContent = t(d);
+    b.onclick = function(){ if(d !== cur.doc) show(cur.svc, d); };
+    box.appendChild(b);
+  });
+}
+
+function renderSelect(){
+  var s = document.getElementById('svcSelect');
+  var v = cur ? cur.svc : s.value;
+  s.innerHTML = '';
+  Object.keys(SERVICES).forEach(function(k, i){
+    var o = document.createElement('option');
+    o.value = k; o.textContent = (i+1) + '. ' + SERVICES[k].name[lang];
+    s.appendChild(o);
+  });
+  if(v) s.value = v;
+}
+
+function themeLabel(){
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var txt = t(dark ? 'toLight' : 'toDark');
+  var b = document.getElementById('themeBtn');
+  b.setAttribute('aria-label', txt); b.setAttribute('title', txt); b.setAttribute('aria-pressed', dark ? 'true' : 'false');
+}
+function toggleTheme(){
+  var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('bct_repair_theme', next); }catch(e){}
+  themeLabel();
+}
+
+function setLang(l){
+  lang = l;
+  document.documentElement.lang = l;
+  document.getElementById('btnEn').classList.toggle('active', l === 'en');
+  document.getElementById('btnKo').classList.toggle('active', l === 'ko');
+  document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.getAttribute('data-i18n')); });
+  document.getElementById('leaveIcon').textContent = isPopup ? '✕' : '←';
+  document.getElementById('leaveTxt').textContent = t(isPopup ? 'close' : 'back');
+  renderSelect();
+  if(cur) renderTabs();
+  themeLabel();
+  try{ localStorage.setItem('bct_repair_lang', l); }catch(e){}
+}
+
+document.getElementById('svcSelect').addEventListener('change', function(){ show(this.value, 'sop'); });
+window.addEventListener('hashchange', function(){          /* only used by the storage-blocked fallback */
+  var p = location.hash.slice(1).split('/');
+  if(SERVICES[p[0]]){
+    var d = SERVICES[p[0]].docs[p[1]] ? p[1] : 'sop';
+    history.replaceState(null, '', location.pathname);
+    show(p[0], d);
+  }
+});
+
+(function(){
+  var saved = null;
+  try{ saved = localStorage.getItem('bct_repair_lang'); }catch(e){}
+  setLang(saved === 'ko' ? 'ko' : 'en');
+  var sel = readSelection();
+  if(!sel){ location.replace('repair_service_hub.html'); return; }
+  if(location.hash) history.replaceState(null, '', location.pathname);   /* keep the address bar clean */
+  show(sel.svc, sel.doc);
+})();
+</script>
+</body>
+</html>

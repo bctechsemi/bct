@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BCT - Repair Service</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+/* Apply saved theme / language before first paint. Default = light, EN. */
+(function(){
+  var d = document.documentElement;
+  try{
+    d.setAttribute('data-theme', localStorage.getItem('bct_repair_theme') === 'dark' ? 'dark' : 'light');
+    d.lang = localStorage.getItem('bct_repair_lang') === 'ko' ? 'ko' : 'en';
+  }catch(e){}
+})();
+</script>
+<style>
+  :root{
+    /* ---- Light (default) : Clay cream ---- */
+    --canvas:#FFFAF0; --surface-soft:#FAF5E8; --surface-card:#F5F0E0; --surface-strong:#EBE6D6;
+    --ink:#0A0A0A; --body:#3A3A3A; --muted:#6A6A6A; --hairline:#E5E5E5; --on-ink:#FFFFFF;
+    --teal-card:#1A3A3A; --clay-teal:#1A3A3A;
+    --pink:#FF4D8B; --lavender:#B8A4ED; --peach:#FFB084; --ochre:#E8B94A; --mint:#A4D4C5;
+    /* constants (saturated cards keep the same look in both themes) */
+    --dark:#0A0A0A; --white:#FFFFFF; --btn-hover:#F5F0E0;
+    /* ---- Typography (BCT OPS Hub) ----
+       Korean stack: Google Sans first -> Latin letters & digits stay Google Sans,
+       Hangul is not in Google Sans so it falls back to Gowun Batang glyph by glyph. */
+    --font-en:'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-ko:'Google Sans', 'Gowun Batang', serif;
+    --font-mono:'JetBrains Mono', 'Gowun Batang', ui-monospace, monospace;
+    --font-text:var(--font-en);
+    --r-md:12px; --r-lg:16px; --r-xl:24px; --r-pill:9999px;
+  }
+  :root[lang="ko"]{ --font-text:var(--font-ko); }
+  :root[data-theme="dark"]{
+    --canvas:#0E1717; --surface-soft:#152221; --surface-card:#1D2E2D; --surface-strong:#274040;
+    --ink:#FFFAF0; --body:#D8D3C6; --muted:#A3A89F; --hairline:#2B3D3C; --on-ink:#0A0A0A;
+    --teal-card:#2A5C5C; --clay-teal:#3F8484;
+    color-scheme:dark;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--canvas); color:var(--body);
+    font-family:var(--font-text); font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
+    min-height:100vh; display:flex; flex-direction:column; transition:background .2s, color .2s;
+  }
+  h1,h2,h3,p,span,button{ font-family:var(--font-text); }
+  :root[lang="ko"] h1, :root[lang="ko"] h2, :root[lang="ko"] h3, :root[lang="ko"] p{ word-break:keep-all; }
+  .font-mono{ font-family:var(--font-mono) !important; }
+  ::selection{ background:var(--lavender); color:var(--dark); }
+  :focus-visible{ outline:2px solid var(--ink); outline-offset:3px; }
+  button{ font:inherit; }
+
+  .wrap{ max-width:1280px; margin:0 auto; width:100%; padding:0 clamp(20px,4vw,48px); }
+
+  /* nav */
+  .nav{ background:var(--canvas); border-bottom:1px solid var(--hairline); }
+  .nav .wrap{ height:72px; display:flex; align-items:center; justify-content:space-between; }
+  .nav-brand{ display:flex; align-items:center; gap:14px; }
+  .nav-brand img{ height:40px; width:auto; }
+  :root[data-theme="dark"] .nav-brand img{ filter:brightness(0) invert(1); }   /* logo -> white in dark mode */
+  .nav-wordmark{ font-family:var(--font-en) !important; font-weight:700; font-size:19px; color:var(--ink); letter-spacing:-.3px; line-height:1.1; display:block; }
+  .nav-tag{ display:block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+  .nav-right{ display:flex; align-items:center; gap:10px; }
+  .theme-btn{
+    width:36px; height:36px; border-radius:50%; border:none; background:var(--surface-card); color:var(--ink);
+    display:grid; place-items:center; cursor:pointer; padding:0;
+  }
+  .theme-btn svg{ width:18px; height:18px; }
+  .theme-btn .i-sun{ display:none; }
+  :root[data-theme="dark"] .theme-btn .i-sun{ display:block; }
+  :root[data-theme="dark"] .theme-btn .i-moon{ display:none; }
+  .lang-toggle{ display:flex; gap:2px; padding:3px; border-radius:var(--r-pill); background:var(--surface-card); }
+  .lang-btn{
+    font-family:var(--font-en) !important; font-size:12.5px; font-weight:600; padding:6px 14px; border-radius:var(--r-pill);
+    border:none; background:transparent; color:var(--muted); cursor:pointer;
+  }
+  .lang-btn.active{ background:var(--ink); color:var(--on-ink); }
+
+  /* hero */
+  .hero{ padding:clamp(40px,6vw,88px) 0 clamp(32px,5vw,64px); }
+  .hero .wrap{ display:grid; grid-template-columns:7fr 5fr; gap:clamp(24px,4vw,64px); align-items:center; }
+  .eyebrow{
+    font-family:var(--font-mono); font-size:12px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink); background:var(--surface-card); padding:6px 14px; border-radius:var(--r-pill); display:inline-block; margin:0 0 24px;
+  }
+  /* identical display treatment in EN and KO */
+  .hero h1{
+    font-weight:500; font-size:clamp(38px,5.6vw,72px); line-height:1.02; letter-spacing:-0.035em;
+    color:var(--ink); margin:0 0 24px; max-width:14ch;
+  }
+  .hero .sub{ font-size:clamp(16px,1.5vw,19px); line-height:1.55; color:var(--body); max-width:48ch; margin:0 0 28px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{ display:inline-flex; align-items:baseline; gap:8px; padding:8px 16px; border-radius:var(--r-pill); background:var(--surface-card); }
+  .chip .num{ font-family:var(--font-mono); font-weight:600; font-size:14px; color:var(--ink); }
+  .chip .lbl{ font-size:13px; font-weight:500; color:var(--body); }
+
+  /* clay illustration */
+  .clay-card{ position:relative; aspect-ratio:1/1; max-height:440px; width:100%; background:var(--surface-soft); border-radius:var(--r-xl); overflow:hidden; }
+  .clay-svg{ position:absolute; inset:0; width:100%; height:100%; }
+  .c-pink{ fill:#FF4D8B; } .c-teal{ fill:var(--clay-teal); }
+  .c-peach{ fill:#FFB084; stroke:#FFB084; } .c-peach2{ fill:#FFC7A6; }
+  .c-mint{ fill:#A4D4C5; stroke:#A4D4C5; } .c-ochre{ fill:#E8B94A; stroke:#E8B94A; } .c-lav{ fill:#B8A4ED; stroke:#B8A4ED; }
+  @media (prefers-reduced-motion:no-preference){
+    .spin{ transform-box:fill-box; transform-origin:50% 50%; animation:spin 70s linear infinite; }
+    .spin.rev{ animation-direction:reverse; animation-duration:46s; }
+    .bob{ animation:bob 7s ease-in-out infinite; animation-delay:var(--d,0s); }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+    @keyframes bob{ 0%,100%{ translate:0 0; } 50%{ translate:0 -7px; } }
+  }
+
+  /* services */
+  .services{ padding:clamp(24px,4vw,48px) 0 clamp(48px,7vw,96px); flex:1; }
+  .section-head{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .section-head h2{ font-weight:500; font-size:clamp(28px,3.4vw,40px); line-height:1.1; letter-spacing:-0.025em; color:var(--ink); margin:0; }
+  .section-head p{ margin:0; font-size:14px; color:var(--muted); }
+
+  .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  @media (max-width:1024px){ .grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:768px){ .grid{ grid-template-columns:1fr; } .hero .wrap{ grid-template-columns:1fr; } .clay-card{ max-height:320px; order:-1; } }
+
+  .card{ position:relative; overflow:hidden; display:flex; flex-direction:column; gap:14px; padding:32px; border-radius:var(--r-xl); min-height:460px; }
+  .card.teal{ background:var(--teal-card); color:var(--white); }
+  .card.lavender{ background:var(--lavender); color:var(--dark); }
+  .card.peach{ background:var(--peach); color:var(--dark); }
+  .card .idx{ font-family:var(--font-mono); font-size:12px; font-weight:600; letter-spacing:.12em; opacity:.75; }
+  .card .tags{ display:flex; flex-wrap:wrap; gap:6px; position:relative; z-index:1; }
+  .tag{ font-family:var(--font-en) !important; font-size:12px; font-weight:600; letter-spacing:.03em; padding:4px 12px; border-radius:var(--r-pill); background:rgba(255,255,255,.55); color:var(--dark); }
+  .card.teal .tag{ background:rgba(255,255,255,.16); color:var(--white); }
+  .card h3{ font-weight:500; font-size:clamp(24px,2.3vw,30px); line-height:1.15; letter-spacing:-0.02em; margin:6px 0 0; max-width:17ch; }
+  .card p{ font-size:14.5px; line-height:1.55; margin:0; opacity:.9; flex:1; max-width:34ch; }
+  .actions{ display:flex; flex-direction:column; gap:8px; margin-top:8px; position:relative; z-index:1; }
+  .btn{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; height:44px; padding:0 18px;
+    background:var(--white); color:var(--dark); border:none; border-radius:var(--r-md); font-size:14px; font-weight:600; cursor:pointer; text-align:left;
+    transition:background .15s;
+  }
+  .btn:hover{ background:var(--btn-hover); }
+  .btn .arr{ font-family:var(--font-en) !important; font-size:16px; }
+  .btn .kind{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; color:#6A6A6A; margin-left:8px; text-transform:uppercase; font-weight:500; }
+  .card-ic{ position:absolute; right:-36px; top:-36px; width:190px; height:190px; pointer-events:none; }
+
+  /* note + footer */
+  .note{ margin-top:28px; padding:20px 28px; background:var(--surface-card); border-radius:var(--r-lg); font-size:14px; color:var(--body); display:flex; align-items:center; gap:12px; }
+  .footer{ background:var(--surface-soft); padding:28px 0; }
+  .footer .wrap{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; }
+  .footer span{ font-size:12.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<defs>
+<filter id="clay" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+  <feGaussianBlur in="SourceAlpha" stdDeviation="9" result="sb"/>
+  <feOffset in="sb" dy="14" result="so"/>
+  <feFlood flood-color="#2a1d08" flood-opacity=".26"/>
+  <feComposite in2="so" operator="in" result="shadow"/>
+  <feComponentTransfer in="SourceAlpha" result="inv"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>
+  <feGaussianBlur in="inv" stdDeviation="6" result="ib"/>
+  <feOffset in="ib" dx="6" dy="8" result="io1"/>
+  <feFlood flood-color="#fff" flood-opacity=".62"/>
+  <feComposite in2="io1" operator="in" result="h0"/>
+  <feComposite in="h0" in2="SourceAlpha" operator="in" result="hl"/>
+  <feOffset in="ib" dx="-7" dy="-9" result="io2"/>
+  <feFlood flood-color="#000" flood-opacity=".22"/>
+  <feComposite in2="io2" operator="in" result="s0"/>
+  <feComposite in="s0" in2="SourceAlpha" operator="in" result="sh"/>
+  <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/><feMergeNode in="hl"/><feMergeNode in="sh"/></feMerge>
+</filter>
+<g id="ic-ring" filter="url(#clay)"><path d="M-56 0A56 56 0 1 1 56 0A56 56 0 1 1 -56 0ZM-30 0A30 30 0 1 0 30 0A30 30 0 1 0 -30 0Z" fill="currentColor" fill-rule="evenodd"/></g>
+<g id="ic-gear" filter="url(#clay)"><path d="M-9.6 -42.9L-7.5 -55.5L7.5 -55.5L9.6 -42.9A44 44 0 0 1 23.6 -37.2L34 -44.5L44.5 -34L37.2 -23.6A44 44 0 0 1 42.9 -9.6L55.5 -7.5L55.5 7.5L42.9 9.6A44 44 0 0 1 37.2 23.6L44.5 34L34 44.5L23.6 37.2A44 44 0 0 1 9.6 42.9L7.5 55.5L-7.5 55.5L-9.6 42.9A44 44 0 0 1 -23.6 37.2L-34 44.5L-44.5 34L-37.2 23.6A44 44 0 0 1 -42.9 9.6L-55.5 7.5L-55.5 -7.5L-42.9 -9.6A44 44 0 0 1 -37.2 -23.6L-44.5 -34L-34 -44.5L-23.6 -37.2A44 44 0 0 1 -9.6 -42.9 ZM-16 0A16 16 0 1 0 16 0A16 16 0 1 0 -16 0Z" fill="currentColor" stroke="currentColor" stroke-width="6" stroke-linejoin="round" fill-rule="evenodd"/></g>
+<g id="ic-nut" filter="url(#clay)"><path d="M46.8 27L0 54L-46.8 27L-46.8 -27L-0 -54L46.8 -27ZM-22 0A22 22 0 1 0 22 0A22 22 0 1 0 -22 0Z" fill="currentColor" stroke="currentColor" stroke-width="10" stroke-linejoin="round" fill-rule="evenodd"/></g>
+</defs>
+</svg>
+
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-brand">
+      <img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT logo">
+      <div>
+        <span class="nav-wordmark">BCT</span>
+        <span class="nav-tag">REPAIR SERVICE</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" type="button">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button class="lang-btn active" id="btnEn" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" id="btnKo" onclick="setLang('ko')">한국어</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">BCT Repair Service</span>
+      <h1>Every repair, documented step by step.</h1>
+      <p class="sub">Work procedures, repair certificates and 3D part views for the equipment BCT overhauls — in one place.</p>
+      <div class="chips">
+        <div class="chip"><span class="num">3</span><span class="lbl" data-i18n="hero.c1">repair services</span></div>
+        <div class="chip"><span class="num">3</span><span class="lbl" data-i18n="hero.c2">work procedures (SOP)</span></div>
+        <div class="chip"><span class="num">3</span><span class="lbl" data-i18n="hero.c3">repair certificates</span></div>
+        <div class="chip"><span class="num">1</span><span class="lbl" data-i18n="hero.c4">3D parts viewer</span></div>
+      </div>
+    </div>
+    <div class="clay-card" aria-hidden="true">
+      <svg class="clay-svg" viewBox="0 0 520 520" role="presentation">
+        <g class="bob" style="--d:-1s"><g filter="url(#clay)"><path d="M25 440A57 57 0 1 1 139 440A57 57 0 1 1 25 440ZM51 440A31 31 0 1 0 113 440A31 31 0 1 0 51 440Z" class="c-pink" fill-rule="evenodd"/></g></g>
+        <g class="bob" style="--d:-3s"><g transform="translate(185 215)">
+          <g filter="url(#clay)"><g class="spin"><path d="M-15.8 -106.8L-12 -134.5L12 -134.5L15.8 -106.8A108 108 0 0 1 39.8 -100.4L56.8 -122.5L77.6 -110.5L67.1 -84.6A108 108 0 0 1 84.6 -67.1L110.5 -77.6L122.5 -56.8L100.4 -39.8A108 108 0 0 1 106.8 -15.8L134.5 -12L134.5 12L106.8 15.8A108 108 0 0 1 100.4 39.8L122.5 56.8L110.5 77.6L84.6 67.1A108 108 0 0 1 67.1 84.6L77.6 110.5L56.8 122.5L39.8 100.4A108 108 0 0 1 15.8 106.8L12 134.5L-12 134.5L-15.8 106.8A108 108 0 0 1 -39.8 100.4L-56.8 122.5L-77.6 110.5L-67.1 84.6A108 108 0 0 1 -84.6 67.1L-110.5 77.6L-122.5 56.8L-100.4 39.8A108 108 0 0 1 -106.8 15.8L-134.5 12L-134.5 -12L-106.8 -15.8A108 108 0 0 1 -100.4 -39.8L-122.5 -56.8L-110.5 -77.6L-84.6 -67.1A108 108 0 0 1 -67.1 -84.6L-77.6 -110.5L-56.8 -122.5L-39.8 -100.4A108 108 0 0 1 -15.8 -106.8 ZM-40 0A40 40 0 1 0 40 0A40 40 0 1 0 -40 0Z" class="c-peach" stroke-width="8" stroke-linejoin="round" fill-rule="evenodd"/></g></g>
+          <g filter="url(#clay)"><path d="M-84 0A84 84 0 1 1 84 0A84 84 0 1 1 -84 0ZM-40 0A40 40 0 1 0 40 0A40 40 0 1 0 -40 0Z" class="c-peach2" fill-rule="evenodd"/></g>
+        </g></g>
+        <g class="bob" style="--d:-5s"><g transform="translate(372 100)"><g filter="url(#clay)"><g class="spin rev"><path d="M-9.6 -42.9L-7.5 -55.5L7.5 -55.5L9.6 -42.9A44 44 0 0 1 23.6 -37.2L34 -44.5L44.5 -34L37.2 -23.6A44 44 0 0 1 42.9 -9.6L55.5 -7.5L55.5 7.5L42.9 9.6A44 44 0 0 1 37.2 23.6L44.5 34L34 44.5L23.6 37.2A44 44 0 0 1 9.6 42.9L7.5 55.5L-7.5 55.5L-9.6 42.9A44 44 0 0 1 -23.6 37.2L-34 44.5L-44.5 34L-37.2 23.6A44 44 0 0 1 -42.9 9.6L-55.5 7.5L-55.5 -7.5L-42.9 -9.6A44 44 0 0 1 -37.2 -23.6L-44.5 -34L-34 -44.5L-23.6 -37.2A44 44 0 0 1 -9.6 -42.9 ZM-16 0A16 16 0 1 0 16 0A16 16 0 1 0 -16 0Z" class="c-mint" stroke-width="6" stroke-linejoin="round" fill-rule="evenodd"/></g></g></g></g>
+        <g class="bob" style="--d:-2s"><g transform="translate(418 238)"><g filter="url(#clay)"><path d="M46.8 27L0 54L-46.8 27L-46.8 -27L-0 -54L46.8 -27ZM-22 0A22 22 0 1 0 22 0A22 22 0 1 0 -22 0Z" class="c-ochre" stroke-width="10" stroke-linejoin="round" fill-rule="evenodd"/></g></g></g>
+        <g class="bob" style="--d:-4s"><g filter="url(#clay)"><path d="M436 58A34 34 0 1 1 504 58A34 34 0 1 1 436 58ZM452 58A18 18 0 1 0 488 58A18 18 0 1 0 452 58Z" class="c-teal" fill-rule="evenodd"/></g></g>
+        <g class="bob" style="--d:-6s"><g transform="translate(300 392) rotate(-28) scale(.85)"><g filter="url(#clay)"><path d="M-110 -20H110V20H-110ZM171.13 16A46 46 0 1 1 171.13 -16L118 -16L118 16ZM-171.13 -16A46 46 0 1 1 -171.13 16L-118 16L-118 -16Z" class="c-lav" stroke-width="8" stroke-linejoin="round"/></g></g></g>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<main class="services">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 data-i18n="sec.title">Repair services</h2>
+      <p data-i18n="sec.sub">Choose a document — it opens in a new window.</p>
+    </div>
+
+    <div class="grid">
+
+      <article class="card teal">
+        <svg class="card-ic" viewBox="-90 -90 180 180" style="color:#FF4D8B" aria-hidden="true"><use href="#ic-ring"/></svg>
+        <span class="idx">01</span>
+        <div class="tags"><span class="tag">DPS Poly</span><span class="tag">8"</span></div>
+        <h3 data-i18n="s1.title">DPS Poly (8") Gate Valve Overhaul Service</h3>
+        <p data-i18n="s1.desc">Gate Valve teardown, cleaning and reassembly — with the procedure and the completion certificate.</p>
+        <div class="actions">
+          <button class="btn" onclick="openDoc('dps','sop')"><span><span data-i18n="doc.sop">Work procedure</span><span class="kind">SOP</span></span><span class="arr">→</span></button>
+          <button class="btn" onclick="openDoc('dps','cert')"><span><span data-i18n="doc.cert">Repair certificate</span><span class="kind">CERT</span></span><span class="arr">→</span></button>
+        </div>
+      </article>
+
+      <article class="card lavender">
+        <svg class="card-ic" viewBox="-90 -90 180 180" style="color:#E8B94A" aria-hidden="true"><use href="#ic-gear"/></svg>
+        <span class="idx">02</span>
+        <div class="tags"><span class="tag">AMAT Centura</span><span class="tag">DxZ CVD</span><span class="tag">8"</span></div>
+        <h3 data-i18n="s2.title">AMAT Centura DxZ CVD (8") Heater Lift Assembly Repair Service</h3>
+        <p data-i18n="s2.desc">Heater Lift Assembly repair procedure and the completion certificate for the DxZ chamber.</p>
+        <div class="actions">
+          <button class="btn" onclick="openDoc('dxz','sop')"><span><span data-i18n="doc.sop">Work procedure</span><span class="kind">SOP</span></span><span class="arr">→</span></button>
+          <button class="btn" onclick="openDoc('dxz','cert')"><span><span data-i18n="doc.cert">Repair certificate</span><span class="kind">CERT</span></span><span class="arr">→</span></button>
+        </div>
+      </article>
+
+      <article class="card peach">
+        <svg class="card-ic" viewBox="-90 -90 180 180" style="color:#1A3A3A" aria-hidden="true"><use href="#ic-nut"/></svg>
+        <span class="idx">03</span>
+        <div class="tags"><span class="tag">DPS2</span><span class="tag">SMIF</span></div>
+        <h3 data-i18n="s3.title">DPS2 Mini Environment Cover (SMIF Cover) Overhaul Service</h3>
+        <p data-i18n="s3.desc">Mini Environment (SMIF) Cover overhaul — procedure, certificate and an interactive 3D view of the parts.</p>
+        <div class="actions">
+          <button class="btn" onclick="openDoc('smif','sop')"><span><span data-i18n="doc.sop">Work procedure</span><span class="kind">SOP</span></span><span class="arr">→</span></button>
+          <button class="btn" onclick="openDoc('smif','cert')"><span><span data-i18n="doc.cert">Repair certificate</span><span class="kind">CERT</span></span><span class="arr">→</span></button>
+          <button class="btn" onclick="openDoc('smif','parts')"><span><span data-i18n="doc.parts">Parts 3D viewer</span><span class="kind">3D</span></span><span class="arr">→</span></button>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="note"><span>🔒</span><span data-i18n="note">Documents open in a new window. More repair services will be added here as they are completed.</span></div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>BCT Repair Service Hub</span>
+    <span class="font-en">© 2018 BCT</span>
+  </div>
+</footer>
+
+<script>
+var translations = {
+  en: {
+    'nav.tag':'REPAIR SERVICE',
+    'hero.title':'Every repair, documented step by step.',
+    'hero.sub':'Work procedures, repair certificates and 3D part views for the equipment BCT overhauls — in one place.',
+    'hero.c1':'repair services','hero.c2':'work procedures (SOP)','hero.c3':'repair certificates','hero.c4':'3D parts viewer',
+    'sec.title':'Repair services','sec.sub':'Choose a document — it opens in a new window.',
+    's1.title':'DPS Poly (8") Gate Valve Overhaul Service',
+    's1.desc':'Gate Valve teardown, cleaning and reassembly — with the procedure and the completion certificate.',
+    's2.title':'AMAT Centura DxZ CVD (8") Heater Lift Assembly Repair Service',
+    's2.desc':'Heater Lift Assembly repair procedure and the completion certificate for the DxZ chamber.',
+    's3.title':'DPS2 Mini Environment Cover (SMIF Cover) Overhaul Service',
+    's3.desc':'Mini Environment (SMIF) Cover overhaul — procedure, certificate and an interactive 3D view of the parts.',
+    'doc.sop':'Work procedure','doc.cert':'Repair certificate','doc.parts':'Parts 3D viewer',
+    'note':'Documents open in a new window. More repair services will be added here as they are completed.',
+    'footer.l':'BCT Repair Service Hub',
+    'theme.toDark':'Switch to dark mode','theme.toLight':'Switch to light mode'
+  },
+  ko: {
+    'hero.c1':'수리 서비스','hero.c2':'작업절차서 (SOP)','hero.c3':'수리 인증서','hero.c4':'부품 3D 뷰어',
+    'sec.title':'수리 서비스','sec.sub':'문서를 선택하면 새 창에서 열립니다.',
+    's1.title':'DPS Poly (8인치) Gate Valve 오버홀 서비스',
+    's1.desc':'Gate Valve 분해·세정·재조립 작업절차서와 수리 완료 인증서입니다.',
+    's2.title':'AMAT Centura DxZ CVD (8인치) Heater Lift Assembly 수리 서비스',
+    's2.desc':'DxZ 챔버 Heater Lift Assembly 수리 작업절차서와 수리 완료 인증서입니다.',
+    's3.title':'DPS2 Mini Environment Cover (SMIF Cover) 오버홀 서비스',
+    's3.desc':'Mini Environment(SMIF) Cover 오버홀 — 작업절차서, 인증서, 부품 3D 뷰를 제공합니다.',
+    'doc.sop':'작업절차서','doc.cert':'수리 인증서','doc.parts':'부품 3D 뷰어',
+    'note':'문서는 새 창에서 열립니다. 수리 서비스는 정리되는 대로 계속 추가됩니다.',
+    'theme.toDark':'다크 모드로 전환','theme.toLight':'라이트 모드로 전환'
+  }
+};
+var curLang = 'en';
+
+function themeLabel(){
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var txt = translations[curLang][dark ? 'theme.toLight' : 'theme.toDark'];
+  var b = document.getElementById('themeBtn');
+  b.setAttribute('aria-label', txt); b.setAttribute('title', txt); b.setAttribute('aria-pressed', dark ? 'true' : 'false');
+}
+function toggleTheme(){
+  var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('bct_repair_theme', next); }catch(e){}
+  themeLabel();
+}
+
+function setLang(lang){
+  curLang = lang;
+  document.documentElement.lang = lang;
+  document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+  document.getElementById('btnKo').classList.toggle('active', lang === 'ko');
+  var dict = translations[lang];
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var k = el.getAttribute('data-i18n');
+    if(dict[k]) el.textContent = dict[k];
+  });
+  themeLabel();
+  try{ localStorage.setItem('bct_repair_lang', lang); }catch(e){}
+}
+
+/* Open the chosen document in a separate window.
+   The hub only knows short ids; real file paths live in repair_service.html, and the
+   selection is handed over through localStorage, so the viewer's address stays "repair_service.html". */
+function openDoc(svc, doc){
+  var ok = true;
+  try{ localStorage.setItem('bct_repair_handoff', JSON.stringify({svc:svc, doc:doc, ts:Date.now()})); }catch(e){ ok = false; }
+  var url = 'repair_service.html' + (ok ? '' : '#' + svc + '/' + doc);
+  var aw = screen.availWidth || 1280, ah = screen.availHeight || 800;
+  var w = Math.round(aw * 0.92), h = Math.round(ah * 0.92);
+  var feat = 'popup=yes,resizable=yes,scrollbars=yes,width=' + w + ',height=' + h +
+             ',left=' + Math.round((aw - w) / 2) + ',top=' + Math.round((ah - h) / 2);
+  var win = window.open(url, 'bct_repair_viewer', feat);   /* same name = reuse the one viewer window */
+  if(win){ try{ win.focus(); }catch(e){} } else { location.href = url; }   /* popup blocked -> open in this window */
+}
+
+(function(){
+  var saved = null;
+  try{ saved = localStorage.getItem('bct_repair_lang'); }catch(e){}
+  setLang(saved === 'ko' ? 'ko' : 'en');
+})();
+</script>
+</body>
+</html>

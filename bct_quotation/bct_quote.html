@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BCT - QUOTE</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700;800&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{
+    --primary:#1F4E9C; --primary-deep:#153B78; --primary-deeper:#0F2C5C;
+    --primary-pale:#EAF1FC; --primary-pale-2:#F4F8FE;
+    --canvas:#FFFFFF; --surface:#F6F9FD;
+    --ink:#0B1220; --steel:#5B6472; --steel-soft:#8A93A3;
+    --hairline:#E2E8F3; --hairline-strong:#CBD8ED;
+    --amber:#C98A2B; --amber-pale:#FBE8D3;
+    --good:#1F8A5F; --good-pale:#E4F3EA;
+    --risk:#C1443C; --risk-pale:#FBE7E5;
+    --font-en:'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-ko:'Gowun Batang', serif;
+    --font-mono:'JetBrains Mono', ui-monospace, monospace;
+    --r-lg:18px; --r-md:14px; --r-sm:9px; --r-full:999px;
+    --panel-w:500px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:#EEF2F8; }
+  body{ font-family:var(--font-en); color:var(--ink); -webkit-font-smoothing:antialiased; }
+  body.lang-ko [data-i18n], body.lang-ko .lang-switchable{ font-family:var(--font-ko); }
+  body.lang-en [data-i18n], body.lang-en .lang-switchable{ font-family:var(--font-en); }
+  ::selection{ background:var(--primary-pale); color:var(--primary-deep); }
+  h1,h2,h3,h4,p{ margin:0; }
+  input,select,textarea{ font-family:'Google Sans','Gowun Batang',sans-serif; }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb{ background:var(--hairline-strong); border-radius:999px; }
+
+  /* ================= App shell ================= */
+  .topbar{
+    position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:14px;
+    padding:12px 22px; background:var(--primary-deep); color:#fff;
+  }
+  .topbar img{ height:24px; }
+  .topbar .ttl{ font-family:var(--font-en); font-weight:700; font-size:15px; }
+  .topbar .sub{ font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; color:#AFC3E6; margin-top:1px; }
+  .topbar .spacer{ flex:1; }
+
+  .seg{ display:inline-flex; background:rgba(255,255,255,.1); border-radius:999px; padding:3px; gap:2px; }
+  .seg-btn{
+    border:none; background:transparent; color:#C7D5EC; font-family:var(--font-mono); font-size:11px; font-weight:700;
+    padding:7px 13px; border-radius:999px; cursor:pointer; transition:background .15s,color .15s; letter-spacing:.03em;
+  }
+  .seg-btn.active{ background:#fff; color:var(--primary-deep); }
+  .seg-btn:not(.active):hover{ background:rgba(255,255,255,.12); }
+
+  .btn{
+    display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:var(--r-full);
+    border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff;
+    font-family:var(--font-en); font-weight:600; font-size:12.5px; cursor:pointer; transition:background .15s;
+  }
+  .btn:hover{ background:rgba(255,255,255,.18); }
+  .btn.primary{ background:var(--amber); border-color:var(--amber); color:#1F1400; }
+  .btn.primary:hover{ background:#DA9A34; }
+  .btn svg{ width:14px; height:14px; }
+
+  .layout{ display:grid; grid-template-columns:var(--panel-w,500px) 7px 1fr; align-items:start; min-height:calc(100vh - 50px); }
+  .resizer{
+    height:calc(100vh - 50px); background:var(--hairline); cursor:col-resize; position:relative;
+    transition:background .15s;
+  }
+  .resizer:hover, .resizer.active{ background:var(--primary); }
+  .resizer::after{
+    content:''; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:3px; height:36px; border-radius:999px; background:rgba(255,255,255,.6);
+  }
+
+  /* ================= Left: input panel ================= */
+  .panel{ height:calc(100vh - 50px); overflow-y:auto; padding:22px 22px 80px; background:#fff; border-right:1px solid var(--hairline); }
+  .pgroup{ margin-bottom:26px; }
+  .pgroup-head{ display:flex; align-items:baseline; gap:8px; margin-bottom:12px; }
+  .pgroup-num{ font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--primary); }
+  .pgroup-title{ font-weight:700; font-size:14.5px; color:var(--ink); }
+  .pgroup-note{ font-size:11px; color:var(--steel-soft); margin-left:auto; font-family:var(--font-mono); }
+
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field.full{ grid-column:1 / -1; }
+  .field label{ font-size:11px; font-weight:600; color:var(--steel); }
+  .field input[type=text], .field input[type=date], .field input[type=number], .field select, .field textarea{
+    border:1px solid var(--hairline-strong); border-radius:var(--r-sm); padding:8px 10px;
+    font-size:13px; color:var(--ink); background:var(--surface);
+  }
+  .field textarea{ resize:vertical; min-height:52px; }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--primary); outline-offset:1px; background:#fff; }
+
+  .subhead{ font-size:11.5px; font-weight:700; color:var(--primary); margin:2px 0 8px; display:flex; align-items:center; gap:6px; }
+  .subhead::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--primary); }
+
+  .item-card{ border:1px solid var(--hairline); border-radius:var(--r-md); padding:12px 14px; margin-bottom:10px; background:var(--surface); position:relative; }
+  .item-card .rownum{ font-family:var(--font-mono); font-size:10.5px; font-weight:700; color:var(--primary); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+  .item-card .rm{ border:none; background:none; color:var(--risk); cursor:pointer; font-size:16px; line-height:1; padding:2px 6px; border-radius:6px; }
+  .item-card .rm:hover{ background:var(--risk-pale); }
+  .item-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .item-grid input{ width:100%; border:1px solid var(--hairline-strong); border-radius:8px; padding:7px 9px; font-size:12.5px; background:#fff; }
+  .addrow-btn{
+    width:100%; padding:10px; border:1.5px dashed var(--hairline-strong); border-radius:var(--r-md); background:none;
+    color:var(--primary); font-weight:700; font-size:12.5px; cursor:pointer; font-family:var(--font-en);
+  }
+  .addrow-btn:hover{ background:var(--primary-pale); border-color:var(--primary); }
+
+  .switch-row{ display:flex; align-items:center; gap:10px; padding:10px 0; cursor:pointer; user-select:none; }
+  .switch{ position:relative; width:38px; height:22px; border-radius:999px; background:var(--hairline-strong); transition:background .15s; flex:0 0 auto; }
+  .switch::after{ content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .15s; }
+  input:checked + .switch{ background:var(--primary); }
+  input:checked + .switch::after{ transform:translateX(16px); }
+  .switch-row input{ display:none; }
+  .switch-row span.lbl{ font-size:13px; font-weight:600; color:var(--ink); }
+
+  .summary-box{ border:1px solid var(--hairline); border-radius:var(--r-md); padding:14px 16px; background:var(--surface); }
+  .summary-row{ display:flex; justify-content:space-between; padding:6px 0; font-size:12.5px; }
+  .summary-row.total{ border-top:1px solid var(--hairline-strong); margin-top:4px; padding-top:10px; font-weight:700; font-size:14px; color:var(--primary-deep); }
+  .summary-row .v{ font-family:var(--font-mono); font-weight:600; }
+
+  /* ================= Right: A4 preview ================= */
+  .preview-wrap{ height:calc(100vh - 50px); overflow-y:auto; overflow-x:auto; background:#DCE3ED; display:flex; flex-direction:column; align-items:center; padding:0 20px 80px; }
+  .preview-toolbar{
+    position:sticky; top:0; z-index:20; width:100%; display:flex; justify-content:center; padding:12px 0;
+    background:linear-gradient(#DCE3ED 60%, rgba(220,227,237,0));
+  }
+  .a4-sheet{
+    width:210mm; min-height:297mm; background:#fff; color:#111;
+    box-shadow:0 20px 50px -20px rgba(11,18,32,.35), 0 0 0 1px rgba(11,18,32,.04);
+    padding:9mm 14mm 7mm; font-family:var(--font-en); flex:0 0 auto; margin-bottom:32px;
+    transition:zoom .15s;
+  }
+  .doc-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .doc-head .brand img{ height:22px; }
+  .doc-head .title{ text-align:center; flex:1; }
+  .doc-head .title h1{ font-weight:700; font-size:20px; letter-spacing:.03em; color:var(--primary-deep); }
+
+  /* -------- letterhead: customer (left) + supplier (right) -------- */
+  .letterhead{ display:grid; grid-template-columns:1fr 1fr; gap:16px; border-top:2.5px solid var(--primary-deep); border-bottom:1.5px solid var(--primary-deep); padding:8px 0; margin-bottom:8px; }
+  .lh-col{ font-size:8.8px; line-height:1.55; }
+  .lh-col.right{ text-align:right; }
+  .lh-name{ font-weight:800; font-size:14px; color:var(--ink); margin-bottom:3px; }
+  .lh-row .lbl{ color:var(--ink); font-weight:700; }
+  .lh-row .v{ color:var(--ink); }
+  .lh-attn{ font-weight:700; font-size:10px; color:var(--primary-deep); margin-bottom:4px; }
+  .lh-meta{ margin-top:8px; font-size:8.8px; line-height:1.85; }
+  .lh-meta .row b{ font-family:var(--font-mono); }
+  .lh-stampwrap{ position:relative; }
+  .lh-rep-row{ display:flex; align-items:center; justify-content:flex-end; gap:5px; }
+  .lh-stamp{ height:52px; width:auto; max-width:80px; opacity:.95; object-fit:contain; }
+
+  .sec-title{
+    font-weight:700; font-size:11px; color:#fff; background:var(--primary-deep);
+    padding:3px 10px; margin:8px 0 4px; display:flex; align-items:center; gap:6px;
+  }
+  .sec-title .en{ font-family:var(--font-mono); font-size:8px; color:#AFC3E6; font-weight:500; }
+
+  table.spec-table{ width:100%; border-collapse:collapse; font-size:9px; }
+  table.spec-table td{ border:1px solid var(--hairline-strong); padding:3.5px 7px; }
+  table.spec-table td.k{ background:var(--surface); font-weight:700; width:16%; color:var(--ink); }
+  table.spec-table td.v{ color:var(--ink); }
+
+  table.items-table{ width:100%; border-collapse:collapse; font-size:8.7px; table-layout:fixed; }
+  table.items-table th{
+    background:var(--primary); color:#fff; font-weight:700; padding:5px 4px; border:1px solid var(--primary-deep);
+    text-align:center;
+  }
+  table.items-table td{ border:1px solid var(--hairline-strong); padding:4px 5px; color:var(--ink); }
+  table.items-table td.num{ text-align:right; font-family:var(--font-mono); }
+  table.items-table td.center{ text-align:center; font-family:var(--font-mono); }
+  table.items-table tr:nth-child(even) td{ background:#FCFDFE; }
+  table.items-table tfoot td{ font-weight:700; }
+  table.items-table tfoot tr.grand td{ background:var(--primary-pale); color:var(--primary-deep); font-size:10px; }
+
+  .remarks-box{ border:1px solid var(--hairline-strong); border-radius:4px; padding:7px 9px; min-height:28px; font-size:9px; color:var(--ink); white-space:pre-wrap; }
+
+  .doc-foot{ margin-top:8px; padding-top:5px; border-top:1px solid var(--hairline-strong); display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:7.4px; color:var(--ink); }
+
+  /* ================= Print ================= */
+  @media print{
+    @page{ size:A4; margin:0; }
+    body *{ visibility:hidden; }
+    .a4-sheet, .a4-sheet *{ visibility:visible; }
+    .a4-sheet{ position:absolute; left:0; top:0; box-shadow:none; margin:0; width:210mm; min-height:297mm; zoom:1 !important; }
+    .preview-wrap{ position:static !important; overflow:visible !important; height:auto !important; }
+    .topbar, .panel, .resizer, .preview-toolbar{ display:none !important; }
+  }
+
+  @media (max-width:980px){
+    .layout{ grid-template-columns:1fr; }
+    .panel, .preview-wrap{ height:auto; }
+    .resizer{ display:none; }
+  }
+</style>
+</head>
+<body class="lang-en">
+
+<div class="topbar">
+  <img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_0001.png" style="filter:brightness(0) invert(1);" alt="BCT">
+  <div>
+    <div class="ttl">BCT - QUOTE</div>
+    <div class="sub">QUOTATION BUILDER</div>
+  </div>
+  <div class="spacer"></div>
+
+  <div class="seg" id="langSeg" role="group" aria-label="Language">
+    <button class="seg-btn active" data-val="en">EN</button>
+    <button class="seg-btn" data-val="ko">KO</button>
+  </div>
+  <div class="seg" id="curSeg" role="group" aria-label="Currency">
+    <button class="seg-btn active" data-val="KRW">KRW</button>
+    <button class="seg-btn" data-val="USD">USD</button>
+  </div>
+
+  <button class="btn" id="btnPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg><span data-i18n="printBtn">Print</span></button>
+  <button class="btn primary" id="btnPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span data-i18n="pdfBtn">Download PDF</span></button>
+</div>
+
+<div class="layout">
+
+  <!-- ============================================================ LEFT: INPUT PANEL -->
+  <div class="panel" id="panel">
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">01</span><span class="pgroup-title" data-i18n="secDoc">Document Info</span></div>
+      <div class="field-row">
+        <div class="field"><label data-i18n="quoteNo">Quote No.</label><input type="text" id="f_quoteno" value=""></div>
+        <div class="field"><label data-i18n="issueDate">Date</label><input type="date" id="f_issuedate"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label data-i18n="validityDaysLabel">Validity (days)</label><input type="number" id="f_validitydays" value="30" min="1"></div>
+        <div class="field"><label data-i18n="ref">Ref.</label><input type="text" id="f_ref" placeholder=""></div>
+      </div>
+      <div class="subhead" style="margin-top:14px;" data-i18n="issuedBy">Issued by</div>
+      <div class="field-row">
+        <div class="field full"><label data-i18n="name">Name</label><input type="text" id="f_sub_name" placeholder=""></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label data-i18n="tel">Tel</label><input type="text" id="f_sub_tel" placeholder=""></div>
+        <div class="field"><label data-i18n="email">Email</label><input type="text" id="f_sub_email" placeholder=""></div>
+      </div>
+    </div>
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">02</span><span class="pgroup-title" data-i18n="secCompany">Company Info</span></div>
+
+      <div class="subhead" data-i18n="supplier">Supplier</div>
+      <div class="field-row"><div class="field full"><label data-i18n="companyName">Company Name</label><input type="text" id="f_s_name" value="BC Tech Co., Ltd."></div></div>
+      <div class="field-row">
+        <div class="field full"><label data-i18n="regNo">Reg. No.</label><input type="text" id="f_s_regno" value="749-87-01819"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Rep. (KO)</label><input type="text" id="f_s_rep_ko" value="반채곤"></div>
+        <div class="field"><label>Rep. (EN)</label><input type="text" id="f_s_rep_en" value="Chaegon Ban"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Type (KO)</label><input type="text" id="f_s_type_ko" value="제조업"></div>
+        <div class="field"><label>Type (EN)</label><input type="text" id="f_s_type_en" value="Manufacturing"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Item (KO)</label><input type="text" id="f_s_item_ko" value="반도체 제조용 기계 제조업"></div>
+        <div class="field"><label>Item (EN)</label><input type="text" id="f_s_item_en" value="Manufacturing of Machinery for Semiconductor Manufacturing"></div>
+      </div>
+      <div class="field-row"><div class="field full"><label data-i18n="address">Address</label><input type="text" id="f_s_addr" value="560-39, Bangdo-ri, Docheok-myeon, Gwangju-si, Gyeonggi-do, Republic of Korea"></div></div>
+
+      <div class="subhead" style="margin-top:14px;" data-i18n="customer">Customer</div>
+      <div class="field-row"><div class="field full"><label data-i18n="companyName">Company Name</label><input type="text" id="f_c_name" placeholder=""></div></div>
+      <div class="field-row">
+        <div class="field full"><label data-i18n="attn">Attn.</label><input type="text" id="f_c_attn" placeholder=""></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Rep. (KO)</label><input type="text" id="f_c_rep_ko" placeholder=""></div>
+        <div class="field"><label>Rep. (EN)</label><input type="text" id="f_c_rep_en" placeholder=""></div>
+      </div>
+      <div class="field-row">
+        <div class="field full"><label data-i18n="regNo">Reg. No.</label><input type="text" id="f_c_regno" placeholder=""></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Type (KO)</label><input type="text" id="f_c_type_ko" placeholder=""></div>
+        <div class="field"><label>Type (EN)</label><input type="text" id="f_c_type_en" placeholder=""></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Item (KO)</label><input type="text" id="f_c_item_ko" placeholder=""></div>
+        <div class="field"><label>Item (EN)</label><input type="text" id="f_c_item_en" placeholder=""></div>
+      </div>
+      <div class="field-row"><div class="field full"><label data-i18n="address">Address</label><input type="text" id="f_c_addr" placeholder=""></div></div>
+    </div>
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">03</span><span class="pgroup-title" data-i18n="secItems">Line Items</span></div>
+      <div id="itemCards"></div>
+      <button class="addrow-btn" id="addItemBtn" data-i18n="addItem">+ Add Item</button>
+    </div>
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">04</span><span class="pgroup-title" data-i18n="secSummary">Summary</span></div>
+      <label class="switch-row" for="f_vat">
+        <input type="checkbox" id="f_vat" checked>
+        <span class="switch"></span>
+        <span class="lbl" data-i18n="vatToggleLabel">Include VAT (10%)</span>
+      </label>
+      <div class="summary-box">
+        <div class="summary-row"><span data-i18n="subtotal">Subtotal</span><span class="v" id="s_subtotal">-</span></div>
+        <div class="summary-row"><span id="s_vatLabel" data-i18n="vat">VAT (10%)</span><span class="v" id="s_vat">-</span></div>
+        <div class="summary-row total"><span data-i18n="total">Total</span><span class="v" id="s_total">-</span></div>
+      </div>
+    </div>
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">05</span><span class="pgroup-title" data-i18n="secTerms">Terms &amp; Notes</span></div>
+      <div class="field-row">
+        <div class="field full"><label data-i18n="paymentTerms">Payment Terms</label><textarea id="f_payterms">Net 30 Days</textarea></div>
+      </div>
+      <div class="field-row">
+        <div class="field full"><label data-i18n="incoterms">Incoterms</label><input type="text" id="f_incoterms" value="Ex Works (EXW)"></div>
+      </div>
+      <div class="field-row">
+        <div class="field full"><label data-i18n="delivery">Delivery</label><input type="text" id="f_delivery" value="2-3 weeks after PO"></div>
+      </div>
+      <div class="field-row">
+        <div class="field full"><label data-i18n="remarks">Remarks</label><textarea id="f_remarks" placeholder=""></textarea></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="resizer" id="resizer"></div>
+
+  <!-- ============================================================ RIGHT: A4 PREVIEW -->
+  <div class="preview-wrap" id="previewWrap">
+    <div class="preview-toolbar">
+      <div class="seg" id="viewSeg">
+        <button class="seg-btn active" data-val="fit" data-i18n="viewFit">Full View</button>
+        <button class="seg-btn" data-val="wide" data-i18n="viewWide">Wide View</button>
+      </div>
+    </div>
+    <div class="a4-sheet" id="a4sheet">
+
+      <div class="doc-head">
+        <div class="brand"><img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_0001.png" crossorigin="anonymous" alt="BCT"></div>
+        <div class="title"><h1 data-i18n="docTitle">QUOTATION</h1></div>
+        <div style="width:80px;"></div>
+      </div>
+
+      <div class="letterhead">
+        <div class="lh-col left">
+          <div class="lh-name" id="p_c_name">-</div>
+          <div class="lh-attn"><span data-i18n="attn">Attn.</span> <span id="p_c_attn">-</span></div>
+          <div class="lh-row"><span class="lbl" data-i18n="regNo">Reg. No.</span> <span class="v" id="p_c_regno">-</span></div>
+          <div class="lh-row"><span class="lbl" data-i18n="type">Type</span> <span class="v" id="p_c_type">-</span> / <span class="lbl" data-i18n="item">Item</span> <span class="v" id="p_c_item">-</span></div>
+          <div class="lh-row"><span class="lbl" data-i18n="address">Addr.</span> <span class="v" id="p_c_addr">-</span></div>
+          <div class="lh-row"><span class="lbl" data-i18n="rep">Rep.</span> <span class="v" id="p_c_rep">-</span></div>
+
+          <div class="lh-meta">
+            <div class="row"><span data-i18n="issueDate">Date</span> : <b id="p_issuedate">-</b></div>
+            <div class="row"><span data-i18n="validity">Validity</span> : <b id="p_validity">-</b></div>
+            <div class="row"><span data-i18n="quoteNo">Quote No.</span> : <b id="p_quoteno">-</b></div>
+            <div class="row"><span data-i18n="ref">Ref.</span> : <b id="p_ref">-</b></div>
+            <div class="row"><span data-i18n="issuedBy">Issued by</span> : <b id="p_sub_name">-</b> / <span id="p_sub_tel">-</span> / <span id="p_sub_email">-</span></div>
+          </div>
+        </div>
+
+        <div class="lh-col right lh-stampwrap">
+          <div class="lh-name" id="p_s_name">-</div>
+          <div class="lh-row"><span class="lbl" data-i18n="regNo">Reg. No.</span> <span class="v" id="p_s_regno">-</span></div>
+          <div class="lh-row"><span class="lbl" data-i18n="type">Type</span> <span class="v" id="p_s_type">-</span> / <span class="lbl" data-i18n="item">Item</span> <span class="v" id="p_s_item">-</span></div>
+          <div class="lh-row"><span class="lbl" data-i18n="address">Addr.</span> <span class="v" id="p_s_addr">-</span></div>
+          <div class="lh-row lh-rep-row" style="margin-top:2px;">
+            <span class="lbl" data-i18n="rep">Rep.</span> <span class="v" id="p_s_rep" style="font-weight:700;">-</span>
+            <img class="lh-stamp" id="stampImg" alt="">
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-title"><span data-i18n="secItems">Line Items</span></div>
+      <table class="items-table" id="p_itemsTable"></table>
+
+      <div class="sec-title" style="margin-top:8px;"><span data-i18n="secTerms">Terms &amp; Notes</span></div>
+      <table class="spec-table">
+        <tr><td class="k" data-i18n="paymentTerms">Payment Terms</td><td class="v" id="p_payterms" colspan="3">-</td></tr>
+        <tr><td class="k" data-i18n="incoterms">Incoterms</td><td class="v" id="p_incoterms" colspan="3">-</td></tr>
+        <tr><td class="k" data-i18n="delivery">Delivery</td><td class="v" id="p_delivery" colspan="3">-</td></tr>
+      </table>
+
+      <div class="sec-title" style="margin-top:8px;"><span data-i18n="remarks">Remarks</span></div>
+      <div class="remarks-box" id="p_remarks">-</div>
+
+      <div class="doc-foot">
+        <span>BC Tech Co., Ltd. · Gyeonggi-do, Korea</span>
+        <span data-i18n="footerNote">This quotation is valid for the period specified above.</span>
+        <span>1 / 1</span>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var I18N = {
+    en: {
+      appTitle:'BCT Quotation', printBtn:'Print', pdfBtn:'Download PDF',
+      secDoc:'Document Info', quoteNo:'Quote No.', issueDate:'Date', validityDaysLabel:'Validity (days)', validity:'Validity', ref:'Ref.',
+      issuedBy:'Issued by', name:'Name',
+      secCompany:'Company Info', supplier:'Supplier', customer:'Customer', companyName:'Company Name',
+      regNo:'Reg. No.', type:'Type', item:'Item', rep:'Representative', attn:'Attn.', tel:'Tel', email:'Email', address:'Address',
+      secItems:'Line Items', addItem:'+ Add Item', itemName:'Item', itemDesc:'Description / Spec', qty:'Qty', unit:'Unit', unitPrice:'Unit Price', amount:'Amount',
+      secSummary:'Summary', vatToggleLabel:'Include VAT (10%)', subtotal:'Subtotal', vat:'VAT (10%)', vatExempt:'VAT Exempt', total:'Total',
+      secTerms:'Terms & Notes', paymentTerms:'Payment Terms', incoterms:'Incoterms', delivery:'Delivery', remarks:'Remarks',
+      docTitle:'QUOTATION', footerNote:'This quotation is valid for the period specified above.',
+      daysAfter:'Days after Quotation', viewFit:'Full View', viewWide:'Wide View'
+    },
+    ko: {
+      appTitle:'BCT \uacac\uc801\uc11c', printBtn:'\uc778\uc1c4', pdfBtn:'PDF \ub2e4\uc6b4\ub85c\ub4dc',
+      secDoc:'\ubb38\uc11c \uc815\ubcf4', quoteNo:'\uacac\uc801\ubc88\ud638', issueDate:'\ubc1c\ud589\uc77c\uc790', validityDaysLabel:'\uc720\ud6a8\uae30\uac04(\uc77c)', validity:'\uc720\ud6a8\uae30\uac04', ref:'\ucc38\uc870',
+      issuedBy:'\uacac\uc801\uc81c\ucd9c\uc790', name:'\uc131\uba85',
+      secCompany:'\uac70\ub798\ucc98 \uc815\ubcf4', supplier:'\uacf5\uae09\uc790', customer:'\uc218\uc694\ucc98(\uace0\uac1d\uc0ac)', companyName:'\ud68c\uc0ac\uba85',
+      regNo:'\uc0ac\uc5c5\uc790\ub4f1\ub85d\ubc88\ud638', type:'\uc5c5\ud0dc', item:'\uc885\ubaa9', rep:'\ub300\ud45c\uc790', attn:'\ub2f4\ub2f9\uc790', tel:'\uc5f0\ub77d\ucc98', email:'\uc774\uba54\uc77c', address:'\uc8fc\uc18c',
+      secItems:'\ud488\ubaa9 \ub0b4\uc5ed', addItem:'+ \ud488\ubaa9 \ucd94\uac00', itemName:'\ud488\uba85', itemDesc:'\uaddc\uaca9 / \uc124\uba85', qty:'\uc218\ub7c9', unit:'\ub2e8\uc704', unitPrice:'\ub2e8\uac00', amount:'\uae08\uc561',
+      secSummary:'\ud569\uacc4', vatToggleLabel:'\ubd80\uac00\uc138(10%) \ud3ec\ud568', subtotal:'\uacf5\uae09\uac00\uc561', vat:'\ubd80\uac00\uc138(10%)', vatExempt:'\uba74\uc138', total:'\ud569\uacc4\uae08\uc561',
+      secTerms:'\uac70\ub798 \uc870\uac74', paymentTerms:'\uacb0\uc81c\uc870\uac74', incoterms:'\uc778\ucf54\ud154\uc988', delivery:'\ub0a9\uae30', remarks:'\ube44\uace0',
+      docTitle:'\uacac \uc801 \uc11c', footerNote:'\ubcf8 \uacac\uc801\uc11c\ub294 \uc0c1\uae30 \uc720\ud6a8\uae30\uac04\ub3d9\uc548 \uc720\ud6a8\ud569\ub2c8\ub2e4.',
+      daysAfter:'\uc77c (\uacac\uc801\uc77c\ub85c\ubd80\ud130)', viewFit:'\uc804\uccb4\ubcf4\uae30', viewWide:'\uac00\ub85c\ub85c \ud06c\uac8c'
+    }
+  };
+
+  var state = { lang:'en', currency:'KRW', items:[] };
+  var $ = function(id){ return document.getElementById(id); };
+
+  var today = new Date();
+  var iso = today.toISOString().slice(0,10);
+  $('f_issuedate').value = iso;
+  var ymd = iso.replace(/-/g, '');
+  $('f_quoteno').value = 'BCT-QT-' + ymd + '-001';
+
+  // ---------------- line items state ----------------
+  function newItem(){ return { name:'', desc:'', qty:1, unit:'EA', price:0 }; }
+  state.items = [newItem(), newItem(), newItem()];
+
+  var itemCardsEl = $('itemCards');
+  function renderItemCards(){
+    itemCardsEl.innerHTML = '';
+    state.items.forEach(function(it, idx){
+      var card = document.createElement('div');
+      card.className = 'item-card';
+      card.innerHTML =
+        '<div class="rownum"><span>#' + (idx+1) + '</span><button type="button" class="rm" data-idx="' + idx + '">\u00d7</button></div>' +
+        '<div class="item-grid">' +
+          '<input type="text" data-f="name" placeholder="' + I18N[state.lang].itemName + '" style="grid-column:1/-1;">' +
+          '<input type="text" data-f="desc" placeholder="' + I18N[state.lang].itemDesc + '" style="grid-column:1/-1;">' +
+          '<input type="number" data-f="qty" min="0" step="any" placeholder="' + I18N[state.lang].qty + '">' +
+          '<input type="text" data-f="unit" placeholder="' + I18N[state.lang].unit + '">' +
+          '<input type="number" data-f="price" min="0" step="any" placeholder="' + I18N[state.lang].unitPrice + '" style="grid-column:1/-1;">' +
+        '</div>';
+
+      card.querySelector('[data-f="name"]').value = it.name;
+      card.querySelector('[data-f="desc"]').value = it.desc;
+      card.querySelector('[data-f="qty"]').value = it.qty;
+      card.querySelector('[data-f="unit"]').value = it.unit;
+      card.querySelector('[data-f="price"]').value = it.price;
+
+      ['name','desc','qty','unit','price'].forEach(function(f){
+        var inp = card.querySelector('[data-f="' + f + '"]');
+        inp.addEventListener('input', function(){
+          var v = inp.value;
+          state.items[idx][f] = (f === 'qty' || f === 'price') ? (parseFloat(v) || 0) : v;
+          render();
+        });
+      });
+      card.querySelector('.rm').addEventListener('click', function(){
+        if (state.items.length <= 1) return;
+        state.items.splice(idx, 1);
+        renderItemCards();
+        render();
+      });
+      itemCardsEl.appendChild(card);
+    });
+  }
+  $('addItemBtn').addEventListener('click', function(){
+    state.items.push(newItem());
+    renderItemCards();
+    render();
+  });
+
+  // ---------------- language toggle ----------------
+  function applyLang(){
+    document.body.className = 'lang-' + state.lang;
+    document.documentElement.lang = state.lang;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function(el){
+      var key = el.getAttribute('data-i18n');
+      if (I18N[state.lang][key] !== undefined) el.textContent = I18N[state.lang][key];
+    });
+    document.title = 'BCT - QUOTE';
+    renderItemCards();
+  }
+  document.querySelectorAll('#langSeg .seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      state.lang = btn.getAttribute('data-val');
+      document.querySelectorAll('#langSeg .seg-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      applyLang();
+      render();
+    });
+  });
+
+  // ---------------- currency toggle ----------------
+  document.querySelectorAll('#curSeg .seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      state.currency = btn.getAttribute('data-val');
+      document.querySelectorAll('#curSeg .seg-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      render();
+    });
+  });
+
+  function fmtMoney(v){
+    if (isNaN(v)) v = 0;
+    if (state.currency === 'USD'){
+      return '$' + v.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+    }
+    return '\u20a9' + Math.round(v).toLocaleString('en-US');
+  }
+
+  // ---------------- generic field bindings ----------------
+  var fieldIds = ['f_quoteno','f_ref','f_validitydays','f_sub_name','f_sub_tel','f_sub_email',
+    'f_s_name','f_s_regno','f_s_rep_ko','f_s_rep_en','f_s_type_ko','f_s_type_en','f_s_item_ko','f_s_item_en','f_s_addr',
+    'f_c_name','f_c_attn','f_c_rep_ko','f_c_rep_en','f_c_regno','f_c_type_ko','f_c_type_en','f_c_item_ko','f_c_item_en','f_c_addr',
+    'f_payterms','f_incoterms','f_delivery','f_remarks','f_issuedate'];
+  fieldIds.forEach(function(id){ $(id).addEventListener('input', render); });
+  $('f_vat').addEventListener('change', render);
+
+  // ---------------- main render ----------------
+  function render(){
+    var subtotal = state.items.reduce(function(sum, it){ return sum + (it.qty * it.price); }, 0);
+    var vatOn = $('f_vat').checked;
+    var vat = vatOn ? subtotal * 0.1 : 0;
+    var total = subtotal + vat;
+
+    $('s_subtotal').textContent = fmtMoney(subtotal);
+    $('s_vat').textContent = vatOn ? fmtMoney(vat) : I18N[state.lang].vatExempt;
+    $('s_vatLabel').textContent = I18N[state.lang].vat;
+    $('s_total').textContent = fmtMoney(total);
+
+    // -------- letterhead: supplier --------
+    $('p_s_name').textContent = $('f_s_name').value || '-';
+    $('p_s_regno').textContent = $('f_s_regno').value || '-';
+    $('p_s_type').textContent = (state.lang === 'ko' ? $('f_s_type_ko').value : $('f_s_type_en').value) || '-';
+    $('p_s_item').textContent = (state.lang === 'ko' ? $('f_s_item_ko').value : $('f_s_item_en').value) || '-';
+    $('p_s_addr').textContent = $('f_s_addr').value || '-';
+    $('p_s_rep').textContent = (state.lang === 'ko' ? $('f_s_rep_ko').value : $('f_s_rep_en').value) || '-';
+
+    // -------- letterhead: customer --------
+    $('p_c_name').textContent = $('f_c_name').value || '-';
+    $('p_c_attn').textContent = $('f_c_attn').value || '-';
+    $('p_c_regno').textContent = $('f_c_regno').value || '-';
+    $('p_c_type').textContent = (state.lang === 'ko' ? $('f_c_type_ko').value : $('f_c_type_en').value) || '-';
+    $('p_c_item').textContent = (state.lang === 'ko' ? $('f_c_item_ko').value : $('f_c_item_en').value) || '-';
+    $('p_c_addr').textContent = $('f_c_addr').value || '-';
+    $('p_c_rep').textContent = (state.lang === 'ko' ? $('f_c_rep_ko').value : $('f_c_rep_en').value) || '-';
+
+    // -------- meta / submitter --------
+    $('p_quoteno').textContent = $('f_quoteno').value || '-';
+    $('p_issuedate').textContent = $('f_issuedate').value || '-';
+    $('p_ref').textContent = $('f_ref').value || '-';
+    var days = parseInt($('f_validitydays').value, 10);
+    $('p_validity').textContent = (isNaN(days) ? '-' : days) + ' ' + I18N[state.lang].daysAfter;
+    $('p_sub_name').textContent = $('f_sub_name').value || '-';
+    $('p_sub_tel').textContent = $('f_sub_tel').value || '-';
+    $('p_sub_email').textContent = $('f_sub_email').value || '-';
+
+    $('p_payterms').textContent = $('f_payterms').value || '-';
+    $('p_incoterms').textContent = $('f_incoterms').value || '-';
+    $('p_delivery').textContent = $('f_delivery').value || '-';
+    $('p_remarks').textContent = $('f_remarks').value || '-';
+
+    // items table
+    var L = I18N[state.lang];
+    var head = '<tr><th style="width:6%;">No.</th><th style="width:20%;">' + L.itemName + '</th><th style="width:26%;">' + L.itemDesc + '</th>' +
+      '<th style="width:10%;">' + L.qty + '</th><th style="width:8%;">' + L.unit + '</th>' +
+      '<th style="width:14%;">' + L.unitPrice + '</th><th style="width:16%;">' + L.amount + '</th></tr>';
+    var body = '';
+    state.items.forEach(function(it, i){
+      var amt = it.qty * it.price;
+      body += '<tr><td class="center">' + (i+1) + '</td><td>' + (it.name || '-') + '</td><td>' + (it.desc || '-') + '</td>' +
+        '<td class="num">' + (it.qty || 0) + '</td><td class="center">' + (it.unit || '-') + '</td>' +
+        '<td class="num">' + fmtMoney(it.price) + '</td><td class="num">' + fmtMoney(amt) + '</td></tr>';
+    });
+    var foot = '<tfoot>' +
+      '<tr><td colspan="6" style="text-align:right;">' + L.subtotal + '</td><td class="num">' + fmtMoney(subtotal) + '</td></tr>' +
+      '<tr><td colspan="6" style="text-align:right;">' + (vatOn ? L.vat : L.vatExempt) + '</td><td class="num">' + (vatOn ? fmtMoney(vat) : '-') + '</td></tr>' +
+      '<tr class="grand"><td colspan="6" style="text-align:right;">' + L.total + '</td><td class="num">' + fmtMoney(total) + '</td></tr>' +
+      '</tfoot>';
+    $('p_itemsTable').innerHTML = '<thead>' + head + '</thead><tbody>' + body + '</tbody>' + foot;
+  }
+
+  applyLang();
+  renderItemCards();
+  render();
+
+  // ---------------- stamp image: try several likely local paths, then GitHub ----------------
+  var stampCandidates = [
+    './images/bct_dojang.png',
+    'images/bct_dojang.png',
+    './bct_dojang.png',
+    'bct_dojang.png',
+    './assets/images/bct_dojang.png',
+    'https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_dojang.png'
+  ];
+  (function loadStamp(){
+    var img = $('stampImg');
+    var i = 0;
+    function tryNext(){
+      if (i >= stampCandidates.length){
+        img.style.display = 'none';
+        console.warn('[BCT stamp] could not load the stamp image. Tried:', stampCandidates,
+          '\u2014 place bct_dojang.png at one of these paths relative to this HTML file, or edit stampCandidates in the source.');
+        return;
+      }
+      var src = stampCandidates[i++];
+      img.onerror = tryNext;
+      img.onload = function(){ console.log('[BCT stamp] loaded from:', src); };
+      img.src = src;
+    }
+    tryNext();
+  })();
+
+  // ---------------- resizable divider ----------------
+  var resizer = $('resizer');
+  var isResizing = false;
+  resizer.addEventListener('mousedown', function(e){
+    isResizing = true;
+    resizer.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', function(e){
+    if (!isResizing) return;
+    var w = Math.max(360, Math.min(920, e.clientX));
+    document.documentElement.style.setProperty('--panel-w', w + 'px');
+    applyViewMode();
+  });
+  window.addEventListener('mouseup', function(){
+    if (!isResizing) return;
+    isResizing = false;
+    resizer.classList.remove('active');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+
+  // ---------------- view mode: Full View / Wide View ----------------
+  var viewState = 'fit';
+  function applyViewMode(){
+    var sheet = $('a4sheet');
+    sheet.style.zoom = 1; // reset to measure true (unzoomed) width
+    if (viewState === 'wide'){
+      var wrap = $('previewWrap');
+      var trueW = sheet.offsetWidth;
+      var availW = wrap.clientWidth - 40;
+      var scale = Math.max(1, Math.min(availW / trueW, 1.9));
+      sheet.style.zoom = scale;
+    }
+  }
+  document.querySelectorAll('#viewSeg .seg-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      viewState = btn.getAttribute('data-val');
+      document.querySelectorAll('#viewSeg .seg-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      applyViewMode();
+    });
+  });
+  window.addEventListener('resize', applyViewMode);
+  applyViewMode();
+
+  // ---------------- print / pdf ----------------
+  $('btnPrint').addEventListener('click', function(){ window.print(); });
+  $('btnPdf').addEventListener('click', function(){
+    var el = $('a4sheet');
+    var prevZoom = el.style.zoom;
+    el.style.zoom = 1; // export must always be true-scale regardless of on-screen view mode
+    var fname = (($('f_quoteno').value || 'BCT-QT')).replace(/[^a-zA-Z0-9-_]/g,'_') + '.pdf';
+    var opt = {
+      margin: 0, filename: fname,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2.5, useCORS: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    function restore(){ el.style.zoom = prevZoom || ''; }
+    function showFailureHint(err){
+      restore();
+      console.error('[BCT PDF] export failed:', err);
+      var isFile = location.protocol === 'file:';
+      var msg;
+      if (state.lang === 'ko'){
+        msg = isFile
+          ? 'PDF \uc0dd\uc131\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4. \uc774 \ud30c\uc77c\uc744 \ub354\ube14\ud074\ub9ad(file://)\uc73c\ub85c \uc5f4\uba74 \ube0c\ub77c\uc6b0\uc800 \ubcf4\uc548 \uc815\ucc45 \ub54c\ubb38\uc5d0 PDF \ub2e4\uc6b4\ub85c\ub4dc\uac00 \uc81c\ud55c\ub420 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n\n\ub300\uc2e0 "\uc778\uc1c4" \ubc84\ud2bc \u2192 "PDF\ub85c \uc800\uc7a5"\uc744 \uc774\uc6a9\ud574\uc8fc\uc138\uc694. (\ub3d9\uc77c\ud55c \uacb0\uacfc\ubb3c\uc774 \ub098\uc635\ub2c8\ub2e4)'
+          : 'PDF generation failed. Please use the "Print" button instead.';
+      } else {
+        msg = isFile
+          ? 'PDF generation failed. When this file is opened directly (file://), browser security settings can block PDF export.\n\nPlease use the "Print" button \u2192 "Save as PDF" instead (same result).'
+          : 'Could not generate the PDF. Please use the "Print" button instead.';
+      }
+      alert(msg);
+    }
+    try {
+      if (window.html2pdf){
+        html2pdf().set(opt).from(el).save().then(restore).catch(showFailureHint);
+      } else {
+        showFailureHint('html2pdf library not loaded');
+      }
+    } catch (err){
+      showFailureHint(err);
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -149,10 +149,49 @@ a.row:hover .tag.live{color:#fff}
   .bento{grid-template-columns:1fr}
   .status .pill.hide-m{display:none}
 }
+/* ---------- login gate ---------- */
+.page{transition:filter .7s cubic-bezier(.2,.8,.2,1),transform .7s cubic-bezier(.2,.8,.2,1)}
+body.locked .page{filter:blur(14px) saturate(.8);transform:scale(.985);pointer-events:none;user-select:none}
+.gate{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(ellipse at center,rgba(10,31,66,.55),rgba(10,31,66,.85));transition:opacity .6s,visibility .6s}
+body:not(.locked) .gate{opacity:0;visibility:hidden}
+.gate-card{position:relative;width:100%;max-width:400px;padding:38px 34px 30px;border-radius:26px;
+  background:rgba(15,44,92,.55);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  box-shadow:0 40px 90px -30px rgba(0,0,0,.6);text-align:center;animation:enter .9s .2s cubic-bezier(.2,.8,.2,1) both}
+body:not(.locked) .gate-card{transform:translateY(-16px) scale(.97);transition:transform .6s}
+.gate-card .frames{position:absolute;right:22px;top:22px;width:44px;height:44px}
+.gate-card .frames div:last-child{inset:11px}
+.gate-logo{height:30px;filter:brightness(0) invert(1);margin-bottom:26px}
+.gate h2{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0 0 6px}
+.gate p{margin:0 0 26px;font-size:14px;color:var(--mist2)}
+.field{position:relative}
+.field svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:var(--mist2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.gate input{width:100%;padding:15px 48px 15px 46px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(10,31,66,.55);
+  color:#fff;font-family:var(--mono);font-size:15px;letter-spacing:.14em;outline:none;transition:border-color .25s,box-shadow .25s}
+.gate input::placeholder{color:rgba(199,213,236,.45);letter-spacing:.06em;font-family:var(--font)}
+.gate input:focus{border-color:var(--amber);box-shadow:0 0 0 4px rgba(201,138,43,.18)}
+.eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:10px;background:transparent;color:var(--mist2);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.eye:hover{background:rgba(255,255,255,.08);color:#fff}
+.eye svg{position:static;transform:none;width:18px;height:18px}
+.gate button.go{width:100%;margin-top:12px;padding:15px;border:0;border-radius:14px;background:#fff;color:var(--deep);
+  font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .25s,transform .15s}
+.gate button.go:hover{background:var(--pale)}
+.gate button.go:active{transform:scale(.98)}
+.gate button.go svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.msg{height:20px;margin-top:12px;font-size:13px;color:#F2A49D;opacity:0;transition:opacity .25s}
+.msg.show{opacity:1}
+.shake{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.gate .foot{margin-top:14px;padding-top:16px;border-top:1px solid rgba(255,255,255,.1);font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:rgba(159,179,214,.7);text-transform:uppercase}
+.logout{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);
+  color:var(--mist2);font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;cursor:pointer;transition:.25s;backdrop-filter:blur(10px)}
+.logout:hover{background:#fff;color:var(--deep);border-color:#fff}
+.logout svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.in{opacity:1;transform:none;filter:none}}
 </style>
 </head>
-<body>
+<body class="locked">
 
 <canvas id="net"></canvas>
 <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -164,6 +203,7 @@ a.row:hover .tag.live{color:#fff}
     <div class="status">
       <div class="pill hide-m"><span class="dot"></span>4 SYSTEMS ONLINE</div>
       <div class="pill">KST&nbsp;<span id="clock">--:--:--</span></div>
+      <button class="logout" id="logout" type="button" title="로그아웃"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>LOGOUT</button>
     </div>
   </nav>
 
@@ -264,7 +304,87 @@ a.row:hover .tag.live{color:#fff}
   </div>
 </div>
 
+<!-- ---------- login gate ---------- -->
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <form class="gate-card" id="gateForm" autocomplete="off">
+    <div class="frames"><div></div><div></div></div>
+    <img class="gate-logo" src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT">
+    <h2 id="gateTitle">Business Hub</h2>
+    <p>멤버코드를 입력하세요</p>
+    <div class="field">
+      <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      <input id="code" type="password" placeholder="Member code" aria-label="멤버코드" spellcheck="false" autocapitalize="off">
+      <button class="eye" id="eye" type="button" aria-label="코드 보기"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    </div>
+    <button class="go" type="submit">Enter Hub<svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+    <div class="msg" id="msg">멤버코드가 올바르지 않습니다</div>
+    <div class="foot">BCT Co., Ltd. · Members only</div>
+  </form>
+</div>
+
 <script>
+/* ---------- login gate ----------
+   멤버코드 자체는 소스에 두지 않고 SHA-256 해시만 비교합니다.
+   코드를 바꾸려면 새 코드의 SHA-256 값을 MEMBER_HASH에 넣으세요. */
+const MEMBER_HASH='eb5706067bdcfa1ac6fa0ea85bacc3d2945fb6d640fea3d6983e89f4a3638927';
+const AUTH_KEY='bct_hub_auth';
+
+function sha256Fallback(str){ /* crypto.subtle을 쓸 수 없는 환경(일부 file:// 등)용 */
+  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const b=new TextEncoder().encode(str),l=b.length,n=((l+9+63)>>6)<<6,m=new Uint8Array(n);
+  m.set(b);m[l]=0x80;const dv=new DataView(m.buffer);dv.setUint32(n-4,l*8);
+  let h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const r=(x,k)=>(x>>>k)|(x<<(32-k)),w=new Uint32Array(64);
+  for(let o=0;o<n;o+=64){
+    for(let i=0;i<16;i++)w[i]=dv.getUint32(o+i*4);
+    for(let i=16;i<64;i++){const s0=r(w[i-15],7)^r(w[i-15],18)^(w[i-15]>>>3),s1=r(w[i-2],17)^r(w[i-2],19)^(w[i-2]>>>10);w[i]=(w[i-16]+s0+w[i-7]+s1)|0;}
+    let [a,bb,c,d,e,f,g,hh]=h;
+    for(let i=0;i<64;i++){
+      const t1=(hh+(r(e,6)^r(e,11)^r(e,25))+((e&f)^(~e&g))+K[i]+w[i])|0,t2=((r(a,2)^r(a,13)^r(a,22))+((a&bb)^(a&c)^(bb&c)))|0;
+      hh=g;g=f;f=e;e=(d+t1)|0;d=c;c=bb;bb=a;a=(t1+t2)|0;
+    }
+    h=h.map((v,i)=>(v+[a,bb,c,d,e,f,g,hh][i])|0);
+  }
+  return h.map(v=>(v>>>0).toString(16).padStart(8,'0')).join('');
+}
+async function sha256(str){
+  try{
+    if(window.crypto&&crypto.subtle){
+      const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+      return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,'0')).join('');
+    }
+  }catch(e){}
+  return sha256Fallback(str);
+}
+const store={
+  get(){try{return sessionStorage.getItem(AUTH_KEY)}catch(e){return window.__auth||null}},
+  set(v){try{sessionStorage.setItem(AUTH_KEY,v)}catch(e){window.__auth=v}},
+  clear(){try{sessionStorage.removeItem(AUTH_KEY)}catch(e){window.__auth=null}}
+};
+const gateForm=document.getElementById('gateForm'),codeIn=document.getElementById('code'),msg=document.getElementById('msg');
+const isAuthed=()=>store.get()===MEMBER_HASH;
+function unlock(){document.body.classList.remove('locked');}
+function lock(){document.body.classList.add('locked');codeIn.value='';msg.classList.remove('show');setTimeout(()=>codeIn.focus(),300);}
+if(isAuthed())unlock();else setTimeout(()=>codeIn.focus(),600);
+
+gateForm.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const h=await sha256(codeIn.value.trim());
+  if(h===MEMBER_HASH){store.set(h);msg.classList.remove('show');unlock();}
+  else{
+    msg.classList.add('show');gateForm.classList.remove('shake');void gateForm.offsetWidth;gateForm.classList.add('shake');
+    codeIn.select();
+  }
+});
+codeIn.addEventListener('input',()=>msg.classList.remove('show'));
+document.getElementById('eye').addEventListener('click',()=>{codeIn.type=codeIn.type==='password'?'text':'password';codeIn.focus();});
+document.getElementById('logout').addEventListener('click',()=>{store.clear();lock();});
+/* 로그인 전에는 어떤 링크도 열리지 않도록 차단 */
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a.row');
+  if(a&&!isAuthed()){e.preventDefault();lock();}
+},true);
+
 /* ---------- KST clock ---------- */
 const clk=document.getElementById('clock');
 const fmt=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});

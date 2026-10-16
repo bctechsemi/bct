@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMIF1000 최종 수리검사성적서 — 작성 도구</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAALtJREFUeAHt2zEVwgAUBMEfHj7oEUMfb/RxhB0QQLZJmhQzEvZde8vj9f4Of27DLmGCMEGYIEwQJggThAnCBGGCMEGYIEwQJtznhM+2zpU9122OspggTBAmCBOECcIEYYIwQZggTBAmCBOECcIEYYIwQZggTBAmCBOECcIEYYIwQZggTBAmCBOECcIEYYIwQZggTBAmCBOECcIEYcLiXrzPYoIwQZggTBAmCBOECcIEYYIwQZggTBAmCBN+7o0Hnb+9JR4AAAAASUVORK5CYII=">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700;800&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{
+  --primary:#1F4E9C; --primary-deep:#153B78; --primary-deeper:#0F2C5C;
+  --primary-pale:#EAF1FC; --primary-pale-2:#F4F8FE;
+  --canvas:#FFFFFF; --surface:#F6F9FD;
+  --ink:#0B1220; --steel:#5B6472; --steel-soft:#8A93A3;
+  --hairline:#E2E8F3; --hairline-strong:#CBD8ED;
+  --amber:#C98A2B; --amber-pale:#FBE8D3; --amber-solid:#F0B94D; --amber-ink:#4A2E05;
+  --good:#1F8A5F; --good-pale:#E4F3EA;
+  --risk:#C1443C; --risk-pale:#FBE7E5;
+  --font-en:'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-ko:'Gowun Batang', serif;
+  --font-mono:'JetBrains Mono', ui-monospace, monospace;
+  --r-lg:18px; --r-md:14px; --r-sm:9px; --r-full:999px;
+  --panel-w:690px;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; background:#EEF2F8; }
+body{ font-family:var(--font-en); color:var(--ink); -webkit-font-smoothing:antialiased; }
+h1,h2,h3,h4,p{ margin:0; }
+input,select,textarea{ font-family:inherit; }
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-thumb{ background:var(--hairline-strong); border-radius:999px; }
+
+/* ===== app shell ===== */
+.topbar{
+  position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:14px;
+  padding:12px 22px; background:var(--primary-deep); color:#fff;
+}
+.topbar img{ height:24px; }
+.topbar .ttl{ font-family:var(--font-en); font-weight:700; font-size:14px; }
+.topbar .sub{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.08em; color:#AFC3E6; margin-top:1px; }
+.topbar .spacer{ flex:1; }
+.btn{
+  display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:var(--r-full);
+  border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff;
+  font-family:var(--font-en); font-weight:600; font-size:12.5px; cursor:pointer; text-decoration:none;
+}
+.btn:hover{ background:rgba(255,255,255,.18); }
+.btn.primary{ background:var(--amber); border-color:var(--amber); color:#1F1400; }
+.btn.primary:hover{ background:#DA9A34; }
+.btn svg{ width:14px; height:14px; }
+
+.layout{ display:grid; grid-template-columns:var(--panel-w,690px) 6px 1fr; align-items:start; min-height:calc(100vh - 50px); }
+
+/* ===== resizer ===== */
+.resizer{ width:6px; height:calc(100vh - 50px); cursor:col-resize; background:var(--hairline); position:relative; touch-action:none; flex:none; }
+.resizer:hover, .resizer.dragging{ background:var(--primary); }
+.resizer::after{ content:""; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:3px; height:34px; border-radius:3px; background:rgba(255,255,255,.7); }
+
+/* ===== left: input panel ===== */
+.panel{ height:calc(100vh - 50px); overflow-y:auto; padding:20px 20px 80px; background:#fff; border-right:1px solid var(--hairline); min-width:360px; }
+.pgroup{ margin-bottom:24px; }
+.pgroup-head{ display:flex; align-items:baseline; gap:8px; margin-bottom:11px; }
+.pgroup-num{ font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--primary); }
+.pgroup-title{ font-family:var(--font-ko); font-weight:700; font-size:14px; color:var(--ink); }
+.pgroup-note{ font-size:10.5px; color:var(--steel-soft); margin-left:auto; font-family:var(--font-mono); }
+.pgroup-sub{ font-family:var(--font-ko); font-weight:700; font-size:11.5px; color:var(--primary-deep); margin:12px 0 7px; }
+
+.field-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+.field{ display:flex; flex-direction:column; gap:5px; }
+.field.full{ grid-column:1 / -1; }
+.field label{ font-size:11px; font-weight:600; color:var(--steel); }
+.field input[type=text], .field input[type=date], .field input[type=number], .field select, .field textarea{
+  border:1px solid var(--hairline-strong); border-radius:var(--r-sm); padding:8px 10px;
+  font-size:13px; color:var(--ink); background:var(--surface); font-family:var(--font-en);
+}
+.field input:disabled{ color:var(--steel); background:var(--hairline); }
+.field textarea{ font-family:var(--font-ko); resize:vertical; min-height:52px; }
+.field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--primary); outline-offset:1px; background:#fff; }
+
+.check-row{ display:grid; grid-template-columns:1fr 84px 1fr; gap:8px; align-items:center; padding:9px 0; border-bottom:1px solid var(--hairline); }
+.check-row:last-child{ border-bottom:none; }
+.check-row .name{ font-family:var(--font-ko); font-size:12px; font-weight:600; }
+.check-row .spec{ font-family:var(--font-mono); font-size:9.5px; color:var(--steel-soft); display:block; margin-top:2px; }
+.check-row select{ padding:6px 4px; font-size:11.5px; border:1.5px solid var(--hairline-strong); border-radius:8px; background:#fff; }
+.check-row select.v-ng{ border-color:var(--risk); color:var(--risk); font-weight:700; background:var(--risk-pale); }
+.check-row select.v-ok{ border-color:var(--good); color:var(--good); font-weight:700; }
+.check-row input[type=text]{ border:1px solid var(--hairline-strong); border-radius:8px; padding:6px 8px; font-size:11px; background:var(--surface); }
+.check-row .leakwrap{ display:flex; flex-direction:column; align-items:center; gap:2px; }
+.check-row input[type=number].leakval{ width:100%; text-align:center; border:1.5px solid var(--hairline-strong); border-radius:8px; padding:6px 4px; font-size:12px; font-family:var(--font-mono); font-weight:600; background:#fff; }
+.check-row input[type=number].leakval.v-ok{ border-color:var(--good); color:var(--good); background:var(--good-pale); }
+.check-row input[type=number].leakval.v-ng{ border-color:var(--risk); color:var(--risk); background:var(--risk-pale); }
+.check-row .leakunit{ font-family:var(--font-mono); font-size:8px; color:var(--steel-soft); }
+
+.oring-head-row{ display:grid; grid-template-columns:1fr 64px 64px; gap:7px; padding:0 0 4px; font-family:var(--font-mono); font-size:9px; color:var(--steel-soft); text-align:center; }
+.oring-head-row span:first-child{ text-align:left; }
+.oring-row{ display:grid; grid-template-columns:1fr 64px 64px; gap:7px; align-items:center; padding:7px 0; border-bottom:1px solid var(--hairline); }
+.oring-row:last-child{ border-bottom:none; }
+.oring-row .code{ font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--ink); }
+.oring-row input[type=number]{ width:100%; text-align:center; border:1px solid var(--hairline-strong); border-radius:8px; padding:5px 4px; font-size:12px; font-family:var(--font-mono); background:var(--surface); }
+
+.photo-upload{ display:flex; align-items:center; gap:9px; border:1px dashed var(--hairline-strong); border-radius:9px; padding:8px; background:var(--surface); }
+.photo-upload .thumb{ width:48px; height:48px; border-radius:6px; overflow:hidden; background:#fff; border:1px solid var(--hairline-strong); flex:none; }
+.photo-upload .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.photo-upload .meta{ flex:1; min-width:0; }
+.photo-upload .meta .lbl{ font-family:var(--font-ko); font-size:11px; font-weight:700; color:var(--ink); margin-bottom:3px; }
+.photo-upload input[type=file]{ font-size:10px; width:100%; color:var(--steel); }
+
+.overall-box{ display:flex; align-items:center; gap:12px; border-radius:10px; padding:12px 14px; border:1.5px solid; margin-top:4px; }
+.overall-box .dot2{ width:10px; height:10px; border-radius:50%; flex:none; }
+.overall-box .t1{ font-weight:700; font-size:13px; font-family:var(--font-ko); }
+.overall-box .t2{ font-size:10px; color:var(--steel); margin-top:2px; font-family:var(--font-ko); }
+.overall-box.pending{ border-color:var(--hairline-strong); background:var(--surface); }
+.overall-box.pending .dot2{ background:var(--steel-soft); }
+.overall-box.accept{ border-color:var(--good); background:var(--good-pale); }
+.overall-box.accept .dot2{ background:var(--good); }
+.overall-box.reject{ border-color:var(--risk); background:var(--risk-pale); }
+.overall-box.reject .dot2{ background:var(--risk); }
+
+.note-bar{ background:var(--amber-pale); color:var(--amber-ink); font-family:var(--font-ko); font-size:11.5px; padding:8px 20px; border-bottom:1px solid #E8C78F; line-height:1.5; }
+
+/* ===== right: A4 preview ===== */
+.preview-wrap{ height:calc(100vh - 50px); background:#DCE3ED; display:flex; flex-direction:column; align-items:stretch; min-width:0; }
+.view-toolbar{ flex:none; display:flex; align-items:center; justify-content:center; gap:12px; padding:14px 20px 10px; flex-wrap:wrap; }
+.seg{ display:inline-flex; background:#fff; border:1px solid var(--hairline-strong); border-radius:var(--r-full); padding:3px; gap:2px; box-shadow:0 1px 3px rgba(11,18,32,.06); }
+.seg-btn{ border:none; background:transparent; padding:7px 16px; border-radius:var(--r-full); font-family:var(--font-ko); font-weight:700; font-size:11.5px; color:var(--steel); cursor:pointer; }
+.seg-btn.active{ background:var(--primary); color:#fff; }
+.page-nav{ display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:11.5px; color:var(--ink); background:#fff; border:1px solid var(--hairline-strong); border-radius:var(--r-full); padding:5px 8px 5px 14px; box-shadow:0 1px 3px rgba(11,18,32,.06); }
+.page-nav button{ width:24px; height:24px; border-radius:50%; border:1px solid var(--hairline-strong); background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--primary); font-weight:700; line-height:1; padding:0; }
+.page-nav button:disabled{ opacity:.35; cursor:default; }
+.pages-viewport{ flex:1; min-height:0; min-width:0; overflow:auto; display:flex; flex-direction:column; align-items:center; gap:26px; padding:4px 20px 60px; }
+.page-sheet-wrap{ position:relative; flex:none; }
+.page-sheet-wrap .page-tag{ position:absolute; top:-19px; left:2px; font-family:var(--font-mono); font-size:9px; color:var(--steel-soft); letter-spacing:.06em; }
+.a4-sheet{
+  width:210mm; min-height:297mm; background:#fff; color:var(--ink);
+  box-shadow:0 20px 50px -20px rgba(11,18,32,.35), 0 0 0 1px rgba(11,18,32,.04);
+  padding:8mm 13mm 6mm; font-family:var(--font-en); transform-origin:top left;
+}
+.doc-head{ display:flex; align-items:flex-start; justify-content:space-between; border-bottom:2.5px solid var(--primary-deep); padding-bottom:8px; margin-bottom:10px; }
+.doc-head .brand{ display:flex; align-items:center; gap:10px; width:150px; }
+.doc-head .brand img{ height:28px; }
+.doc-head .title{ text-align:center; flex:1; }
+.doc-head .title h1{ font-family:var(--font-ko); font-weight:700; font-size:20px; letter-spacing:-.01em; }
+.doc-head .title .en{ font-family:var(--font-mono); font-size:9px; letter-spacing:.1em; color:var(--steel); margin-top:3px; }
+.doc-head .docinfo{ text-align:right; font-family:var(--font-mono); font-size:8.8px; color:var(--ink); line-height:1.7; width:150px; }
+.doc-head .docinfo .k{ color:var(--steel-soft); }
+
+.sec-title{ font-family:var(--font-ko); font-weight:700; font-size:12px; color:#fff; background:var(--primary-deep); padding:4px 11px; margin:8px 0 5px; display:flex; align-items:center; gap:7px; border-radius:3px; break-after:avoid; page-break-after:avoid; }
+.sec-title .num{ font-family:var(--font-mono); font-size:10px; background:rgba(255,255,255,.18); padding:1px 7px; border-radius:var(--r-full); }
+.sec-title .en{ font-family:var(--font-mono); font-size:8.5px; color:#AFC3E6; font-weight:500; margin-left:auto; }
+
+.info-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-bottom:2px; break-inside:avoid; page-break-inside:avoid; }
+.info-cell{ border:1px solid var(--hairline-strong); border-radius:6px; padding:6px 10px; background:var(--surface); }
+.info-cell .lbl{ font-family:var(--font-ko); font-size:9.5px; font-weight:700; color:var(--steel); display:flex; align-items:center; gap:5px; }
+.info-cell .lbl .en{ font-family:var(--font-mono); font-size:7.8px; color:var(--steel-soft); font-weight:500; }
+.info-cell .val{ font-family:var(--font-mono); font-size:13.5px; font-weight:700; color:var(--ink); margin-top:3px; }
+.info-cell .val.ko{ font-family:var(--font-ko); font-weight:700; font-size:12.5px; }
+
+table.check-table{ width:100%; border-collapse:collapse; font-size:10px; margin-bottom:2px; break-inside:avoid; page-break-inside:avoid; }
+table.check-table th{ background:var(--primary); color:#fff; padding:6px 8px; border:1px solid var(--primary-deep); font-weight:700; font-family:var(--font-en); font-size:9.5px; }
+table.check-table td{ border:1px solid var(--hairline-strong); padding:4px 7px; vertical-align:middle; }
+table.check-table td.item{ font-family:var(--font-ko); font-weight:700; font-size:11px; width:19%; background:var(--surface); }
+table.check-table td.item small{ display:block; font-family:var(--font-mono); font-weight:400; color:var(--steel-soft); font-size:7.6px; margin-top:2px; }
+table.check-table td.judge{ width:15%; text-align:center; }
+table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-size:10px; }
+.badge{ display:inline-flex; align-items:center; gap:4px; font-family:var(--font-en); font-weight:800; font-size:10px; padding:4px 11px; border-radius:var(--r-full); letter-spacing:.02em; white-space:nowrap; }
+.badge.pass{ background:var(--good-pale); color:var(--good); }
+.badge.fail{ background:var(--risk-pale); color:var(--risk); }
+.badge.pending{ background:var(--hairline); color:var(--steel-soft); }
+.badge .ko{ font-family:var(--font-ko); font-weight:700; }
+
+.photo-group{ margin-bottom:7px; break-inside:avoid; page-break-inside:avoid; }
+.photo-group-head{ display:flex; align-items:baseline; gap:8px; margin-bottom:4px; padding-left:1px; }
+.photo-group-head .dot{ width:7px; height:7px; border-radius:50%; background:var(--primary); flex:none; }
+.photo-group-head .name{ font-family:var(--font-ko); font-weight:700; font-size:11.5px; color:var(--ink); }
+.photo-group-head .en{ font-family:var(--font-mono); font-size:8px; color:var(--steel-soft); }
+.photo-grid{ display:grid; gap:5px; grid-template-columns:1fr 1fr; align-items:stretch; }
+.photo-item{ display:flex; flex-direction:column; gap:4px; }
+.photo-item .cap{ font-family:var(--font-ko); font-size:9px; color:var(--steel); text-align:center; }
+.photo-box{ border:1px solid var(--hairline-strong); border-radius:7px; overflow:hidden; background:var(--surface); aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; max-width:46%; margin:0 auto; }
+.photo-box img{ width:100%; height:100%; object-fit:cover; display:block; }
+.photo-box .ph{ font-family:var(--font-mono); font-size:8px; color:var(--steel-soft); text-align:center; padding:6px; }
+
+.remarks-box{ border:1px solid var(--hairline-strong); border-radius:6px; padding:6px 10px; margin-top:3px; font-family:var(--font-ko); font-size:10px; color:var(--ink); background:var(--amber-pale); min-height:14px; }
+.remarks-box b{ font-family:var(--font-en); font-weight:700; color:var(--amber-ink); margin-right:6px; font-size:9px; letter-spacing:.03em; }
+
+.stamp{ text-align:center; padding:7px; border-radius:8px; font-family:var(--font-en); font-weight:800; font-size:15px; letter-spacing:.05em; border:2px solid; margin:6px 0; }
+.stamp .ko{ font-family:var(--font-ko); font-size:10.5px; font-weight:700; display:block; margin-top:1px; letter-spacing:0; }
+.stamp.pending{ border-color:var(--hairline-strong); color:var(--steel-soft); background:var(--surface); }
+.stamp.accept{ border-color:var(--good); color:var(--good); background:var(--good-pale); }
+.stamp.reject{ border-color:var(--risk); color:var(--risk); background:var(--risk-pale); }
+
+.sign-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px; break-inside:avoid; page-break-inside:avoid; }
+.sign-box{ border:1px solid var(--hairline-strong); border-radius:6px; padding:5px 12px; background:var(--surface); }
+.sign-box .role{ font-family:var(--font-ko); font-weight:700; font-size:10px; color:var(--steel); margin-bottom:10px; }
+.sign-box .line{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid var(--hairline-strong); padding-bottom:4px; min-height:36px; }
+.sign-box .name{ font-family:var(--font-ko); font-size:13px; font-weight:700; }
+.sign-box .sig-slot{ display:flex; align-items:center; justify-content:center; }
+.sign-box .stampcircle{ width:32px; height:32px; border:1.5px solid var(--risk); border-radius:50%; opacity:.5; }
+.sign-box .date{ font-family:var(--font-mono); font-size:8.3px; color:var(--steel-soft); margin-top:5px; }
+
+.doc-foot{ margin-top:4px; padding-top:4px; border-top:1px solid var(--hairline-strong); display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:7.3px; color:var(--steel-soft); }
+
+.en-inline{ font-family:var(--font-en); }
+
+@media print{
+  @page{ size:A4; margin:0; }
+  body *{ visibility:hidden; }
+  .a4-sheet, .a4-sheet *, .page-sheet-wrap{ visibility:visible; }
+  .page-sheet-wrap{ display:block !important; box-shadow:none !important; transform:none !important; width:auto !important; height:auto !important; break-after:page; page-break-after:always; }
+  .page-sheet-wrap:last-child{ break-after:auto; page-break-after:auto; }
+  .a4-sheet{ position:static; box-shadow:none; margin:0; width:210mm; min-height:297mm; transform:none !important; }
+  .topbar, .panel, .resizer, .note-bar, .view-toolbar, .page-tag{ display:none !important; }
+  .preview-wrap, .pages-viewport{ padding:0; background:#fff; height:auto; overflow:visible; gap:0; }
+}
+@media (max-width:980px){
+  .layout{ grid-template-columns:1fr; }
+  .panel{ height:auto; }
+  .resizer{ display:none; }
+  .preview-wrap{ height:auto; }
+  .pages-viewport{ height:auto; overflow:visible; }
+}
+
+/* ===== SMIF1000 repair report — overrides / additions ===== */
+.info-grid.g6{ grid-template-columns:repeat(6,1fr); }
+.info-cell.s2{ grid-column:span 2; }
+.info-cell.s3{ grid-column:span 3; }
+.info-cell.s4{ grid-column:span 4; }
+.info-cell .val.sm{ font-size:12px; }
+
+table.check-table td.method{ width:11%; text-align:center; font-family:var(--font-mono); font-size:8.8px; color:var(--steel); }
+.badge.na{ background:var(--primary-pale); color:var(--primary); }
+
+.photo-grid.g3{ grid-template-columns:repeat(3,1fr); gap:8px; }
+.photo-grid.g3 .photo-box{ aspect-ratio:4/3; max-width:100%; width:100%; }
+.photo-grid.g3 .photo-box img{ object-fit:contain; background:#fff; }
+.photo-grid.g3 .photo-item .cap{ font-size:9.5px; font-weight:700; color:var(--ink); }
+
+table.bom-table td, table.bom-table th{ padding:3px 6px; }
+table.bom-table td.no{ width:5%; text-align:center; font-family:var(--font-mono); color:var(--steel-soft); font-size:9px; }
+table.bom-table td.code{ width:12%; font-family:var(--font-mono); font-weight:700; font-size:9.3px; }
+table.bom-table td.pname{ width:27%; font-family:var(--font-mono); font-size:8.8px; word-break:break-all; }
+table.bom-table td.spec{ width:15%; font-family:var(--font-mono); font-size:8.8px; color:var(--steel); }
+table.bom-table td.qty{ width:9%; text-align:center; font-family:var(--font-mono); font-weight:700; font-size:10px; }
+table.bom-table td.qty .u{ font-size:7.5px; font-weight:400; color:var(--steel-soft); }
+table.bom-table td.st{ font-family:var(--font-ko); font-size:9.5px; }
+table.bom-table tr.replaced td{ background:var(--primary-pale-2); }
+table.bom-table tr.replaced td.qty.chg{ color:var(--primary-deep); }
+table.bom-table tr.total td{ background:var(--surface); font-family:var(--font-ko); font-weight:700; }
+table.bom-table .st-all{ color:var(--good); font-weight:700; }
+table.bom-table .st-part{ color:var(--amber); font-weight:700; }
+table.bom-table .st-none{ color:var(--steel-soft); }
+
+/* panel additions */
+.pgroup-head .tools{ margin-left:auto; display:flex; gap:6px; }
+.mini-btn{ border:1px solid var(--hairline-strong); background:#fff; color:var(--steel); border-radius:var(--r-full); font-family:var(--font-ko); font-weight:700; font-size:10.5px; padding:3px 11px; cursor:pointer; }
+.mini-btn:hover{ border-color:var(--primary); color:var(--primary); }
+.photo-stack{ display:flex; flex-direction:column; gap:7px; }
+.photo-upload .cap-in{ width:100%; border:1px solid var(--hairline-strong); border-radius:7px; padding:5px 8px; font-size:11.5px; background:#fff; font-family:var(--font-ko); font-weight:700; margin-bottom:5px; }
+.photo-upload .frow{ display:flex; gap:6px; align-items:center; }
+.photo-upload .frow input[type=file]{ flex:1; min-width:0; }
+.photo-upload .thumb{ width:58px; height:44px; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:8px; color:var(--steel-soft); }
+.photo-upload .thumb img{ object-fit:contain; }
+.photo-upload .thumb img:not([src]){ display:none; }
+.photo-upload .thumb:has(img[src])::before{ content:none; }
+.photo-upload .thumb::before{ content:"EMPTY"; }
+
+.bom-head-row, .bom-row{ display:grid; grid-template-columns:minmax(0,1.9fr) 46px 64px minmax(0,1fr); gap:7px; align-items:center; }
+.bom-head-row{ padding:0 0 4px; font-family:var(--font-mono); font-size:9px; color:var(--steel-soft); text-align:center; }
+.bom-head-row span:first-child{ text-align:left; }
+.bom-row{ padding:7px 0; border-bottom:1px solid var(--hairline); }
+.bom-row:last-child{ border-bottom:none; }
+.bom-row .nm .c{ font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--ink); }
+.bom-row .nm .n{ display:block; font-family:var(--font-mono); font-size:9px; color:var(--steel-soft); margin-top:2px; word-break:break-all; }
+.bom-row .bq{ text-align:center; font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--steel); }
+.bom-row input[type=number]{ width:100%; text-align:center; border:1px solid var(--hairline-strong); border-radius:8px; padding:5px 4px; font-size:12px; font-family:var(--font-mono); background:var(--surface); }
+.bom-row input[type=number].has{ border-color:var(--primary); background:var(--primary-pale); color:var(--primary-deep); font-weight:700; }
+.bom-row input[type=text]{ width:100%; border:1px solid var(--hairline-strong); border-radius:8px; padding:5px 8px; font-size:11px; background:var(--surface); }
+
+.doc-head .brand{ width:200px; }
+.doc-head .docinfo{ width:200px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAAAuElEQVR4nO3bsQ2EQAwAQUD0SW1f6VEAbMKDIJjJLVkrp57HGGPiYHl7ga8SJggThAnCBGGCMEGYIEwQJggThAnCBGHC+uf875YtnrNdHXQxQZggTBAmCBOECcIEYYIwQZggTBAmCBOECcIEYYIwQZggTBAmCBOECcIEYYIwQZggTBAmCBOECcIEYYIwQZggTBAmCBOECcKE2XvxORcThAnCBGGCMEGYIEwQJggThAnCBGGCMEGYsANgrAmFMBXq1AAAAABJRU5ErkJggg==" alt="BCT">
+  <div>
+    <div class="ttl">BCT Inspection Certificate Builder</div>
+    <div class="sub">SMIF1000 · [R]DPS2 MINI ENVIRONMENT COVER · REPAIR</div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn primary" id="btnPdf">PDF 다운로드</button>
+</div>
+<div class="note-bar">값을 입력하거나 사진/서명 파일을 선택하면 우측 성적서가 실시간으로 채워집니다. 완성 후 상단의 <span class="en-inline">PDF</span> 다운로드 버튼을 사용하세요.</div>
+
+<div class="layout">
+
+  <!-- ===================== LEFT: INPUT PANEL ===================== -->
+  <div class="panel" id="panel">
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">01</span><span class="pgroup-title">기본정보</span></div>
+      <div class="field-row">
+        <div class="field"><label>고객사 (CUSTOMER)</label><input type="text" id="f_customer"></div>
+        <div class="field"><label>담당자 (PERSON IN CHARGE)</label><input type="text" id="f_contact"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>BCT ERP 제품코드</label><input type="text" id="f_erpcode"></div>
+        <div class="field"><label>규격 / JOB NO</label><input type="text" id="f_jobno"></div>
+      </div>
+      <div class="field-row">
+        <div class="field full"><label>제품명 (DESCRIPTION)</label><input type="text" id="f_product"></div>
+      </div>
+      <div class="field-row">
+        <div class="field full"><label>Serial Number</label><input type="text" id="f_serial" placeholder="없으면 공란"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>입고일 (RECEIVED)</label><input type="date" id="f_received"></div>
+        <div class="field"><label>작업완료일 (WORK COMPLETED)</label><input type="date" id="f_shipped"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>작업자 (OPERATOR)</label><input type="text" id="f_operator"></div>
+        <div class="field"><label>검사자 (INSPECTOR)</label><input type="text" id="f_inspector"></div>
+      </div>
+      <div class="field-row">
+        <div class="field full"><label>문서번호 (작업완료일 기준 자동생성)</label><input type="text" id="f_docno" disabled></div>
+      </div>
+    </div>
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">02</span><span class="pgroup-title"><span class="en-inline">Incoming Inspection</span> (입고 검사)</span></div>
+      <div id="incomingRows"></div>
+    </div>
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">03</span><span class="pgroup-title">사진 증빙</span><span class="pgroup-note">입고 3 · 출고 3</span></div>
+      <div class="pgroup-sub">입고 사진 <span class="en-inline">(RECEIVING)</span></div>
+      <div class="photo-stack" id="photoStackIn"></div>
+      <div class="pgroup-sub">출고 사진 <span class="en-inline">(SHIPPING)</span></div>
+      <div class="photo-stack" id="photoStackOut"></div>
+    </div>
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">04</span><span class="pgroup-title">교체부품 리스트 <span class="en-inline">(BOM)</span></span>
+        <span class="tools"><button type="button" class="mini-btn" id="btnAllBom">전체 교체</button><button type="button" class="mini-btn" id="btnClearBom">초기화</button></span>
+      </div>
+      <div class="bom-head-row"><span>품목 (BOM)</span><span>BOM수량</span><span>교체수량</span><span>비고</span></div>
+      <div id="bomRows"></div>
+    </div>
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">05</span><span class="pgroup-title">최종검사 <span class="en-inline">(Final Inspection)</span></span></div>
+      <div id="finalRows"></div>
+      <div class="field-row" style="margin-top:10px;">
+        <div class="field full"><label>COMMENT (비고)</label><textarea id="f_comment"></textarea></div>
+      </div>
+      <div class="overall-box pending" id="overallBox">
+        <div class="dot2"></div>
+        <div><div class="t1" id="overallT1">미완료</div><div class="t2" id="overallT2"></div></div>
+      </div>
+    </div>
+
+    <div class="pgroup">
+      <div class="pgroup-head"><span class="pgroup-num">06</span><span class="pgroup-title">서명</span></div>
+      <div class="field-row">
+        <div class="photo-upload"><div class="thumb" id="thumb_sig_operator"><img></div><div class="meta"><div class="lbl">작업자 서명</div><input type="file" accept="image/*" id="f_sig_operator"></div></div>
+        <div class="photo-upload"><div class="thumb" id="thumb_sig_inspector"><img></div><div class="meta"><div class="lbl">검사자 서명</div><input type="file" accept="image/*" id="f_sig_inspector"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="resizer" id="panelResizer" title="드래그하여 패널 크기 조절"></div>
+
+  <!-- ===================== RIGHT: A4 PREVIEW ===================== -->
+  <div class="preview-wrap">
+
+    <div class="view-toolbar">
+      <div class="seg" id="viewModeSeg">
+        <button type="button" class="seg-btn active" data-mode="fit">1페이지 보기</button>
+        <button type="button" class="seg-btn" data-mode="fill">횡채우기</button>
+      </div>
+      <div class="page-nav" id="pageNav">
+        <button type="button" id="prevPageBtn">&lsaquo;</button>
+        <span id="pageIndicator">1 / 2</span>
+        <button type="button" id="nextPageBtn">&rsaquo;</button>
+      </div>
+    </div>
+
+    <div class="pages-viewport" id="pagesViewport">
+
+      <div class="page-sheet-wrap" data-page="1">
+        <span class="page-tag">PAGE 1</span>
+        <div class="a4-sheet" id="a4sheet_p1">
+
+          <div class="doc-head">
+            <div class="brand"><img src="data:image/png;base64,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" alt="BCT"></div>
+            <div class="title">
+              <h1>최종 수리검사성적서</h1>
+              <div class="en">FINAL INSPECTION REPORT &middot; REPAIR</div>
+            </div>
+            <div class="docinfo">
+              <div><span class="k">문서번호</span> &nbsp;<b id="p_docno">-</b></div>
+              <div><span class="k">품&nbsp;&nbsp;&nbsp;번</span> &nbsp;<span id="p_hdr_code">-</span></div>
+              <div><span class="k">발행일</span> &nbsp;<span id="p_issuedate">-</span></div>
+            </div>
+          </div>
+
+          <div class="sec-title"><span class="num">01</span>기본정보<span class="en">BASIC INFORMATION</span></div>
+          <div class="info-grid g6">
+            <div class="info-cell s2"><div class="lbl">고객사 <span class="en">CUSTOMER</span></div><div class="val" id="p_customer">-</div></div>
+            <div class="info-cell s2"><div class="lbl">담당자 <span class="en">PERSON IN CHARGE</span></div><div class="val ko" id="p_contact">-</div></div>
+            <div class="info-cell s2"><div class="lbl">규격 <span class="en">SPEC / JOB NO</span></div><div class="val" id="p_jobno">-</div></div>
+            <div class="info-cell s2"><div class="lbl"><span class="en-inline">ERP</span> 제품코드 <span class="en">PRODUCT CODE</span></div><div class="val" id="p_erpcode">-</div></div>
+            <div class="info-cell s4"><div class="lbl">제품명 <span class="en">DESCRIPTION</span></div><div class="val sm" id="p_product">-</div></div>
+            <div class="info-cell s2"><div class="lbl"><span class="en-inline">Serial Number</span></div><div class="val" id="p_serial">-</div></div>
+            <div class="info-cell s2"><div class="lbl">입고일 <span class="en">RECEIVED (IN)</span></div><div class="val" id="p_received">-</div></div>
+            <div class="info-cell s2"><div class="lbl">작업완료일 <span class="en">WORK COMPLETED</span></div><div class="val" id="p_shipped">-</div></div>
+            <div class="info-cell s3"><div class="lbl">작업자 <span class="en">OPERATOR</span></div><div class="val ko" id="p_operator">-</div></div>
+            <div class="info-cell s3"><div class="lbl">검사자 <span class="en">INSPECTOR</span></div><div class="val ko" id="p_inspector">-</div></div>
+          </div>
+
+          <div class="sec-title"><span class="num">02</span><span class="en-inline">Incoming Inspection</span><span class="en">입고 검사</span></div>
+          <table class="check-table" id="p_incomingTable"></table>
+
+          <div class="sec-title"><span class="num">03</span>사진 증빙<span class="en">PHOTOGRAPHIC EVIDENCE</span></div>
+
+          <div class="photo-group">
+            <div class="photo-group-head"><span class="dot"></span><span class="name">입고 사진</span><span class="en">RECEIVING PHOTOS</span></div>
+            <div class="photo-grid g3" id="p_gridIn"></div>
+          </div>
+
+          <div class="photo-group">
+            <div class="photo-group-head"><span class="dot"></span><span class="name">출고 사진</span><span class="en">SHIPPING PHOTOS</span></div>
+            <div class="photo-grid g3" id="p_gridOut"></div>
+          </div>
+
+          <div class="doc-foot">
+            <span>BCT &middot; ㈜비씨테크 — Quality Assurance Document</span>
+            <span>PAGE 1 / 2</span>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="page-sheet-wrap" data-page="2">
+        <span class="page-tag">PAGE 2</span>
+        <div class="a4-sheet" id="a4sheet_p2">
+
+          <div class="sec-title"><span class="num">04</span>교체부품 리스트<span class="en">REPLACED PARTS LIST (BOM)</span></div>
+          <table class="check-table bom-table" id="p_bomTable"></table>
+
+          <div class="sec-title"><span class="num">05</span>최종검사<span class="en">FINAL INSPECTION</span></div>
+          <table class="check-table" id="p_finalTable"></table>
+          <div class="remarks-box"><b>COMMENT</b><span id="p_comment">-</span></div>
+
+          <div class="stamp pending" id="p_stamp">PENDING<span class="ko">판정 대기중</span></div>
+
+          <div class="sign-grid">
+            <div class="sign-box">
+              <div class="role">작업자 확인 <span style="font-family:var(--font-mono);font-weight:400;font-size:8px;color:var(--steel-soft);">OPERATOR</span></div>
+              <div class="line"><span class="name" id="p_sig_operator_name">-</span><span class="sig-slot" id="p_sig_operator_slot"><span class="stampcircle"></span></span></div>
+              <div class="date" id="p_sig_operator_date">-</div>
+            </div>
+            <div class="sign-box">
+              <div class="role">검사자 승인 <span style="font-family:var(--font-mono);font-weight:400;font-size:8px;color:var(--steel-soft);">INSPECTOR</span></div>
+              <div class="line"><span class="name" id="p_sig_inspector_name">-</span><span class="sig-slot" id="p_sig_inspector_slot"><span class="stampcircle"></span></span></div>
+              <div class="date" id="p_sig_inspector_date">-</div>
+            </div>
+          </div>
+
+          <div class="doc-foot">
+            <span>BCT &middot; ㈜비씨테크 — Quality Assurance Document</span>
+            <span id="p_footstate">-</span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+
+  function todayStr(){
+    var d = new Date();
+    function p(n){ return (n<10?"0":"") + n; }
+    return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate());
+  }
+
+  // ---------- master data ----------
+  // BOM : SMIF1000 [R]DPS2 MINI ENVIRONMENT COVER (MEA2214R) — ERP 정전개
+  var BOM = [
+    { code:"SMIF0001", name:"SMIF_MC_BLOCK_NYLON",         spec:"B022-000-01-A", unit:"EA", qty:2 },
+    { code:"SMIF0002", name:"SMIF_ROD_SUS",                spec:"B022-000-02-A", unit:"EA", qty:2 },
+    { code:"SMIF0003", name:"SMIF_MC_BLOCK_NYLON",         spec:"B022-000-03-A", unit:"EA", qty:4 },
+    { code:"SMIF0004", name:"SMIF_MC_BLOCK_NYLON",         spec:"B022-000-04-A", unit:"EA", qty:2 },
+    { code:"SMIF0005", name:"SMIF_PIN_SUS",                spec:"B022-000-05-A", unit:"EA", qty:2 },
+    { code:"SMIF0006", name:"SMIF_COVER_SMOKE ACRYLIC",    spec:"B022-000-06-A", unit:"EA", qty:2 },
+    { code:"SMIF0007", name:"SMIF_SPRING STEEL_SUS PLATE", spec:"B022-000-07-A", unit:"EA", qty:4 },
+    { code:"SMIF0008", name:"SMIF_TEFLON COATING",         spec:"OS-JYT",        unit:"EA", qty:2 },
+    { code:"SMIF0009", name:"SMIF_E-2.5_E-RING_STAINLESS", spec:"E-2.5",         unit:"EA", qty:4 },
+    { code:"SMIF0010", name:"SMIF_MINIATURE BEARING",      spec:"691XZZ",        unit:"EA", qty:4 }
+  ];
+
+  var INCOMING_ITEMS = [
+    { key:"broken",    nameHtml:"부품 결품 · 파손 점검",      en:"CHECK MISSING OR BROKEN PARTS",       method:"Visual" },
+    { key:"scratch",   nameHtml:"외부 스크래치 점검",         en:"EXTERNAL SCRATCH CHECK", method:"Visual" },
+    { key:"pollution", nameHtml:"오염상태점검",               en:"POWDER OR POLLUTION CHECK",           method:"Visual" }
+  ];
+  var FINAL_ITEMS = [
+    { key:"fscratch", nameHtml:"스크래치 상태점검", en:"APPEARANCE &middot; NO SCRATCH",       method:"Visual" },
+    { key:"fmissing", nameHtml:"빠진 부품 확인",    en:"APPEARANCE &middot; NO MISSING PARTS", method:"Visual" }
+  ];
+  var PHOTO_SLOTS = {
+    "in":  [ {key:"in1",  cap:"입고 사진 1"}, {key:"in2",  cap:"입고 사진 2"}, {key:"in3",  cap:"입고 사진 3"} ],
+    "out": [ {key:"out1", cap:"출고 사진 1"}, {key:"out2", cap:"출고 사진 2"}, {key:"out3", cap:"출고 사진 3"} ]
+  };
+
+  var state = {
+    basic: {
+      customer:"DBHITEK", contact:"손봉균 수석님",
+      erpcode:"SMIF1000", jobno:"MEA2214R",
+      product:"[R]DPS2 MINI ENVIRONMENT COVER",
+      serial:"", received:"", shipped:todayStr(), operator:"", inspector:""
+    },
+    incoming: { broken:{judge:"",remark:""}, scratch:{judge:"",remark:""}, pollution:{judge:"",remark:""} },
+    photos: {}, captions: {},
+    bom: {},
+    final: { fscratch:{judge:"",remark:""}, fmissing:{judge:"",remark:""} },
+    comment: "",
+    sign: { operator:null, inspector:null }
+  };
+  BOM.forEach(function(b){ state.bom[b.code] = { change:0, remark:"" }; });
+  PHOTO_SLOTS["in"].concat(PHOTO_SLOTS["out"]).forEach(function(s){ state.photos[s.key] = null; state.captions[s.key] = s.cap; });
+
+  function escHtml(s){
+    return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function enInline(s){
+    var esc = escHtml(s);
+    return esc.replace(/[A-Za-z0-9][A-Za-z0-9().,%/+\-]*(?:\s[A-Za-z0-9][A-Za-z0-9().,%/+\-]*)*/g, function(m){
+      return '<span class="en-inline">' + m + '</span>';
+    });
+  }
+  function fmtDate(v){ return v ? v.replace(/-/g,".") : "-"; }
+  function badgeHtml(j){
+    return j === "ok" ? '<span class="badge pass">OK <span class="ko">양호</span></span>' :
+           j === "ng" ? '<span class="badge fail">NG <span class="ko">이상</span></span>' :
+           j === "na" ? '<span class="badge na">N/A <span class="ko">해당없음</span></span>' :
+                        '<span class="badge pending">- <span class="ko">미입력</span></span>';
+  }
+
+  // ---------- check rows (panel) ----------
+  function buildRows(container, items, stateMap, allowNa){
+    items.forEach(function(item){
+      var row = document.createElement("div");
+      row.className = "check-row";
+      row.innerHTML =
+        '<div><span class="name">' + item.nameHtml + '</span><span class="spec">' + item.en + '</span></div>' +
+        '<select><option value="">선택</option><option value="ok">양호</option><option value="ng">이상</option>' + (allowNa ? '<option value="na">해당없음</option>' : '') + '</select>' +
+        '<input type="text" placeholder="비고">';
+      container.appendChild(row);
+      var sel = row.querySelector("select");
+      function paint(){ sel.classList.toggle("v-ok", sel.value === "ok"); sel.classList.toggle("v-ng", sel.value === "ng"); }
+      sel.value = stateMap[item.key].judge; paint();
+      sel.addEventListener("change", function(){ stateMap[item.key].judge = sel.value; paint(); render(); });
+      var rem = row.querySelector("input[type=text]");
+      rem.value = stateMap[item.key].remark;
+      rem.addEventListener("input", function(){ stateMap[item.key].remark = rem.value; render(); });
+    });
+  }
+  buildRows($("incomingRows"), INCOMING_ITEMS, state.incoming, true);
+  buildRows($("finalRows"), FINAL_ITEMS, state.final, false);
+
+  // ---------- BOM rows (panel) ----------
+  var bomInputs = {};
+  BOM.forEach(function(b){
+    var row = document.createElement("div");
+    row.className = "bom-row";
+    row.innerHTML =
+      '<div class="nm"><span class="c">' + b.code + '</span><span class="n">' + escHtml(b.name) + ' · ' + escHtml(b.spec) + '</span></div>' +
+      '<div class="bq">' + b.qty + '</div>' +
+      '<input type="number" min="0" max="' + b.qty + '" step="1">' +
+      '<input type="text" placeholder="비고">';
+    $("bomRows").appendChild(row);
+    var num = row.querySelector("input[type=number]");
+    var rem = row.querySelector("input[type=text]");
+    bomInputs[b.code] = num;
+    num.value = state.bom[b.code].change;
+    function paint(){ num.classList.toggle("has", (parseInt(num.value,10) || 0) > 0); }
+    paint();
+    num.addEventListener("input", function(){
+      var v = parseInt(num.value, 10);
+      if (isNaN(v) || v < 0) v = 0;
+      if (v > b.qty) v = b.qty;
+      state.bom[b.code].change = v;
+      paint(); render();
+    });
+    num.addEventListener("blur", function(){ num.value = state.bom[b.code].change; });
+    rem.addEventListener("input", function(){ state.bom[b.code].remark = rem.value; render(); });
+  });
+  function setAllBom(full){
+    BOM.forEach(function(b){
+      state.bom[b.code].change = full ? b.qty : 0;
+      bomInputs[b.code].value = state.bom[b.code].change;
+      bomInputs[b.code].classList.toggle("has", full);
+    });
+    render();
+  }
+  $("btnAllBom").addEventListener("click", function(){ setAllBom(true); });
+  $("btnClearBom").addEventListener("click", function(){ setAllBom(false); });
+
+  // ---------- image helpers ----------
+  function readPhoto(file, cb){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var MAX = 1600, s = Math.min(1, MAX / Math.max(img.width, img.height));
+        var c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.width * s));
+        c.height = Math.max(1, Math.round(img.height * s));
+        var ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        cb(c.toDataURL("image/jpeg", 0.88));
+      };
+      img.onerror = function(){ cb(e.target.result); };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  function readRaw(file, cb){
+    var reader = new FileReader();
+    reader.onload = function(e){ cb(e.target.result); };
+    reader.readAsDataURL(file);
+  }
+
+  // ---------- photo uploaders (panel) ----------
+  function buildPhotoUploaders(container, slots){
+    slots.forEach(function(s){
+      var box = document.createElement("div");
+      box.className = "photo-upload";
+      box.innerHTML =
+        '<div class="thumb"><img alt=""></div>' +
+        '<div class="meta"><input type="text" class="cap-in" placeholder="사진 설명">' +
+        '<div class="frow"><input type="file" accept="image/*"><button type="button" class="mini-btn">삭제</button></div></div>';
+      container.appendChild(box);
+      var img = box.querySelector("img"), cap = box.querySelector(".cap-in"),
+          file = box.querySelector("input[type=file]"), del = box.querySelector(".mini-btn");
+      cap.value = state.captions[s.key];
+      cap.addEventListener("input", function(){ state.captions[s.key] = cap.value; render(); });
+      file.addEventListener("change", function(){
+        var f = file.files && file.files[0];
+        if (!f) return;
+        readPhoto(f, function(url){ state.photos[s.key] = url; img.src = url; render(); });
+      });
+      del.addEventListener("click", function(){
+        state.photos[s.key] = null; img.removeAttribute("src"); file.value = ""; render();
+      });
+    });
+  }
+  buildPhotoUploaders($("photoStackIn"), PHOTO_SLOTS["in"]);
+  buildPhotoUploaders($("photoStackOut"), PHOTO_SLOTS["out"]);
+
+  // ---------- signature upload ----------
+  function wireSig(fileId, thumbId, key){
+    $(fileId).addEventListener("change", function(){
+      var f = $(fileId).files && $(fileId).files[0];
+      if (!f) return;
+      readRaw(f, function(url){ state.sign[key] = url; $(thumbId).querySelector("img").src = url; render(); });
+    });
+  }
+  wireSig("f_sig_operator", "thumb_sig_operator", "operator");
+  wireSig("f_sig_inspector", "thumb_sig_inspector", "inspector");
+
+  // ---------- basic field wiring ----------
+  var BASIC_IDS = ["customer","contact","erpcode","jobno","product","serial","received","shipped","operator","inspector"];
+  BASIC_IDS.forEach(function(k){
+    var el = $("f_" + k);
+    el.value = state.basic[k];
+    el.addEventListener("input", function(){ state.basic[k] = el.value; render(); });
+  });
+  $("f_comment").addEventListener("input", function(){ state.comment = $("f_comment").value; render(); });
+
+  // ---------- render ----------
+  function photoGridHtml(slots){
+    return slots.map(function(s){
+      var url = state.photos[s.key];
+      var inner = url ? '<img src="' + url + '" alt="">' : '<span class="ph">사진 없음<br>NO PHOTO</span>';
+      return '<div class="photo-item"><div class="photo-box">' + inner + '</div><div class="cap">' + enInline(state.captions[s.key] || "") + '</div></div>';
+    }).join("");
+  }
+
+  function checkTable(items, stateMap){
+    var head = '<tr><th style="width:27%;">검사항목</th><th style="width:11%;">방법</th><th style="width:15%;">판정</th><th>비고</th></tr>';
+    var body = "";
+    items.forEach(function(item){
+      var c = stateMap[item.key];
+      body += '<tr><td class="item" style="width:27%;">' + item.nameHtml + '<small>' + item.en + '</small></td>' +
+              '<td class="method">' + item.method + '</td>' +
+              '<td class="judge">' + badgeHtml(c.judge) + '</td>' +
+              '<td class="remark">' + enInline(c.remark || "") + '</td></tr>';
+    });
+    return { head: head, body: body };
+  }
+
+  function render(){
+    var b = state.basic;
+    var docNo = b.shipped ? ("BCT-TI-" + (b.erpcode || "SMIF1000") + "-" + b.shipped.replace(/-/g,"")) : "BCT-TI-(작업완료일 입력 필요)";
+    $("f_docno").value = docNo;
+    $("p_docno").textContent = docNo;
+    $("p_hdr_code").textContent = b.erpcode || "-";
+    $("p_issuedate").textContent = fmtDate(b.shipped);
+
+    $("p_customer").innerHTML = enInline(b.customer || "-");
+    $("p_contact").innerHTML = enInline(b.contact || "-");
+    $("p_jobno").innerHTML = enInline(b.jobno || "-");
+    $("p_erpcode").innerHTML = enInline(b.erpcode || "-");
+    $("p_product").textContent = b.product || "-";
+    $("p_serial").textContent = b.serial || "-";
+    $("p_received").textContent = fmtDate(b.received);
+    $("p_shipped").textContent = fmtDate(b.shipped);
+    $("p_operator").innerHTML = enInline(b.operator || "-");
+    $("p_inspector").innerHTML = enInline(b.inspector || "-");
+
+    var inc = checkTable(INCOMING_ITEMS, state.incoming);
+    $("p_incomingTable").innerHTML = inc.head + inc.body;
+
+    $("p_gridIn").innerHTML = photoGridHtml(PHOTO_SLOTS["in"]);
+    $("p_gridOut").innerHTML = photoGridHtml(PHOTO_SLOTS["out"]);
+
+    // BOM table
+    var bhead = '<tr><th style="width:5%;">No.</th><th style="width:12%;">품목코드</th><th style="width:27%;">품목명</th><th style="width:15%;">규격</th><th style="width:9%;">BOM수량</th><th style="width:9%;">교체수량</th><th>비고</th></tr>';
+    var bbody = "", sumBase = 0, sumChg = 0, kinds = 0;
+    BOM.forEach(function(p, i){
+      var s = state.bom[p.code];
+      sumBase += p.qty; sumChg += s.change; if (s.change > 0) kinds++;
+      var st = s.change >= p.qty ? '<span class="st-all">전수교체</span>' :
+               s.change > 0 ? '<span class="st-part">부분교체</span>' : '<span class="st-none">교체없음</span>';
+      var rm = s.remark ? ' <span style="color:var(--steel);">· ' + enInline(s.remark) + '</span>' : "";
+      bbody += '<tr class="' + (s.change > 0 ? "replaced" : "") + '">' +
+        '<td class="no">' + (i+1) + '</td>' +
+        '<td class="code">' + p.code + '</td>' +
+        '<td class="pname">' + escHtml(p.name) + '</td>' +
+        '<td class="spec">' + escHtml(p.spec) + '</td>' +
+        '<td class="qty">' + p.qty + ' <span class="u">' + p.unit + '</span></td>' +
+        '<td class="qty chg">' + s.change + ' <span class="u">' + p.unit + '</span></td>' +
+        '<td class="st">' + st + rm + '</td></tr>';
+    });
+    bbody += '<tr class="total"><td colspan="4" style="text-align:right;">합계 <span style="font-family:var(--font-mono);font-weight:500;font-size:8px;color:var(--steel-soft);">TOTAL</span></td>' +
+             '<td class="qty">' + sumBase + ' <span class="u">EA</span></td><td class="qty chg">' + sumChg + ' <span class="u">EA</span></td>' +
+             '<td class="st">교체 품목 ' + kinds + ' / ' + BOM.length + '</td></tr>';
+    $("p_bomTable").innerHTML = bhead + bbody;
+
+    // final table
+    var fin = checkTable(FINAL_ITEMS, state.final);
+    var allFilled = true, anyNg = false;
+    FINAL_ITEMS.forEach(function(item){
+      var j = state.final[item.key].judge;
+      if (j === "") allFilled = false;
+      if (j === "ng") anyNg = true;
+    });
+    var overall = anyNg ? "reject" : (allFilled ? "accept" : "pending");
+    var overallBadge = overall === "accept" ? '<span class="badge pass">ACCEPT <span class="ko">합격</span></span>' :
+                       overall === "reject" ? '<span class="badge fail">REJECT <span class="ko">불합격</span></span>' :
+                       '<span class="badge pending">- <span class="ko">미입력</span></span>';
+    var overallRemark = overall === "accept" ? "최종 출하 가능 상태" : overall === "reject" ? "불합격 항목 확인 필요" : "최종검사 항목 입력 대기중";
+    var ftotal = '<tr><td class="item" style="width:27%;">종합판정<small>OVERALL ACCEPTANCE</small></td><td class="method">-</td><td class="judge">' + overallBadge + '</td><td class="remark">' + overallRemark + '</td></tr>';
+    $("p_finalTable").innerHTML = fin.head + fin.body + ftotal;
+    $("p_comment").innerHTML = enInline(state.comment || "-");
+
+    var ob = $("overallBox");
+    ob.className = "overall-box " + overall;
+    if (overall === "accept"){ $("overallT1").innerHTML = '합격 (<span class="en-inline">ACCEPT</span>)'; $("overallT2").innerHTML = "최종검사 전 항목이 양호로 확인되었습니다"; }
+    else if (overall === "reject"){ $("overallT1").innerHTML = '불합격 (<span class="en-inline">REJECT</span>)'; $("overallT2").innerHTML = enInline("이상 항목이 있습니다 — COMMENT에 조치내용을 기록하세요"); }
+    else { $("overallT1").textContent = "미완료"; $("overallT2").textContent = "최종검사 " + FINAL_ITEMS.length + "항목이 모두 입력되면 자동 판정됩니다"; }
+
+    var stampEl = $("p_stamp");
+    stampEl.className = "stamp " + overall;
+    stampEl.innerHTML = overall === "accept" ? 'ACCEPT<span class="ko">합격</span>' :
+                        overall === "reject" ? 'REJECT<span class="ko">불합격</span>' :
+                        'PENDING<span class="ko">판정 대기중</span>';
+    $("p_footstate").textContent = (overall === "accept" ? "ACCEPTED" : overall === "reject" ? "REJECTED" : "IN PROGRESS") + " · PAGE 2 / 2";
+
+    function sigRender(key, nameId, slotId, dateId, nameVal){
+      $(nameId).innerHTML = enInline(nameVal || "-");
+      var slot = $(slotId);
+      if (state.sign[key]){
+        slot.innerHTML = '<img src="' + state.sign[key] + '" style="height:34px;max-width:92px;object-fit:contain;">';
+      } else {
+        slot.innerHTML = '<span class="stampcircle"></span>';
+      }
+      $(dateId).textContent = fmtDate(b.shipped);
+    }
+    sigRender("operator", "p_sig_operator_name", "p_sig_operator_slot", "p_sig_operator_date", b.operator);
+    sigRender("inspector", "p_sig_inspector_name", "p_sig_inspector_slot", "p_sig_inspector_date", b.inspector);
+
+    applyViewMode();
+  }
+
+  // ---------- page view mode (1페이지 보기 / 횡채우기) ----------
+  var viewState = { mode:"fit", page:1 };
+
+  function applyViewMode(){
+    var viewport = $("pagesViewport");
+    if (!viewport) return;
+    var wraps = Array.prototype.slice.call(document.querySelectorAll(".page-sheet-wrap"));
+    if (!wraps.length) return;
+
+    wraps.forEach(function(w){ w.style.display = "block"; w.style.width = ""; w.style.height = ""; });
+
+    var isMobile = window.innerWidth <= 980;
+    var effectiveMode = isMobile ? "fill" : viewState.mode;
+
+    var vw = viewport.clientWidth;
+    var vh = viewport.clientHeight;
+    $("pageNav").style.display = effectiveMode === "fit" ? "flex" : "none";
+
+    wraps.forEach(function(wrap, idx){
+      var sheet = wrap.querySelector(".a4-sheet");
+      sheet.style.transform = "none";
+      var natW = sheet.offsetWidth || 1;
+      var natH = sheet.offsetHeight || 1;
+      var scale;
+      if (effectiveMode === "fit"){
+        scale = Math.min((vw - 8) / natW, (vh - 8) / natH, 1.6);
+      } else {
+        scale = Math.min((vw - 8) / natW, 2.4);
+      }
+      if (!isFinite(scale) || scale <= 0) scale = 1;
+      sheet.style.transform = "scale(" + scale + ")";
+      wrap.style.width = Math.round(natW * scale) + "px";
+      wrap.style.height = Math.round(natH * scale) + "px";
+      if (effectiveMode === "fit"){
+        wrap.style.display = (idx === viewState.page - 1) ? "block" : "none";
+      }
+    });
+
+    $("pageIndicator").textContent = viewState.page + " / " + wraps.length;
+    $("prevPageBtn").disabled = viewState.page <= 1;
+    $("nextPageBtn").disabled = viewState.page >= wraps.length;
+  }
+
+  var rafPending = false;
+  function scheduleApplyViewMode(){
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(function(){ rafPending = false; applyViewMode(); });
+  }
+
+  document.querySelectorAll("#viewModeSeg .seg-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      document.querySelectorAll("#viewModeSeg .seg-btn").forEach(function(x){ x.classList.remove("active"); });
+      btn.classList.add("active");
+      viewState.mode = btn.getAttribute("data-mode");
+      applyViewMode();
+    });
+  });
+  $("prevPageBtn").addEventListener("click", function(){
+    if (viewState.page > 1){ viewState.page--; applyViewMode(); }
+  });
+  $("nextPageBtn").addEventListener("click", function(){
+    var total = document.querySelectorAll(".page-sheet-wrap").length;
+    if (viewState.page < total){ viewState.page++; applyViewMode(); }
+  });
+  window.addEventListener("resize", scheduleApplyViewMode);
+  if (document.fonts && document.fonts.ready){ document.fonts.ready.then(function(){ applyViewMode(); }); }
+  setTimeout(applyViewMode, 400);
+
+  render();
+
+  // ---------- panel resizer ----------
+  (function(){
+    var resizer = $("panelResizer");
+    var dragging = false;
+    resizer.addEventListener("pointerdown", function(e){
+      dragging = true;
+      resizer.classList.add("dragging");
+      try{ resizer.setPointerCapture(e.pointerId); }catch(err){}
+    });
+    resizer.addEventListener("pointermove", function(e){
+      if (!dragging) return;
+      var min = 360, max = Math.min(window.innerWidth * 0.72, window.innerWidth - 320);
+      var w = Math.max(min, Math.min(max, e.clientX));
+      document.documentElement.style.setProperty("--panel-w", w + "px");
+      scheduleApplyViewMode();
+    });
+    function stopDrag(){ dragging = false; resizer.classList.remove("dragging"); applyViewMode(); }
+    resizer.addEventListener("pointerup", stopDrag);
+    resizer.addEventListener("pointercancel", stopDrag);
+    window.addEventListener("pointerup", stopDrag);
+  })();
+
+  // ---------- pdf export ----------
+  $("btnPdf").addEventListener("click", function(){
+    var fname = ($("f_docno").value || "BCT-TI-SMIF1000").replace(/[^a-zA-Z0-9-_]/g,"_") + ".pdf";
+    if (!window.html2pdf){
+      alert('PDF 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인한 후 다시 시도해주세요.');
+      return;
+    }
+    var sheets = Array.prototype.slice.call(document.querySelectorAll(".a4-sheet"));
+    // ※ html2pdf.js는 넘겨준 요소를 복제해 자체 컨테이너에 넣는다. position:fixed/absolute 같은
+    //   인라인 위치 지정이 복제되면 컨테이너 높이가 0으로 무너져 빈 PDF가 나오므로,
+    //   exportWrap에는 위치 스타일을 주지 않고 DOM에 붙이지도 않은 채 그대로 전달한다.
+    var exportWrap = document.createElement("div");
+    exportWrap.style.width = "210mm";
+    exportWrap.style.background = "#fff";
+    sheets.forEach(function(sheet, i){
+      var clone = sheet.cloneNode(true);
+      clone.style.transform = "none";
+      clone.style.width = "210mm";
+      // 297mm 정확히 맞추면 반올림(1123px)으로 1px 넘쳐 빈 페이지가 끼므로 살짝 작게 고정
+      clone.style.minHeight = "0";
+      clone.style.height = "296mm";
+      clone.style.overflow = "hidden";
+      clone.style.boxShadow = "none";
+      clone.style.margin = "0";
+      if (i < sheets.length - 1){
+        clone.style.breakAfter = "page";
+        clone.style.pageBreakAfter = "always";
+      }
+      exportWrap.appendChild(clone);
+    });
+    var opt = {
+      margin: 0, filename: fname,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2.5, useCORS: true, backgroundColor: "#ffffff", scrollX: 0, scrollY: 0 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css", "legacy"] }
+    };
+    var ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    ready.then(function(){
+      return html2pdf().set(opt).from(exportWrap).save();
+    }).catch(function(err){
+      alert("PDF 생성 중 오류가 발생했습니다: " + (err && err.message ? err.message : err));
+    });
+  });
+})();
+</script>
+</body>
+</html>

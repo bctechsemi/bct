@@ -83,6 +83,7 @@ input,select,textarea{ font-family:inherit; }
 .check-row{ display:grid; grid-template-columns:1fr 84px 1fr; gap:8px; align-items:center; padding:9px 0; border-bottom:1px solid var(--hairline); }
 .check-row:last-child{ border-bottom:none; }
 .check-row .name{ font-family:var(--font-ko); font-size:12px; font-weight:600; }
+.check-row .speckr{ word-break:keep-all; display:block; font-family:var(--font-ko); font-size:10.5px; font-weight:600; color:var(--primary-deep); margin-top:3px; line-height:1.4; }
 .check-row .spec{ font-family:var(--font-mono); font-size:9.5px; color:var(--steel-soft); display:block; margin-top:2px; }
 .check-row select{ padding:6px 4px; font-size:11.5px; border:1.5px solid var(--hairline-strong); border-radius:8px; background:#fff; }
 .check-row select.v-ng{ border-color:var(--risk); color:var(--risk); font-weight:700; background:var(--risk-pale); }
@@ -162,6 +163,7 @@ table.check-table{ width:100%; border-collapse:collapse; font-size:10px; margin-
 table.check-table th{ background:var(--primary); color:#fff; padding:6px 8px; border:1px solid var(--primary-deep); font-weight:700; font-family:var(--font-en); font-size:9.5px; }
 table.check-table td{ border:1px solid var(--hairline-strong); padding:4px 7px; vertical-align:middle; }
 table.check-table td.item{ font-family:var(--font-ko); font-weight:700; font-size:11px; width:19%; background:var(--surface); }
+table.check-table td.item small.speckr{ word-break:keep-all; font-family:var(--font-ko); font-weight:600; font-size:8.4px; color:var(--primary-deep); line-height:1.4; margin-top:3px; }
 table.check-table td.item small{ display:block; font-family:var(--font-mono); font-weight:400; color:var(--steel-soft); font-size:7.6px; margin-top:2px; }
 table.check-table td.judge{ width:15%; text-align:center; }
 table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-size:10px; }
@@ -276,10 +278,10 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
         <div class="photo-upload"><div class="thumb" id="thumb_top"><img></div><div class="meta"><div class="lbl">입고 상태</div><input type="file" accept="image/*" id="f_photo_top"></div></div>
         <div class="photo-upload"><div class="thumb" id="thumb_bot"><img></div><div class="meta"><div class="lbl">분해 부품</div><input type="file" accept="image/*" id="f_photo_bot"></div></div>
       </div>
-      <div class="pgroup-sub"><span class="en-inline">Gate Ring Grease</span> 미도포 확인 / <span class="en-inline">Leak Check</span> 결과</div>
+      <div class="pgroup-sub"><span class="en-inline">Gate Ring Grease</span> 미도포 확인 / <span class="en-inline">Leak Test</span> 결과</div>
       <div class="field-row">
         <div class="photo-upload"><div class="thumb" id="thumb_grease"><img></div><div class="meta"><div class="lbl"><span class="en-inline">Grease</span> 미도포</div><input type="file" accept="image/*" id="f_photo_grease"></div></div>
-        <div class="photo-upload"><div class="thumb" id="thumb_leak"><img></div><div class="meta"><div class="lbl"><span class="en-inline">Leak Check</span> 결과</div><input type="file" accept="image/*" id="f_photo_leak"></div></div>
+        <div class="photo-upload"><div class="thumb" id="thumb_leak"><img></div><div class="meta"><div class="lbl"><span class="en-inline">Leak Test</span> 결과</div><input type="file" accept="image/*" id="f_photo_leak"></div></div>
       </div>
     </div>
 
@@ -370,10 +372,10 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
           </div>
 
           <div class="photo-group">
-            <div class="photo-group-head"><span class="dot"></span><span class="name"><span class="en-inline">Gate Ring Grease</span> 미도포 확인 / <span class="en-inline">Leak Check</span> 결과 사진</span><span class="en">GREASE-FREE CONFIRMATION &amp; LEAK TEST RESULT</span></div>
+            <div class="photo-group-head"><span class="dot"></span><span class="name"><span class="en-inline">Gate Ring Grease</span> 미도포 확인 / <span class="en-inline">Leak Test</span> 결과 사진</span><span class="en">GREASE-FREE CONFIRMATION &amp; LEAK TEST RESULT</span></div>
             <div class="photo-grid">
               <div class="photo-item"><div class="photo-box" id="pbox_grease"><span class="ph">Grease 미도포<br>사진 없음</span></div><div class="cap"><span class="en-inline">Gate Ring Grease</span> 미도포 확인<br><span style="font-family:var(--font-mono);font-size:7px;color:var(--steel-soft);">(파티클 발생 방지 — 그리스 도포 금지 부위)</span></div></div>
-              <div class="photo-item"><div class="photo-box" id="pbox_leak"><span class="ph">Leak Check<br>사진 없음</span></div><div class="cap"><span class="en-inline">Leak Check</span> 결과</div></div>
+              <div class="photo-item"><div class="photo-box" id="pbox_leak"><span class="ph">Leak Test<br>사진 없음</span></div><div class="cap"><span class="en-inline">Leak Test</span> 결과</div></div>
             </div>
           </div>
 
@@ -458,7 +460,7 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
       sensconn: { judge:"ok", remark:"정상" },
       sensfunc: { judge:"ok", remark:"정상" },
       operation: { judge:"ok", remark:"구동 정상" },
-      leak: { value:1.5, remark:"감압 Leak Test 결과 — 기준 이내 확인" }
+      leak: { judge:"ok", remark:"감압 Leak Test 결과 — 기준 이내 확인" }
     },
     comment: "",
     sign: { operator:null, inspector:null }
@@ -475,7 +477,8 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
     { key:"sensconn", nameHtml:'<span class="en-inline">Sensor Connector</span> 체결상태', en:"SENSOR CONNECTOR FIT" },
     { key:"sensfunc", nameHtml:'<span class="en-inline">Sensor</span> 기능 점검', en:"SENSOR FUNCTION" },
     { key:"operation", nameHtml:'구동 <span class="en-inline">Test</span>', en:"OPERATION TEST" },
-    { key:"leak", nameHtml:'<span class="en-inline">Leak Check</span>', en:"LEAK CHECK (SPEC &le; 1.5 mTorr)", type:"number", unit:"mTorr", spec:1.5 }
+    { key:"leak", nameHtml:'<span class="en-inline">Leak Test</span>', en:"LEAK TEST", type:"passng",
+      specHtml:'<span class="en-inline">SPEC</span> 3분간 <span class="en-inline">1.2×10<sup>-9</sup> Torr</span> 이하일 것' }
   ];
   var ORING_ITEMS = ["AS-010","AS-112","AS-329","AS-274","AS-275","AS-277","AS-278"];
 
@@ -521,9 +524,12 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
         remN.addEventListener("input", function(){ stateMap[item.key].remark = remN.value; render(); });
         return;
       }
+      var optOk = (item.type === "passng") ? "PASS" : "양호";
+      var optNg = (item.type === "passng") ? "NG" : "이상";
       row.innerHTML =
-        '<div><span class="name">' + item.nameHtml + '</span><span class="spec">' + item.en + '</span></div>' +
-        '<select data-k="' + item.key + '"><option value="">선택</option><option value="ok">양호</option><option value="ng">이상</option></select>' +
+        '<div><span class="name">' + item.nameHtml + '</span><span class="spec">' + item.en + '</span>' +
+          (item.specHtml ? '<span class="speckr">' + item.specHtml + '</span>' : '') + '</div>' +
+        '<select data-k="' + item.key + '"><option value="">선택</option><option value="ok">' + optOk + '</option><option value="ng">' + optNg + '</option></select>' +
         '<input type="text" data-r="' + item.key + '" placeholder="비고">';
       container.appendChild(row);
       var sel = row.querySelector("select");
@@ -647,7 +653,7 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
     $("pbox_top").innerHTML = photoBoxHtml(state.photos.top, "입고 상태");
     $("pbox_bot").innerHTML = photoBoxHtml(state.photos.bot, "분해 부품");
     $("pbox_grease").innerHTML = photoBoxHtml(state.photos.grease, "Grease 미도포");
-    $("pbox_leak").innerHTML = photoBoxHtml(state.photos.leak, "Leak Check");
+    $("pbox_leak").innerHTML = photoBoxHtml(state.photos.leak, "Leak Test");
 
     // final table
     var fhead = '<tr><th style="width:19%;">검사항목</th><th style="width:15%;">판정</th><th>비고</th></tr>';
@@ -658,13 +664,14 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
       var j = itemJudge(item, c);
       if (j === "") allFilled = false;
       if (j === "ng") anyNg = true;
-      var badge = j === "ok" ? '<span class="badge pass">OK <span class="ko">양호</span></span>' :
-                  j === "ng" ? '<span class="badge fail">NG <span class="ko">이상</span></span>' :
+      var pn = (item.type === "passng");
+      var badge = j === "ok" ? (pn ? '<span class="badge pass">PASS <span class="ko">합격</span></span>' : '<span class="badge pass">OK <span class="ko">양호</span></span>') :
+                  j === "ng" ? (pn ? '<span class="badge fail">NG <span class="ko">불합격</span></span>' : '<span class="badge fail">NG <span class="ko">이상</span></span>') :
                   '<span class="badge pending">- <span class="ko">미입력</span></span>';
       var remarkTxt = (item.type === "number")
         ? ((c.value !== null && c.value !== undefined ? (c.value + " " + item.unit + " — ") : "") + (c.remark || ""))
         : (c.remark || "");
-      fbody += '<tr><td class="item">' + item.nameHtml + '<small>' + item.en + '</small></td>' +
+      fbody += '<tr><td class="item">' + item.nameHtml + '<small>' + item.en + '</small>' + (item.specHtml ? '<small class="speckr">' + item.specHtml + '</small>' : '') + '</td>' +
                '<td class="judge">' + badge + '</td>' +
                '<td class="remark">' + enInline(remarkTxt) + '</td></tr>';
       if (item.type === "number"){
@@ -848,6 +855,8 @@ table.check-table td.remark{ font-family:var(--font-ko); color:var(--ink); font-
       clone.style.overflow = "hidden";
       clone.style.boxShadow = "none";
       clone.style.margin = "0";
+      // html2canvas는 inline-flex 배지 안의 한글(.ko)을 그리지 못하므로 PDF용 복제본에서만 inline-block으로 바꾼다
+      Array.prototype.forEach.call(clone.querySelectorAll(".badge"), function(bd){ bd.style.display = "inline-block"; bd.style.lineHeight = "1.5"; });
       if (i < sheets.length - 1){
         clone.style.breakAfter = "page";
         clone.style.pageBreakAfter = "always";

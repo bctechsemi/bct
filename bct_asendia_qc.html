@@ -1731,12 +1731,20 @@ async function deleteEntry(serial){
 
   showToast('Deleting ' + serial + '\u2026', 1500);
   try{
+    // Prefer: return=representation makes PostgREST return the rows it actually deleted.
+    // Without it, an RLS-blocked DELETE looks identical to a successful one (HTTP 204, no body).
     const res = await sbFetch(
       MEASUREMENTS_URL + '?component_type=eq.' + enc(state.componentType) + '&model=eq.' + enc(state.model) + '&serial=eq.' + enc(serial),
-      { method:'DELETE' }
+      { method:'DELETE', headers:{ 'Prefer':'return=representation' } }
     );
     if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
-    showToast('Deleted ' + serial + '.');
+    let deleted = [];
+    try{ deleted = await res.json(); } catch(_){ deleted = []; }
+    if(!Array.isArray(deleted) || deleted.length === 0){
+      showToast('\u26a0\ufe0f Nothing was deleted for ' + serial + '. Your account probably lacks DELETE permission (admin only) \u2014 ask an admin, or check the Supabase RLS policy.', 7000);
+      return;
+    }
+    showToast('Deleted ' + serial + ' (' + deleted.length + ' rows).');
     if(state.entrySerial === serial){ state.entryValues = {}; state.entrySerial = ''; }
     loadRecentEntries();
     if(state.spcParam) loadSpcData();

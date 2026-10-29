@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L3 PRIME M2 Heater CM Pricing</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAAAtUlEQVR4nO3bsQ2AMBAEQYPok9qo1BQASwAJwUz4kpPVpV7mnHNwsV5PCPPAYoIwQZggTBAmCBOECcIEYYIwQZggTNjGN8f4t/3tQ4sJwgRhgjBBmCBMECYIE4QJwgRhgjBBmCBMECYIE4QJwgRhgjBBmCBMECYIE4QJwgRhgjBBmCBMECYIE4QJwgRhgjBBmCBMECYsvhffs5ggTBAmCBOECcIEYYIwQZggTBAmCBOECcKMeydgrAmFK29sIAAAAABJRU5ErkJggg==">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700;800&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#1F4E9C; --primary-deep:#153B78; --primary-deeper:#0F2C5C;
+    --primary-pale:#EAF1FC; --primary-pale-2:#F4F8FE;
+    --canvas:#FFFFFF; --surface:#F6F9FD;
+    --ink:#0B1220; --steel:#5B6472; --steel-soft:#8A93A3;
+    --hairline:#E2E8F3; --hairline-strong:#CBD8ED;
+    --amber:#C98A2B; --amber-pale:#FBE8D3; --good:#1F8A5F; --risk:#C1443C; --risk-pale:#F8E3E1;
+    /* Google Sans has no Hangul glyphs, so Latin + digits render in Google Sans and Hangul falls back to Gowun Batang */
+    --font-en:'Google Sans', 'Gowun Batang', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-ko:'Google Sans', 'Gowun Batang', serif;
+    --font-mono:'Google Sans', 'Gowun Batang', sans-serif;
+    --r-lg:18px; --r-md:14px; --r-sm:9px; --r-full:999px;
+    --mx: 67px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:#0A1626; }
+  body{ font-family:var(--font-en); color:var(--ink); -webkit-font-smoothing:antialiased; overflow:hidden; }
+  ::selection{ background:var(--primary-pale); color:var(--primary-deep); }
+
+  /* ---------- stage / scaling ---------- */
+  .stage{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  .deck{
+    width:1280px; height:720px; position:relative; flex:0 0 auto;
+    background:var(--canvas); border-radius:6px; overflow:hidden;
+    box-shadow:0 50px 120px -30px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04);
+    transform-origin:center center;
+  }
+  .slide{ position:absolute; inset:0; display:none; background:var(--canvas); }
+  .slide.active{ display:block; animation:fadein .35s ease; }
+  @keyframes fadein{ from{ opacity:0; } to{ opacity:1; } }
+
+  /* ---------- shared chrome ---------- */
+  .eyebrow{
+    position:absolute; left:var(--mx); top:38px; height:20px;
+    font-family:var(--font-mono); font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  }
+  .eyebrow .num{ color:var(--primary); }
+  .eyebrow .tag{ color:var(--steel-soft); margin-left:6px; }
+  .slide.on-dark .eyebrow .num{ color:var(--amber); }
+  .slide.on-dark .eyebrow .tag{ color:#AFC3E6; }
+
+  .slide-title{
+    position:absolute; left:var(--mx); top:63px; right:165px; margin:0;
+    font-family:var(--font-ko); font-weight:700; font-size:32px; letter-spacing:-.01em;
+    color:var(--ink); line-height:1.15;
+  }
+  .slide.on-dark .slide-title{ color:#fff; }
+  .slide-sub{
+    position:absolute; left:var(--mx); top:110px; right:165px; margin:0;
+    font-family:var(--font-ko); font-size:15.5px; color:var(--steel); line-height:1.5;
+  }
+  .slide.on-dark .slide-sub{ color:#C7D5EC; }
+
+  .footer{
+    position:absolute; left:0; right:0; bottom:0; height:33px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 var(--mx); background:var(--primary-deep); color:#fff;
+  }
+  .slide.on-dark .footer{ background:transparent; border-top:1px solid rgba(255,255,255,.18); }
+  .footer .fmark{ display:flex; align-items:center; gap:9px; }
+  .footer .fmark .sq{ width:10px; height:10px; background:#fff; opacity:.9; border-radius:2px; }
+  .footer .fmark b{ font-family:var(--font-en); font-size:12.5px; letter-spacing:.02em; }
+  .footer .fdoc{ font-family:var(--font-mono); font-size:11px; letter-spacing:.04em; color:#C7D5EC; }
+  .footer .fpage{ font-family:var(--font-mono); font-size:12px; font-weight:700; }
+
+  .motif{ position:absolute; border:1px solid rgba(255,255,255,.28); pointer-events:none; }
+  .motif::after{ content:''; position:absolute; left:22%; top:22%; width:56%; height:56%; border:1px solid rgba(255,255,255,.45); }
+  .header-logo{ position:absolute; right:var(--mx); top:40px; height:44px; }
+  .blob{ position:absolute; border-radius:50%; pointer-events:none; }
+
+  /* ---------- content primitives ---------- */
+  .content{ position:absolute; left:var(--mx); right:var(--mx); top:160px; bottom:60px; }
+  .section-label{ font-family:var(--font-ko); font-weight:700; font-size:15px; color:var(--primary); margin:0 0 12px; }
+  .section-label::before{ content:'\2014  '; }
+  .ko{ font-family:var(--font-ko); }
+  .mono{ font-family:var(--font-mono); }
+
+  .card{ background:var(--surface); border:1px solid var(--hairline); border-radius:var(--r-md); padding:16px 20px; }
+  .card h4{ margin:0 0 6px; font-family:var(--font-ko); font-weight:700; font-size:16px; color:var(--ink); line-height:1.35; }
+  .card p{ margin:0; font-family:var(--font-ko); font-size:14px; color:var(--steel); line-height:1.55; }
+  .card .n{ font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--primary); letter-spacing:.06em; margin-bottom:8px; }
+
+  .tile{ background:var(--primary-deep); border-radius:var(--r-md); padding:16px 18px; color:#fff; }
+  .tile .n{ font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--amber); letter-spacing:.05em; }
+  .tile h4{ margin:8px 0 6px; font-family:var(--font-ko); font-weight:700; font-size:16px; color:#fff; }
+  .tile p{ margin:0; font-family:var(--font-ko); font-size:13.5px; color:#C7D5EC; line-height:1.5; }
+  .tile p b{ color:#fff; }
+
+  table.bct-table{ width:100%; border-collapse:collapse; }
+  table.bct-table th{
+    background:var(--primary); color:#fff; text-align:left; font-family:var(--font-ko);
+    font-weight:700; font-size:14px; padding:10px 14px; white-space:nowrap;
+  }
+  table.bct-table td{
+    font-family:var(--font-ko); font-size:14px; color:var(--ink); padding:9px 14px; line-height:1.4;
+    border-bottom:1px solid var(--hairline); vertical-align:middle;
+  }
+  table.bct-table tr:nth-child(even) td{ background:var(--surface); }
+  table.bct-table td.good{ color:var(--good); font-weight:700; }
+  table.bct-table td.risk{ color:var(--risk); font-weight:700; }
+  table.bct-table td.muted{ color:var(--steel); }
+  table.bct-table td.mono, table.bct-table th.mono{ font-family:var(--font-mono); }
+
+  .flow-box{
+    border-radius:var(--r-md); padding:12px 14px; border:1.25px solid var(--hairline-strong); background:#fff;
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  .flow-box.on{ background:var(--primary-deep); border-color:var(--primary-deep); }
+  .flow-box.bad{ border-color:var(--risk); background:var(--risk-pale); }
+  .flow-box .t{ font-family:var(--font-en); font-weight:700; font-size:15px; color:var(--ink); line-height:1.25; }
+  .flow-box.on .t{ color:#fff; }
+  .flow-box.bad .t{ color:var(--risk); }
+  .flow-box .s{ font-family:var(--font-ko); font-size:13px; color:var(--steel); margin-top:5px; line-height:1.4; }
+  .flow-box.on .s{ color:#C7D5EC; }
+  .flow-arrow{ display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:22px; font-weight:700; }
+
+  .stat-card{ border:1.25px solid var(--hairline-strong); border-radius:var(--r-lg); padding:22px 24px; background:#fff; }
+  .stat-tag{ display:inline-flex; align-items:center; padding:6px 14px; border-radius:var(--r-full); font-family:var(--font-mono); font-weight:700; font-size:11px; letter-spacing:.05em; background:var(--primary-pale); color:var(--primary-deep); }
+  .stat-tag.risk{ background:var(--risk-pale); color:var(--risk); }
+  .stat-big{ font-family:var(--font-en); font-weight:700; color:var(--primary-deep); line-height:1; letter-spacing:-.02em; }
+  .stat-unit{ font-family:var(--font-en); font-size:18px; color:var(--steel); margin-left:6px; }
+  .stat-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px solid var(--hairline); }
+  .stat-row .k{ font-family:var(--font-ko); font-size:13.5px; color:var(--steel); }
+  .stat-row .v{ font-family:var(--font-ko); font-size:14px; font-weight:700; color:var(--ink); text-align:right; }
+
+  .note{ background:var(--primary-pale-2); border:1px solid var(--hairline); border-radius:var(--r-md); padding:12px 18px; font-family:var(--font-ko); font-size:13.5px; color:var(--steel); line-height:1.5; }
+  .note b{ color:var(--ink); }
+  .src{ font-family:var(--font-mono); font-size:11.5px; color:var(--steel-soft); letter-spacing:.02em; line-height:1.5; }
+  .src-line{ position:absolute; left:var(--mx); right:var(--mx); bottom:42px; }
+
+  .steps{ display:flex; flex-direction:column; gap:14px; }
+  .step{ display:flex; gap:14px; align-items:flex-start; }
+  .step i{ font-style:normal; width:28px; height:28px; min-width:28px; border-radius:50%; background:var(--primary-pale); color:var(--primary); font-family:var(--font-en); font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  .step div{ font-family:var(--font-ko); font-size:14.5px; color:var(--steel); line-height:1.5; }
+  .step b{ color:var(--ink); }
+
+  .photo{ border-radius:var(--r-md); overflow:hidden; border:1px solid var(--hairline); background:#fff; }
+  .photo img{ display:block; width:100%; height:100%; object-fit:cover; }
+  .cap{ font-family:var(--font-mono); font-size:11.5px; color:var(--steel-soft); letter-spacing:.04em; margin-top:8px; }
+  /* image placeholder — replace before delivery, never ship one */
+  .ph{ border:1.5px dashed var(--hairline-strong); border-radius:var(--r-md); background:var(--surface); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--steel-soft); font-family:var(--font-mono); font-size:12px; letter-spacing:.06em; }
+  .ph::before{ content:''; width:44px; height:44px; border-radius:50%; border:1.5px solid var(--hairline-strong); }
+
+  .chip{ display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:var(--r-full); background:var(--primary-pale); color:var(--primary-deep); font-family:var(--font-mono); font-size:12px; font-weight:700; letter-spacing:.02em; }
+  .chip.neg{ background:var(--surface); color:var(--steel); border:1px solid var(--hairline); }
+
+  /* comparison grid: label column + "current way" + "BCT way" */
+  .vs-grid{ display:grid; grid-template-columns:150px 1fr 1fr; border:1.25px solid var(--hairline-strong); border-radius:var(--r-lg); overflow:hidden; }
+  .vs-grid > div{ padding:12px 16px; border-top:1px solid var(--hairline); font-family:var(--font-ko); font-size:14.5px; line-height:1.45; }
+  .vs-grid > .h{ border-top:none; font-weight:700; font-size:15px; }
+  .vs-grid > .h.old{ background:var(--risk-pale); color:var(--risk); }
+  .vs-grid > .h.new{ background:var(--primary-deep); color:#fff; }
+  .vs-grid > .k{ font-weight:700; color:var(--ink); background:var(--surface); }
+  .vs-grid > .a{ color:var(--steel); }
+  .vs-grid > .b{ color:var(--primary-deep); background:var(--primary-pale-2); }
+  .vs-grid > .foot{ font-weight:700; text-align:center; }
+  .vs-grid > .foot.old{ color:var(--risk); background:#fff; }
+  .vs-grid > .foot.new{ color:#fff; background:var(--primary); }
+
+  /* bar chart rows (rendered by JS) */
+  .bar-row{ display:grid; grid-template-columns:140px 1fr; align-items:center; column-gap:16px; }
+  .bar-row .lbl{ font-family:var(--font-en); font-weight:700; font-size:14.5px; color:var(--ink); }
+  .bar-row .lbl small{ display:block; font-family:var(--font-mono); font-weight:500; font-size:11px; color:var(--steel-soft); margin-top:2px; }
+  .track{ position:relative; height:30px; }
+  .bar{ position:absolute; left:0; top:2px; height:26px; border-radius:4px; }
+  .bar.old{ background:#D98E87; }
+  .bar.new{ background:var(--primary); }
+  .bar-val{ position:absolute; top:0; font-family:var(--font-mono); font-size:14px; font-weight:700; line-height:30px; white-space:nowrap; }
+  .legend{ display:flex; gap:18px; font-family:var(--font-ko); font-size:13.5px; color:var(--steel); }
+  .legend i{ display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:6px; }
+
+  /* calculator */
+  .calc-row{ display:grid; grid-template-columns:1fr 128px; align-items:center; gap:14px; padding:9px 0; border-bottom:1px solid var(--hairline); }
+  .calc-row label{ font-family:var(--font-ko); font-size:14px; color:var(--ink); line-height:1.3; }
+  .calc-row label small{ display:block; font-size:12px; color:var(--steel-soft); }
+  .calc-row input{
+    width:100%; font-family:var(--font-mono); font-size:15px; font-weight:700; color:var(--primary-deep);
+    padding:6px 10px; border:1.25px solid var(--hairline-strong); border-radius:var(--r-sm); background:#fff; text-align:right;
+  }
+  .calc-row input:focus{ outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-pale); }
+
+  /* Q&A */
+  .qa{ background:var(--surface); border:1px solid var(--hairline); border-radius:var(--r-md); padding:16px 18px; }
+  .qa .q{ font-family:var(--font-ko); font-weight:700; font-size:16px; color:var(--ink); display:flex; gap:10px; line-height:1.35; }
+  .qa .q i{ font-style:normal; font-family:var(--font-mono); color:var(--primary); }
+  .qa .a{ font-family:var(--font-ko); font-size:14.5px; color:var(--steel); line-height:1.55; margin-top:8px; padding-left:24px; }
+
+  .ok{ color:var(--good); font-weight:700; }
+  .x{ color:var(--risk); font-weight:700; }
+
+  /* comparison of two options where neither is "bad" (Option 1 vs Alternative) */
+  .vs-grid.neutral > .h.old{ background:var(--surface); color:var(--steel); }
+  .vs-grid.neutral > .a{ color:var(--ink); }
+  .vs-grid.neutral > .foot.old{ color:var(--steel); }
+
+  /* square-bullet list; inside a .tile it turns white with amber bullets */
+  .ul{ list-style:none; margin:0; padding:0; }
+  .ul li{ position:relative; padding:10px 0 10px 22px; border-top:1px solid var(--hairline); font-family:var(--font-ko); font-size:14.5px; color:var(--ink); line-height:1.4; }
+  .ul li:first-child{ border-top:none; }
+  .ul li::before{ content:''; position:absolute; left:2px; top:17px; width:8px; height:8px; border-radius:2px; background:var(--primary); }
+  .tile .ul li{ color:#fff; border-top-color:rgba(255,255,255,.14); }
+  .tile .ul li::before{ background:var(--amber); }
+
+  /* segmented toggle inside a slide (aria-pressed shows the state) */
+  .seg{ display:inline-flex; padding:4px; border-radius:var(--r-full); background:var(--surface); border:1px solid var(--hairline); gap:4px; }
+  .seg button{ border:none; cursor:pointer; padding:7px 16px; border-radius:var(--r-full); background:transparent; font-family:var(--font-ko); font-size:14px; font-weight:700; color:var(--steel); }
+  .seg button[aria-pressed="true"]{ background:var(--primary-deep); color:#fff; }
+  table.bct-table td.sel{ background:var(--primary-pale) !important; color:var(--primary-deep); font-weight:700; }
+  table.bct-table th.sel{ background:var(--primary-deep) !important; }
+
+  /* numbered question / request grid */
+  .qgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+  .qrow{ display:grid; grid-template-columns:34px 1fr; gap:4px 10px; padding:12px 16px; background:var(--surface); border:1px solid var(--hairline); border-radius:var(--r-md); align-content:start; }
+  .qrow i{ grid-row:1 / span 2; font-style:normal; font-family:var(--font-mono); font-weight:700; font-size:14px; color:var(--primary); padding-top:1px; }
+  .qrow b{ font-family:var(--font-ko); font-size:15px; color:var(--ink); line-height:1.3; }
+  .qrow span{ font-family:var(--font-ko); font-size:13.5px; color:var(--steel); line-height:1.45; }
+
+  /* schedule gantt: label column + one column per month (set repeat() to the month count) */
+  .gantt{ display:grid; grid-template-columns:230px repeat(12, 1fr); row-gap:12px; align-items:center; }
+  .gantt .mh{ font-family:var(--font-mono); font-size:11.5px; font-weight:700; color:var(--steel-soft); text-align:center; letter-spacing:.04em; padding-bottom:4px; border-bottom:1px solid var(--hairline-strong); }
+  .gantt .mh.yr{ color:var(--primary); }
+  .gantt .rl{ font-family:var(--font-ko); font-size:14.5px; font-weight:700; color:var(--ink); line-height:1.3; padding-right:12px; }
+  .gantt .rl small{ display:block; font-family:var(--font-mono); font-size:11.5px; font-weight:700; color:var(--primary); letter-spacing:.03em; margin-bottom:2px; }
+  .gantt .bar2{ height:30px; border-radius:6px; background:var(--primary); }
+  .gantt .bar2.key{ background:var(--amber); }
+  .gantt .band{ height:30px; border-radius:6px; background:var(--amber-pale); border:1px dashed var(--amber); }
+
+  /* ===== DECK-SPECIFIC CSS START — per-slide tuning: .slide[data-page="…"] … ===== */
+  /* Korean-only deck: no English dictionary, so the language button is hidden */
+  #langBtn{ display:none !important; }
+
+  /* margin toggle (global state, several copies stay in sync) */
+  .mseg{ position:absolute; right:var(--mx); top:104px; }
+  .mseg button{ font-size:13.5px; padding:8px 14px; white-space:nowrap; }
+  .px-note{ font-family:var(--font-ko); font-size:12.5px; color:var(--steel-soft); }
+
+  /* cover motion: parts → CT bar fills → price */
+  .win-anim.hm .w3{ animation:winDraw 1.6s ease .6s forwards; }
+  .hm .ped{ fill:none; stroke:rgba(255,255,255,.30); stroke-width:1; stroke-dasharray:3 4; }
+  .hm .hs{ fill:rgba(143,180,240,.07); stroke:rgba(143,180,240,.55); stroke-width:1.2; }
+  .hm .hole{ fill:#153B78; stroke:rgba(143,180,240,.55); stroke-width:1; }
+  .hm .seat{ animation:hmSeat 6s cubic-bezier(.2,.7,.3,1) calc(1.8s + var(--d)) infinite backwards; }
+  .hm .pcb{ fill:rgba(143,180,240,.16); stroke:#8FB4F0; stroke-width:1.2; }
+  .hm .led{ fill:rgba(255,255,255,.6); }
+  @keyframes hmSeat{ 0%,2%{ transform:translate(var(--tx), var(--ty)); opacity:0; } 5%{ opacity:1; } 10%,88%{ transform:translate(0,0); opacity:1; } 96%,100%{ transform:translate(0,0); opacity:0; } }
+  .hm .scr{ fill:#AFC3E6; animation:hmScr 6s ease calc(1.8s + var(--d)) infinite backwards; }
+  .hm .cab{ fill:none; stroke:#8FB4F0; stroke-width:2; stroke-linecap:round; stroke-dasharray:70; stroke-dashoffset:0; animation:hmCab 6s ease 1.8s infinite backwards; }
+  .hm .cov{ fill:rgba(255,255,255,.07); stroke:rgba(255,255,255,.62); stroke-width:1.2; animation:hmCov 6s ease 1.8s infinite backwards; }
+  .hm .covl{ animation:hmCov 6s ease 1.8s infinite backwards; }
+  .hm .tst{ animation:hmTst 6s ease 1.8s infinite backwards; }
+  .hm .sg{ fill:#8FB4F0; transform-box:fill-box; transform-origin:left center; }
+  .hm .sg0{ animation:hmS0 6s linear 1.8s infinite backwards; }
+  .hm .sg1{ animation:hmS1 6s linear 1.8s infinite backwards; }
+  .hm .sg2{ animation:hmS2 6s linear 1.8s infinite backwards; }
+  .hm .sg3{ animation:hmS3 6s linear 1.8s infinite backwards; }
+  .hm .sg4{ animation:hmS4 6s linear 1.8s infinite backwards; }
+  .hm .ctv{ font-family:'Google Sans', sans-serif; font-size:12px; font-weight:700; fill:#fff; letter-spacing:.06em; animation:hmCtv 6s ease 1.8s infinite backwards; }
+  .hm .mark{ fill:#C98A2B; animation:hmCtv 6s ease 1.8s infinite backwards; }
+  .hm .cost{ animation:hmCost 6s ease 1.8s infinite backwards; }
+  .hm .res{ font-family:'Google Sans', sans-serif; font-size:14px; font-weight:700; fill:#F3C98A; letter-spacing:.02em; animation:hmRes 6s ease 1.8s infinite backwards; }
+  @keyframes hmScr{ 0%,8%{ opacity:0; } 11%,88%{ opacity:1; } 96%,100%{ opacity:0; } }
+  @keyframes hmCab{ 0%,18%{ stroke-dashoffset:70; opacity:1; } 28%,88%{ stroke-dashoffset:0; opacity:1; } 96%,100%{ stroke-dashoffset:0; opacity:0; } }
+  @keyframes hmCov{ 0%,30%{ opacity:0; } 36%,88%{ opacity:1; } 96%,100%{ opacity:0; } }
+  @keyframes hmTst{ 0%,37%{ opacity:0; } 41%,88%{ opacity:1; } 96%,100%{ opacity:0; } }
+  @keyframes hmS0{ 0%{ transform:scaleX(0); opacity:1; } 3%,88%{ transform:scaleX(1); opacity:1; } 96%,100%{ transform:scaleX(1); opacity:0; } }
+  @keyframes hmS1{ 0%,3%{ transform:scaleX(0); opacity:1; } 18%,88%{ transform:scaleX(1); opacity:1; } 96%,100%{ transform:scaleX(1); opacity:0; } }
+  @keyframes hmS2{ 0%,18%{ transform:scaleX(0); opacity:1; } 30%,88%{ transform:scaleX(1); opacity:1; } 96%,100%{ transform:scaleX(1); opacity:0; } }
+  @keyframes hmS3{ 0%,30%{ transform:scaleX(0); opacity:1; } 36%,88%{ transform:scaleX(1); opacity:1; } 96%,100%{ transform:scaleX(1); opacity:0; } }
+  @keyframes hmS4{ 0%,36%{ transform:scaleX(0); opacity:1; } 41%,88%{ transform:scaleX(1); opacity:1; } 96%,100%{ transform:scaleX(1); opacity:0; } }
+  @keyframes hmCtv{ 0%,42%{ opacity:0; } 46%,88%{ opacity:1; } 96%,100%{ opacity:0; } }
+  @keyframes hmCost{ 0%,47%{ opacity:0; } 51%,88%{ opacity:1; } 96%,100%{ opacity:0; } }
+  @keyframes hmRes{ 0%,53%{ opacity:0; } 59%,88%{ opacity:1; } 96%,100%{ opacity:0; } }
+
+  /* scope slide */
+  .slide[data-page="scope"] .flow-box{ padding:12px 14px; }
+  .slide[data-page="scope"] .flow-box .t{ font-family:var(--font-ko); font-size:15.5px; }
+  .slide[data-page="scope"] .flow-box .m{ font-family:var(--font-en); font-weight:700; font-size:22px; color:var(--primary-deep); margin-top:6px; }
+  .slide[data-page="scope"] .flow-box.on .m{ color:var(--amber); }
+  .slide[data-page="scope"] .flow-box .m small{ font-size:13px; color:var(--steel); margin-left:3px; font-weight:500; }
+  .slide[data-page="scope"] .flow-box.on .m small{ color:#C7D5EC; }
+  .slide[data-page="scope"] .flow-box .s{ font-size:12.5px; }
+
+  .pack-note{ display:flex; align-items:center; gap:14px; margin-top:16px; padding:12px 20px; border-radius:var(--r-md); background:var(--amber-pale); border:1.5px solid var(--amber); }
+  .pack-note .pk{ font-family:var(--font-en); font-size:12px; font-weight:700; letter-spacing:.1em; color:#fff; background:var(--amber); border-radius:var(--r-full); padding:4px 12px; }
+  .pack-note b{ font-family:var(--font-ko); font-size:16.5px; color:var(--ink); }
+  .pack-note .pd{ font-family:var(--font-ko); font-size:15px; font-weight:700; color:#8A5A12; margin-left:auto; }
+
+  /* CT slide */
+  .slide[data-page="ct"] .bar-row{ grid-template-columns:190px 1fr; }
+  .slide[data-page="ct"] .bar-row .lbl{ font-family:var(--font-ko); font-size:15px; }
+  .stackbar{ display:flex; height:40px; border-radius:8px; overflow:hidden; }
+  .stackbar div{ display:flex; align-items:center; justify-content:center; font-family:var(--font-ko); font-size:13px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; }
+  .ct-link{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; border-radius:var(--r-md); background:var(--primary-deep); color:#fff; text-decoration:none; font-family:var(--font-ko); font-size:15.5px; font-weight:700; }
+  .ct-link:hover{ background:var(--primary); }
+  .ct-link small{ display:block; font-family:var(--font-en); font-size:11.5px; font-weight:500; color:#AFC3E6; letter-spacing:.04em; margin-top:3px; }
+  .ct-link b{ font-family:var(--font-en); font-size:22px; color:var(--amber); }
+
+  /* cost tables */
+  table.bct-table td.num, table.bct-table th.num{ text-align:right; font-family:var(--font-en); }
+  table.bct-table tr.hl td{ background:var(--primary-pale) !important; font-weight:700; color:var(--primary-deeper); }
+  table.bct-table tr.tot td{ background:var(--primary-deep) !important; color:#fff; font-weight:700; border-bottom:none; }
+  table.bct-table tr.tot td.muted{ color:#C7D5EC; }
+  .slide[data-page="cost"] table.bct-table td{ padding:11px 14px; font-size:14.5px; }
+  .slide[data-page="cost"] table.bct-table th{ padding:11px 14px; }
+  .slide[data-page="direct"] table.bct-table th{ font-size:14px; padding:11px 12px; }
+  .slide[data-page="direct"] table.bct-table td{ padding:12px 12px; font-size:15px; }
+  .slide[data-page="direct"] table.bct-table td small{ display:block; font-size:12px; color:var(--steel-soft); }
+  .sumstrip{ display:grid; grid-template-columns:1fr 34px 1fr 34px 1fr; align-items:center; background:var(--primary-deep); border-radius:var(--r-md); padding:14px 24px; color:#fff; }
+  .sumstrip .k{ font-family:var(--font-ko); font-size:13.5px; color:#C7D5EC; }
+  .sumstrip .v{ font-family:var(--font-en); font-size:24px; font-weight:700; margin-top:2px; }
+  .sumstrip .v.key{ color:var(--amber); }
+  .sumstrip .op{ font-family:var(--font-en); font-size:22px; color:#AFC3E6; text-align:center; }
+
+  /* labor slide */
+  .slide[data-page="labor"] .steps{ gap:20px; }
+  .slide[data-page="labor"] .step div{ font-size:15px; }
+  .slide[data-page="labor"] .step i{ background:var(--primary-deep); color:#fff; }
+  .slide[data-page="labor"] table.bct-table td, .slide[data-page="labor"] table.bct-table th{ padding:12px 14px; font-size:15px; }
+
+  /* quote slide */
+  .slide[data-page="quote"] .bigp{ font-family:var(--font-en); font-weight:700; font-size:66px; line-height:1; color:var(--amber); letter-spacing:-.02em; }
+  .slide[data-page="quote"] .calc{ font-family:var(--font-ko); font-size:14.5px; color:var(--steel); line-height:1.5; }
+  .slide[data-page="quote"] .calc .stat-row{ padding:13px 0; }
+  .slide[data-page="quote"] .calc .stat-row .k{ font-size:14.5px; }
+  .slide[data-page="quote"] .calc .stat-row .v{ font-family:var(--font-en); font-size:16px; }
+  .slide[data-page="quote"] table.bct-table th{ padding:13px 14px; font-size:14.5px; }
+  .slide[data-page="quote"] table.bct-table td{ padding:16px 14px; font-size:16px; }
+  .slide[data-page="quote"] .note{ font-size:14px; padding:14px 18px; }
+  .slide[data-page="quote"] table.bct-table tr.sel100 td{ background:var(--primary-pale) !important; font-weight:700; color:var(--primary-deeper); }
+
+  /* terms slide */
+  .slide[data-page="terms"] .qgrid{ gap:18px 20px; }
+  .slide[data-page="terms"] .qrow{ padding:22px 24px; min-height:136px; grid-template-columns:40px 1fr; gap:8px 12px; }
+  .slide[data-page="terms"] .qrow i{ font-size:17px; }
+  .slide[data-page="terms"] .qrow b{ font-size:18px; }
+  .slide[data-page="terms"] .qrow span{ font-size:15px; line-height:1.55; }
+  /* ===== DECK-SPECIFIC CSS END ===== */
+
+  /* ---------- nav chrome ---------- */
+  .navbar{
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:999px;
+    background:rgba(11,18,32,.72); backdrop-filter:blur(8px); z-index:50; font-family:var(--font-en); color:#fff;
+    transition:opacity .3s; opacity:0;
+  }
+  body.ui .navbar{ opacity:.9; }
+  .navbar:hover, .navbar:focus-within{ opacity:1; }
+  .navbar button{
+    width:32px; height:32px; border-radius:50%; border:none; background:rgba(255,255,255,.1);
+    color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; transition:background .15s;
+  }
+  .navbar button:hover{ background:var(--primary); }
+  .navbar #langBtn{ width:auto; padding:0 11px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.06em; }
+  .navbar .count{ font-family:var(--font-mono); font-size:12px; min-width:52px; text-align:center; letter-spacing:.02em; }
+  .side-nav{
+    position:fixed; top:50%; transform:translateY(-50%); z-index:40;
+    width:44px; height:104px; border:none; border-radius:22px; cursor:pointer;
+    background:rgba(255,255,255,.06); color:#fff; font-size:34px; line-height:1; font-family:var(--font-en);
+    display:flex; align-items:center; justify-content:center; opacity:.5; transition:opacity .2s, background .2s;
+  }
+  .side-nav:hover{ opacity:1; background:var(--primary); }
+  .side-nav:disabled{ opacity:.12; cursor:default; background:transparent; }
+  body.fs .navbar{ opacity:0; }
+  body.fs .navbar:hover{ opacity:1; }
+  :focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+
+  /* ---------- page overview (전체 보기) ---------- */
+  .overview{ position:fixed; inset:0; z-index:100; display:none; overflow:auto; background:rgba(8,16,30,.97); padding:34px 48px 60px; }
+  .overview.open{ display:block; }
+  .ov-head{ max-width:1520px; margin:0 auto 22px; display:flex; justify-content:space-between; align-items:baseline; color:#fff; }
+  .ov-head b{ font-family:var(--font-mono); font-size:14px; letter-spacing:.14em; color:var(--amber); }
+  .ov-head span{ font-family:var(--font-ko); font-size:13px; color:#AFC3E6; }
+  .ov-grid{ max-width:1520px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px 22px; }
+  .ov-item{ cursor:pointer; }
+  .ov-thumb{ position:relative; aspect-ratio:16/9; overflow:hidden; border-radius:6px; background:#fff; outline:2px solid transparent; outline-offset:3px; transition:outline-color .15s, transform .15s; }
+  .ov-item:hover .ov-thumb, .ov-item:focus-visible .ov-thumb{ outline-color:var(--primary); transform:translateY(-2px); }
+  .ov-item.cur .ov-thumb{ outline-color:var(--amber); }
+  .ov-thumb .slide{ display:block !important; width:1280px; height:720px; transform-origin:0 0; pointer-events:none; animation:none !important; }
+  .ov-label{ display:flex; gap:10px; margin-top:9px; font-family:var(--font-ko); font-size:13px; color:#C7D5EC; line-height:1.35; }
+  .ov-label i{ font-style:normal; font-family:var(--font-mono); font-weight:700; color:#7E93BC; }
+
+  /* ---------- cover: BCT window motion graphic ---------- */
+  .win-anim{ display:block; overflow:visible; }
+  .win-anim .w{ fill:none; stroke-width:1.2; stroke-dasharray:1500; stroke-dashoffset:1500; animation:winDraw 1.6s ease forwards; }
+  .win-anim .w1{ stroke:rgba(255,255,255,.22); animation-delay:.1s; }
+  .win-anim .w2{ stroke:rgba(255,255,255,.34); animation-delay:.35s; }
+  .win-anim .w3{ stroke:rgba(255,255,255,.55); animation:winDraw 1.6s ease .6s forwards, lockFlash 6s ease 1.8s infinite; }
+  .win-anim .core{ stroke:#C98A2B; stroke-width:1.6; animation-delay:.85s; }
+  .win-anim .coreFill{ fill:#C98A2B; opacity:0; animation:coreFill 6s ease 1.8s infinite; }
+  .win-anim .wl{ font-family:'Google Sans', sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.12em; fill:#7E93BC; }
+  .win-anim .wave{ fill:none; stroke:#8FB4F0; stroke-width:2.5; stroke-linejoin:round; stroke-dasharray:480; stroke-dashoffset:480; animation:wave 6s ease-in-out 1.8s infinite; }
+  .win-anim .ring{ fill:none; stroke:#C98A2B; stroke-width:2; opacity:0; transform-box:fill-box; transform-origin:center; animation:ring 6s ease-out 1.8s infinite; }
+  .win-anim .trig{ fill:#C98A2B; opacity:0; animation:trig 6s ease 1.8s infinite; }
+  @keyframes winDraw{ to{ stroke-dashoffset:0; } }
+  @keyframes wave{ 0%{ stroke-dashoffset:480; opacity:1; } 45%{ stroke-dashoffset:0; } 88%{ stroke-dashoffset:0; opacity:1; } 100%{ stroke-dashoffset:0; opacity:0; } }
+  @keyframes trig{ 0%,43%{ opacity:0; } 46%,88%{ opacity:1; } 100%{ opacity:0; } }
+  @keyframes ring{ 0%,44%{ opacity:0; transform:scale(.4); } 47%{ opacity:1; } 72%,100%{ opacity:0; transform:scale(4.5); } }
+  @keyframes coreFill{ 0%,53%{ opacity:0; } 59%,88%{ opacity:.95; } 100%{ opacity:0; } }
+  @keyframes lockFlash{ 0%,54%{ stroke:rgba(255,255,255,.55); } 60%,88%{ stroke:#C98A2B; } 100%{ stroke:rgba(255,255,255,.55); } }
+
+  /* ---------- timing race (two dots run to their finish lines) ---------- */
+  .race .dot-old{ animation:raceOld 5.5s linear infinite; }
+  .race .dot-new{ animation:raceNew 5.5s linear infinite; }
+  .race .done{ transform-box:fill-box; transform-origin:center; animation:raceDone 5.5s ease-out infinite; }
+  @keyframes raceOld{ 0%{ transform:translateX(0); opacity:1; } 80%{ transform:translateX(560px); opacity:1; } 92%,100%{ transform:translateX(560px); opacity:0; } }
+  @keyframes raceNew{ 0%{ transform:translateX(0); opacity:1; } 40%{ transform:translateX(280px); opacity:1; } 92%{ transform:translateX(280px); opacity:1; } 100%{ transform:translateX(280px); opacity:0; } }
+  @keyframes raceDone{ 0%,39%{ opacity:0; transform:scale(.5); } 42%{ opacity:1; } 65%,100%{ opacity:0; transform:scale(3.2); } }
+
+  /* ---------- screenshot / QA mode (?shot): slide at 1:1, no chrome ---------- */
+  body.shot .stage{ position:static; display:block; }
+  body.shot .deck{ transform:none !important; border-radius:0; box-shadow:none; }
+  body.shot .navbar, body.shot .side-nav{ display:none; }
+
+  @media print{
+    @page{ size:1280px 720px; margin:0; }
+    html,body{ background:#fff; overflow:visible; height:auto; }
+    .stage{ position:static; display:block; }
+    .deck{ transform:none !important; box-shadow:none; border-radius:0; height:auto; overflow:visible; }
+    .slide{ display:block !important; position:relative; width:1280px; height:720px; page-break-after:always; break-after:page; animation:none; overflow:hidden; }
+    .navbar, .side-nav{ display:none; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; }
+    .win-anim .w, .win-anim .wave{ stroke-dashoffset:0; }
+    .win-anim .coreFill, .win-anim .trig{ opacity:.95; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="deck" id="deck">
+<!-- ===== SLIDES START ===== -->
+
+    <!-- 01 — COVER -->
+    <section class="slide active on-dark" data-page="cover" style="background:var(--primary-deep);">
+      <div class="blob" style="width:420px;height:420px; right:-110px; top:-150px; background:#2E5FAE; opacity:.55;"></div>
+      <div class="blob" style="width:340px;height:340px; left:-120px; bottom:-120px; background:#0F2C5C; opacity:.35;"></div>
+
+      <img src="data:image/png;base64,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" data-logo="white" style="position:absolute; left:60px; top:44px; height:72px;" alt="BCT">
+
+      <div style="position:absolute; left:67px; top:178px; font-family:var(--font-mono); font-size:13.5px; font-weight:700; letter-spacing:.14em; color:var(--amber);">
+        CM PRICING · L3 LED SYSTEM PRIME · M2-TYPE
+      </div>
+
+      <h1 style="position:absolute; left:67px; top:214px; width:690px; margin:0; font-family:var(--font-ko); font-weight:700; font-size:40px; line-height:1.3; color:#fff; letter-spacing:-.01em;">
+        LED Heater Module Assembly CM<br><span style="color:var(--amber);" data-px="unit" data-i18n-skip>247,000</span>원/대
+      </h1>
+
+      <p style="position:absolute; left:67px; top:350px; width:640px; margin:0; font-family:var(--font-ko); font-size:17px; color:#C7D5EC; line-height:1.6;">
+        실무교육(2026-10-28)에서 산정한 CT 243분과 BCT 견적 임률을 기준으로,<br>원가 항목별 산식과 함께 제시합니다. VAT 별도.
+      </p>
+
+      <div style="position:absolute; left:67px; top:440px; width:4px; height:22px; background:var(--amber);"></div>
+      <p style="position:absolute; left:85px; top:438px; margin:0; font-family:var(--font-en); font-style:italic; font-size:15px; color:#9AAAC6;">
+        &ldquo;Every won traced back to a measured minute.&rdquo;
+      </p>
+
+      <div style="position:absolute; left:67px; top:600px;">
+        <div style="font-family:var(--font-mono); font-size:11px; letter-spacing:.12em; color:#7E93BC;">PREPARED BY · 2026-10-29</div>
+        <div style="font-family:var(--font-ko); font-size:15px; font-weight:700; color:#fff; margin-top:6px;">BCT · (주)비씨테크 → HS하이테크</div>
+      </div>
+
+      <div style="position:absolute; left:770px; top:92px; width:440px;">
+        <svg class="win-anim hm" viewBox="0 0 420 380" width="440" height="398" aria-label="CM assembly: four LED PCBs seat onto a round chuck-pedestal heatsink, are screwed, cabled and covered while the cycle-time bar fills; then the unit price appears">
+          <rect class="w w1" x="30" y="10" width="360" height="360"/>
+          <rect class="w w2" x="80" y="60" width="260" height="260"/>
+          <rect class="w w3" x="130" y="110" width="160" height="160"/>
+          <text class="wl" x="40" y="28">CM LINE · BCT</text>
+          <text class="wl" x="90" y="78">M2 HEATER · CHUCK PEDESTAL</text>
+          <text class="wl" x="140" y="128">PCB SET · 4 PCS</text>
+          <circle class="ped" cx="210" cy="198" r="62"/>
+          <circle class="hs" cx="210" cy="198" r="56"/>
+          <circle class="hole" cx="210" cy="198" r="8"/>
+          <g class="seat" style="--tx:18.4px; --ty:-18.4px; --d:0.00s"><path class="pcb" d="M211.8 146.0 A52 52 0 0 1 262.0 196.2 L222.0 197.6 A12 12 0 0 0 210.4 186.0 Z"/><rect class="led" x="220.6" y="165.4" width="4.5" height="4.5" rx="1"/><rect class="led" x="231.1" y="172.4" width="4.5" height="4.5" rx="1"/><rect class="led" x="238.1" y="182.9" width="4.5" height="4.5" rx="1"/></g><g class="seat" style="--tx:18.4px; --ty:18.4px; --d:0.08s"><path class="pcb" d="M262.0 199.8 A52 52 0 0 1 211.8 250.0 L210.4 210.0 A12 12 0 0 0 222.0 198.4 Z"/><rect class="led" x="238.1" y="208.6" width="4.5" height="4.5" rx="1"/><rect class="led" x="231.1" y="219.1" width="4.5" height="4.5" rx="1"/><rect class="led" x="220.6" y="226.1" width="4.5" height="4.5" rx="1"/></g><g class="seat" style="--tx:-18.4px; --ty:18.4px; --d:0.16s"><path class="pcb" d="M208.2 250.0 A52 52 0 0 1 158.0 199.8 L198.0 198.4 A12 12 0 0 0 209.6 210.0 Z"/><rect class="led" x="194.9" y="226.1" width="4.5" height="4.5" rx="1"/><rect class="led" x="184.4" y="219.1" width="4.5" height="4.5" rx="1"/><rect class="led" x="177.4" y="208.6" width="4.5" height="4.5" rx="1"/></g><g class="seat" style="--tx:-18.4px; --ty:-18.4px; --d:0.24s"><path class="pcb" d="M158.0 196.2 A52 52 0 0 1 208.2 146.0 L209.6 186.0 A12 12 0 0 0 198.0 197.6 Z"/><rect class="led" x="177.4" y="182.9" width="4.5" height="4.5" rx="1"/><rect class="led" x="184.4" y="172.4" width="4.5" height="4.5" rx="1"/><rect class="led" x="194.9" y="165.4" width="4.5" height="4.5" rx="1"/></g>
+          <circle class="scr" cx="223.2" cy="155.0" r="2.3" style="--d:0.000s"/><circle class="scr" cx="253.0" cy="184.8" r="2.3" style="--d:0.045s"/><circle class="scr" cx="224.8" cy="183.2" r="2.3" style="--d:0.090s"/><circle class="scr" cx="253.0" cy="211.2" r="2.3" style="--d:0.135s"/><circle class="scr" cx="223.2" cy="241.0" r="2.3" style="--d:0.180s"/><circle class="scr" cx="224.8" cy="212.8" r="2.3" style="--d:0.225s"/><circle class="scr" cx="196.8" cy="241.0" r="2.3" style="--d:0.270s"/><circle class="scr" cx="167.0" cy="211.2" r="2.3" style="--d:0.315s"/><circle class="scr" cx="195.2" cy="212.8" r="2.3" style="--d:0.360s"/><circle class="scr" cx="167.0" cy="184.8" r="2.3" style="--d:0.405s"/><circle class="scr" cx="196.8" cy="155.0" r="2.3" style="--d:0.450s"/><circle class="scr" cx="195.2" cy="183.2" r="2.3" style="--d:0.495s"/>
+          <path class="cab" d="M268 182 H336"/><path class="cab" d="M270 192 H336"/>
+          <path class="cab" d="M270 204 H336"/><path class="cab" d="M268 214 H336"/>
+          <circle class="cov" cx="210" cy="198" r="60"/>
+          <text class="wl covl" x="90" y="306">BACK COVER</text>
+          <text class="wl tst" x="330" y="306" text-anchor="end">TEST 48 PTS</text>
+          <text class="wl" x="60" y="335">CYCLE TIME</text>
+          <text class="ctv" x="360" y="335" text-anchor="end">243 MIN</text>
+          <rect class="sg sg0" x="60.0" y="342" width="6.2" height="10"/><rect class="sg sg1" x="67.4" y="342" width="121.0" height="10"/><rect class="sg sg2" x="189.6" y="342" width="97.6" height="10"/><rect class="sg sg3" x="288.4" y="342" width="42.0" height="10"/><rect class="sg sg4" x="331.6" y="342" width="27.2" height="10"/>
+          <rect class="mark" x="358.6" y="338" width="2.4" height="18"/>
+          <text class="wl cost" x="60" y="366">COST 217,512</text>
+          <text class="res" x="360" y="367" text-anchor="end" data-px="unit-svg">247,000 KRW / EA</text>
+        </svg>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:6px;">
+          <div style="border:1px solid rgba(255,255,255,.22); border-radius:12px; padding:12px 14px;">
+            <div style="font-family:var(--font-en); font-weight:700; font-size:24px; color:#fff;">243<span style="font-size:14px; margin-left:3px; color:#AFC3E6;">min</span></div>
+            <div style="font-family:var(--font-ko); font-size:12.5px; color:#AFC3E6; margin-top:4px;">CT · 1대 (4.05시간)</div>
+          </div>
+          <div style="border:1px solid rgba(255,255,255,.22); border-radius:12px; padding:12px 14px;">
+            <div style="font-family:var(--font-en); font-weight:700; font-size:24px; color:#fff;">36<span style="font-size:14px; margin-left:3px; color:#AFC3E6;">ea</span></div>
+            <div style="font-family:var(--font-ko); font-size:12.5px; color:#AFC3E6; margin-top:4px;">요소작업 · 5개 공정</div>
+          </div>
+          <div style="border:1px solid rgba(255,255,255,.22); border-radius:12px; padding:12px 14px;">
+            <div style="font-family:var(--font-en); font-weight:700; font-size:24px; color:#fff;">217,512</div>
+            <div style="font-family:var(--font-ko); font-size:12.5px; color:#AFC3E6; margin-top:4px;">총원가 · 1대 (원)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer"></div>
+    </section>
+
+    <!-- 02 — EXECUTIVE SUMMARY -->
+    <section class="slide" data-page="summary">
+      <div class="eyebrow"><span class="num">00</span><span class="tag">/ EXECUTIVE SUMMARY</span></div>
+      <h2 class="slide-title">결론: 1대당 <span data-px="unit" data-i18n-skip>247,000</span>원 (<span data-px="tier" data-i18n-skip>100대 이상</span>)</h2>
+      <p class="slide-sub" style="right:400px;">CT 243분 × BCT 견적 임률에 재료·경비·간접비를 더한 총원가에서 산출했습니다.</p>
+      <div class="seg mseg" role="group" aria-label="수량 구간 선택"><button type="button" data-t="ge" aria-pressed="true">100대 이상 · 12%</button><button type="button" data-t="lt" aria-pressed="false">100대 미만 · 15%</button></div>
+
+      <div class="content" style="top:168px; display:grid; grid-template-columns:repeat(3,1fr); gap:20px; bottom:196px;">
+        <div class="stat-card">
+          <span class="stat-tag">QUOTE · 1 UNIT · VAT EXCL.</span>
+          <div style="margin-top:18px; display:flex; align-items:baseline;">
+            <span class="stat-big" style="font-size:54px; color:var(--amber);" data-px="unit" data-i18n-skip>247,000</span><span class="stat-unit">원</span>
+          </div>
+          <div class="ko" style="font-size:14px; color:var(--steel); margin:10px 0 12px;"><span data-px="lotlbl" data-i18n-skip>100대 Lot</span> <b style="color:var(--ink);" data-px="lot" data-i18n-skip>24,700,000원</b></div>
+          <div class="stat-row"><span class="k">이익률 (판매가 기준)</span><span class="v" data-px="m" data-i18n-skip>12%</span></div>
+          <div class="stat-row"><span class="k">단수 처리</span><span class="v">천원 미만 절사</span></div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-tag">CYCLE TIME · 1 UNIT</span>
+          <div style="margin-top:18px; display:flex; align-items:baseline;">
+            <span class="stat-big" style="font-size:54px;">243</span><span class="stat-unit">분</span>
+          </div>
+          <div class="ko" style="font-size:14px; color:var(--steel); margin:10px 0 12px;">요소작업 36개 · 5개 공정 · 여유율 미적용</div>
+          <div class="stat-row"><span class="k">직접노무비</span><span class="v">157,950원</span></div>
+          <div class="stat-row"><span class="k">BCT 견적 임률</span><span class="v">39,000원/시간</span></div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-tag">TOTAL COST · 1 UNIT</span>
+          <div style="margin-top:18px; display:flex; align-items:baseline;">
+            <span class="stat-big" style="font-size:54px;" data-px="tc" data-i18n-skip>217,512</span><span class="stat-unit">원</span>
+          </div>
+          <div class="ko" style="font-size:14px; color:var(--steel); margin:10px 0 12px;">직접원가 + 간접비 + 물류비</div>
+          <div class="stat-row"><span class="k">직접원가 (노무·재료·경비)</span><span class="v" data-px="dc" data-i18n-skip>181,835원</span></div>
+          <div class="stat-row"><span class="k">제조경비·일반관리비·물류비</span><span class="v" data-px="ind" data-i18n-skip>35,677원</span></div>
+        </div>
+      </div>
+
+      <div style="position:absolute; left:67px; right:67px; bottom:56px; display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+        <div class="tile"><div class="n">WHY 01 · MEASURED CT</div><p style="margin-top:6px;"><b>실무교육 시연을 요소작업 36개로 분해</b>해 산정한 CT — 공정별 시간을 그대로 확인할 수 있습니다</p></div>
+        <div class="tile"><div class="n">WHY 02 · OPEN-BOOK COST</div><p style="margin-top:6px;"><b>원가 항목별 산식 공개</b> — 임률·재료·경비·간접비를 단계별로 보여 드립니다</p></div>
+        <div class="tile"><div class="n">WHY 03 · ROOM TO REDUCE</div><p style="margin-top:6px;"><b>SOP 개정 시 재작업·낭비 20분 제거</b> — 1대당 직접노무비 13,000원 절감 여지</p></div>
+      </div>
+      <div class="footer"></div>
+    </section>
+
+    <!-- 03 — SCOPE -->
+    <section class="slide" data-page="scope">
+      <div class="eyebrow"><span class="num">01</span><span class="tag">/ SCOPE</span></div>
+      <h2 class="slide-title">CM Scope: SOP 5개 공정 조립 + 나사·써멀그리스 BCT 조달</h2>
+      <p class="slide-sub">LED Heater Module(M2-TYPE) 조립 SOP rev.00 전 공정을 BCT가 수행하고, 통전검사 2회와 출하 준비까지 포함합니다.</p>
+
+      <div class="content" style="top:166px;">
+        <div style="display:grid; grid-template-columns:1fr 22px 1fr 22px 1fr 22px 1fr 22px 1fr; height:150px;">
+          <div class="flow-box"><div class="t">작업 준비</div><div class="m">6<small>분</small></div><div class="s">작업지시 · Kitting 대조<br>작업대·보호 스폰지</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box on"><div class="t">PCB 조립</div><div class="m">99<small>분</small></div><div class="s">써멀그리스 2g 도포<br>M2×3 나사 66개 · 1.2 kgf·cm</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box"><div class="t">케이블·커버 (전면)</div><div class="m">80<small>분</small></div><div class="s">12ch 결선 48선<br>Cable Cover 6개 · 1차 통전</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box"><div class="t">케이블·커버 (후면)</div><div class="m">35<small>분</small></div><div class="s">Back Cover · LOCTITE<br>M2×4 32개 · 1.6 kgf·cm</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box"><div class="t">케이블 마무리</div><div class="m">23<small>분</small></div><div class="s">케이블 정리 · 2차 통전<br>외관·라벨·출하 보고서</div></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:24px;">
+          <div class="tile" style="padding:16px 22px;">
+            <div class="n">BCT · 수행 및 조달 (도급)</div>
+            <ul class="ul" style="margin-top:6px;">
+              <li>SOP rev.00 전 공정 조립 — 요소작업 36개, 1대 243분</li>
+              <li>나사 3종 142개/대 · 써멀그리스 YP-S4 2g × 2 · LOCTITE 272 조달</li>
+              <li>토크드라이버 TOHNICHI 3RTD 2개 운용 · 정기 검교정</li>
+              <li>통전검사 2회 (12ch × 4선) · 외관검사 · S/N 라벨 · 출하 보고서</li>
+            </ul>
+          </div>
+          <div class="card" style="background:#fff; padding:16px 22px;">
+            <div class="n">HS하이테크 · 공급 및 확정 요청</div>
+            <ul class="ul" style="margin-top:6px;">
+              <li>Heatsink · LED PCB · 하네스 · Cover류 등 주요 자재 공급 (사급)</li>
+              <li>SOP · 도면 최신본 제공, 변경 시 사전 통보</li>
+              <li>출하검사 항목과 판정 기준 확정</li>
+              <li>SOP 질의 회신 — Cable Cover 나사 규격, Back Cable Block 체결</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="pack-note"><span class="pk">EXCLUDED</span><b>포장박스 비용은 본 단가에서 제외</b><span class="pd">포장 사양 확정 후 추후 협의</span></div>
+      </div>
+      <div class="footer"></div>
+    </section>
+
+    <!-- 04 — CYCLE TIME -->
+    <section class="slide" data-page="ct">
+      <div class="eyebrow"><span class="num">02</span><span class="tag">/ CYCLE TIME</span></div>
+      <h2 class="slide-title">CT 243분 — PCB 조립과 전면 케이블 작업이 74%</h2>
+      <p class="slide-sub">실무교육 시연을 요소작업 36개로 나눠 산정하고 2026-10-29 단축을 반영했습니다. 여유율은 적용하지 않았습니다.</p>
+
+      <div class="content" style="top:166px; bottom:70px; display:grid; grid-template-columns:1fr 330px; gap:24px;">
+        <div class="card" style="background:#fff; padding:18px 24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="section-label" style="margin:0;">공정별 CT</div>
+            <span class="src">MINUTES PER UNIT · TOTAL 243</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px; margin-top:16px;">
+            <div class="bar-row"><div class="lbl">작업 준비<small>2 ELEMENTS</small></div><div class="track"><div class="bar" style="width:6.1%; background:#AFC3E6;"></div><span class="bar-val" style="left:calc(6.1% + 10px);">6분 · 2.5%</span></div></div>
+            <div class="bar-row"><div class="lbl">PCB 조립<small>12 ELEMENTS</small></div><div class="track"><div class="bar" style="width:100%; background:var(--primary);"></div><span class="bar-val" style="right:1%; color:#fff; padding-right:8px;">99분 · 40.7%</span></div></div>
+            <div class="bar-row"><div class="lbl">케이블·커버 (전면)<small>12 ELEMENTS</small></div><div class="track"><div class="bar" style="width:80.8%; background:var(--primary);"></div><span class="bar-val" style="right:20.2%; color:#fff; padding-right:8px;">80분 · 32.9%</span></div></div>
+            <div class="bar-row"><div class="lbl">케이블·커버 (후면)<small>7 ELEMENTS</small></div><div class="track"><div class="bar" style="width:35.4%; background:#3E6FB8;"></div><span class="bar-val" style="left:calc(35.4% + 10px);">35분 · 14.4%</span></div></div>
+            <div class="bar-row"><div class="lbl">케이블 마무리<small>3 ELEMENTS</small></div><div class="track"><div class="bar" style="width:23.2%; background:#3E6FB8;"></div><span class="bar-val" style="left:calc(23.2% + 10px);">23분 · 9.5%</span></div></div>
+          </div>
+          <div class="section-label" style="margin:24px 0 10px;">작업구분별 시간</div>
+          <div class="stackbar">
+            <div style="width:2.5%; background:#B8C2D3;"></div>
+            <div style="width:54.3%; background:var(--primary);">주작업 132분</div>
+            <div style="width:17.3%; background:#8FB4F0; color:var(--primary-deeper);">부수작업 42분</div>
+            <div style="width:17.7%; background:var(--primary-deeper);">검사 43분</div>
+            <div style="width:8.2%; background:var(--risk);">20분</div>
+          </div>
+          <div class="legend" style="margin-top:10px;"><span><i style="background:#B8C2D3;"></i>준비 6분</span><span><i style="background:var(--primary);"></i>주작업</span><span><i style="background:#8FB4F0;"></i>부수작업</span><span><i style="background:var(--primary-deeper);"></i>검사</span><span><i style="background:var(--risk);"></i>재작업·낭비</span></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div class="stat-card" style="padding:18px 22px;">
+            <span class="stat-tag">MAIN WORK</span>
+            <div style="margin-top:12px;"><span class="stat-big" style="font-size:44px;">132</span><span class="stat-unit" style="font-size:16px;">분 · 54.3%</span></div>
+            <div class="ko" style="font-size:13.5px; color:var(--steel); margin-top:6px;">그리스 도포 40분이 가장 큰 단일 작업</div>
+          </div>
+          <div class="stat-card" style="padding:18px 22px;">
+            <span class="stat-tag risk">REWORK · WASTE</span>
+            <div style="margin-top:12px;"><span class="stat-big" style="font-size:44px; color:var(--risk);">20</span><span class="stat-unit" style="font-size:16px;">분 · 8.2%</span></div>
+            <div class="ko" style="font-size:13.5px; color:var(--steel); margin-top:6px;">Burr 조건부 제거 8분 + 임시 고정나사 루프 12분</div>
+          </div>
+          <a class="ct-link" href="L3_PRIME_M2_Heater_CT_Diagram.html"><span>CT Diagram 상세 보기<small>36 ELEMENTS · GANTT · REV.C</small></span><b>→</b></a>
+        </div>
+      </div>
+      <div class="src src-line">SOURCE · CT Diagram rev.C (2026-10-28 실무교육 후 산정 · 2026-10-29 단축 반영) · 시연 권용일 부장 · 산정 변태준 이사</div>
+      <div class="footer"></div>
+    </section>
+
+    <!-- 05 — COST BUILD-UP -->
+    <section class="slide" data-page="cost">
+      <div class="eyebrow"><span class="num">03</span><span class="tag">/ COST BUILD-UP</span></div>
+      <h2 class="slide-title">총원가 217,512원 — 직접노무비가 73%</h2>
+      <p class="slide-sub">직접원가(노무·재료·경비)에 제조경비, 일반관리비, 물류비를 차례로 더했습니다. 100대 생산 기준입니다.</p>
+
+      <div class="content" style="top:162px;">
+        <div class="stackbar" style="height:34px;">
+          <div style="width:72.6%; background:var(--primary-deep);">직접노무비 72.6%</div>
+          <div style="width:3.1%; background:#3E6FB8;"></div>
+          <div style="width:7.8%; background:#6E93D1;">7.8%</div>
+          <div style="width:7.3%; background:#8FB4F0; color:var(--primary-deeper);">7.3%</div>
+          <div style="width:4.5%; background:#AFC3E6;"></div>
+          <div style="width:4.7%; background:#CBD8ED;"></div>
+        </div>
+        <table class="bct-table" style="margin-top:14px;">
+          <thead><tr><th>원가 항목</th><th class="num">1대당 금액</th><th class="num">비중</th><th>산식</th></tr></thead>
+          <tbody>
+            <tr><td><b>직접노무비</b></td><td class="num">157,950원</td><td class="num muted">72.6%</td><td class="muted">CT 243분 (4.05시간) × BCT 견적 임률 39,000원</td></tr>
+            <tr><td><b>직접재료비</b> (나사 · 도급)</td><td class="num">6,835원</td><td class="num muted">3.1%</td><td class="muted">M2×3 · M2×8 · M2×4 총 142개 (Loss · 임시나사 포함)</td></tr>
+            <tr><td><b>직접경비</b> (공구 · 검교정 · 소모품)</td><td class="num">17,050원</td><td class="num muted">7.8%</td><td class="muted">전용 공구 상각 + 토크드라이버 검교정 + 써멀그리스 등</td></tr>
+            <tr><td><b>제조경비</b></td><td class="num">15,795원</td><td class="num muted">7.3%</td><td class="muted">직접노무비 × 10% — 시설 · 전력 · 공용 치공구 · 간접노무</td></tr>
+            <tr class="hl"><td>제조원가</td><td class="num">197,630원</td><td class="num">90.9%</td><td>직접노무비 + 직접재료비 + 직접경비 + 제조경비</td></tr>
+            <tr><td><b>일반관리비</b></td><td class="num">9,882원</td><td class="num muted">4.5%</td><td class="muted">제조원가 × 5%</td></tr>
+            <tr><td><b>물류비</b></td><td class="num">10,000원</td><td class="num muted">4.6%</td><td class="muted">1대당 10,000원</td></tr>
+            <tr class="tot"><td>총원가</td><td class="num">217,512원</td><td class="num">100%</td><td class="muted">제조원가 + 일반관리비 + 물류비</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="src src-line">* 공구 상각과 검교정비는 총 생산수량 100대(연간 100대)로 나눈 값입니다. 생산수량별 단가는 견적가 페이지에 있습니다.</div>
+      <div class="footer"></div>
+    </section>
+
+    <!-- 06 — LABOR -->
+    <section class="slide" data-page="labor">
+      <div class="eyebrow"><span class="num">03</span><span class="tag">/ DIRECT LABOR</span></div>
+      <h2 class="slide-title">직접노무비 157,950원 = CT 4.05시간 × 39,000원</h2>
+      <p class="slide-sub">BCT 견적 임률은 공공 노임 기준에 법정 사업주 부담과 가동률을 반영해 산출했습니다.</p>
+
+      <div class="content" style="top:166px; display:grid; grid-template-columns:1.1fr 1fr; gap:26px;">
+        <div class="card" style="background:#fff; padding:20px 24px;">
+          <div class="section-label">임률 산출 근거</div>
+          <div class="steps">
+            <div class="step"><i>1</i><div><b>노임 기준</b> — 중소제조업 직종별 조사노임단가 (2026 하반기), 전기기계조립원 일급 116,674원 등</div></div>
+            <div class="step"><i>2</i><div><b>연 인건비</b> — 기본급 (시급 × 209시간/월) × (12개월 + 상여 400%)</div></div>
+            <div class="step"><i>3</i><div><b>사업주 부담 19.771%</b> — 4대보험 11.437% + 퇴직급여 8.333%</div></div>
+            <div class="step"><i>4</i><div><b>실투입 시간</b> — 연 1,848시간 × 가동률 85% = 1,571시간</div></div>
+            <div class="step"><i>5</i><div><b>공정 가중 39,717원/시간</b> → 천원 단위 절삭, <b style="color:var(--amber);">39,000원/시간</b> 적용</div></div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <table class="bct-table">
+            <thead><tr><th>공정</th><th class="num">CT</th><th class="num">직접노무비</th></tr></thead>
+            <tbody>
+              <tr><td>작업 준비</td><td class="num">6분</td><td class="num">3,900원</td></tr>
+              <tr><td>PCB 조립</td><td class="num">99분</td><td class="num">64,350원</td></tr>
+              <tr><td>케이블·커버 (전면)</td><td class="num">80분</td><td class="num">52,000원</td></tr>
+              <tr><td>케이블·커버 (후면)</td><td class="num">35분</td><td class="num">22,750원</td></tr>
+              <tr><td>케이블 마무리</td><td class="num">23분</td><td class="num">14,950원</td></tr>
+              <tr class="tot"><td>합계</td><td class="num">243분</td><td class="num">157,950원</td></tr>
+            </tbody>
+          </table>
+          <div class="note"><b>여유율 미적용.</b> 대기·준비 같은 비투입 시간은 임률의 가동률 85%에 이미 들어 있어, CT에 여유율을 더하지 않았습니다.</div>
+        </div>
+      </div>
+      <div class="footer"></div>
+    </section>
+
+    <!-- 07 — DIRECT MATERIAL & EXPENSE -->
+    <section class="slide" data-page="direct">
+      <div class="eyebrow"><span class="num">03</span><span class="tag">/ MATERIAL · DIRECT EXPENSE</span></div>
+      <h2 class="slide-title">직접재료비·직접경비 23,885원 — 나사 142개와 전용 공구·소모품</h2>
+      <p class="slide-sub">도급 조건에 따라 나사와 써멀그리스를 BCT가 조달합니다. 공구는 100대 기준으로 상각했습니다.</p>
+
+      <div class="content" style="top:166px; display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+        <div>
+          <div class="section-label">직접재료비 · 나사 6,835원</div>
+          <table class="bct-table">
+            <thead><tr><th>규격</th><th>사용처</th><th class="num">정미 / 소요</th><th class="num">1대당</th></tr></thead>
+            <tbody>
+              <tr><td>M2×3 둥근/십자<small>P-ST-SCR-0002</small></td><td>PCB ↔ Heatsink</td><td class="num">66 / 68</td><td class="num">2,040원</td></tr>
+              <tr><td>M2×8 접시/십자<small>P-ST-SCR-0003</small></td><td>Cable Cover</td><td class="num">24 / 25</td><td class="num">875원</td></tr>
+              <tr><td>M2×4 접시/육각<small>P-ST-SCR-0001</small></td><td>Back Cover<small>임시 고정 15개 포함</small></td><td class="num">32 / 49</td><td class="num">3,920원</td></tr>
+              <tr class="tot"><td>합계</td><td></td><td class="num">122 / 142</td><td class="num">6,835원</td></tr>
+            </tbody>
+          </table>
+          <div class="note" style="margin-top:12px;">소요 수량 = (정미 + 임시 고정나사) × Loss 3%. 나사 단가는 SUS304 소량 구매 기준입니다.</div>
+        </div>
+        <div>
+          <div class="section-label">직접경비 · 공구 · 소모품 17,050원</div>
+          <table class="bct-table">
+            <thead><tr><th>항목</th><th>기준</th><th class="num">1대당</th></tr></thead>
+            <tbody>
+              <tr><td>토크드라이버 3RTD × 2</td><td class="muted">400,000원 ÷ 100대</td><td class="num">4,000원</td></tr>
+              <tr><td>토크드라이버 검교정</td><td class="muted">200,000원/년 ÷ 100대</td><td class="num">2,000원</td></tr>
+              <tr><td>스트리퍼 · 압착기 · BIT</td><td class="muted">100,000원 ÷ 100대 + BIT 수명</td><td class="num">1,150원</td></tr>
+              <tr><td>써멀그리스 YP-S4 2g × 2</td><td class="muted">3,500원 × 2</td><td class="num">7,000원</td></tr>
+              <tr><td>LOCTITE 272 · 사포 · 면봉</td><td class="muted">1대 사용량 기준</td><td class="num">2,900원</td></tr>
+              <tr class="tot"><td>합계</td><td></td><td class="num">17,050원</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="sumstrip" style="position:absolute; left:67px; right:67px; bottom:56px;">
+        <div><div class="k">직접재료비 (나사)</div><div class="v">6,835원</div></div>
+        <div class="op">+</div>
+        <div><div class="k">직접경비 (공구 · 검교정 · 소모품)</div><div class="v">17,050원</div></div>
+        <div class="op">=</div>
+        <div><div class="k">1대당 합계 · 총원가의 11.0%</div><div class="v key">23,885원</div></div>
+      </div>
+      <div class="footer"></div>
+    </section>
+
+    <!-- 08 — QUOTE -->
+    <section class="slide" data-page="quote">
+      <div class="eyebrow"><span class="num">04</span><span class="tag">/ PRICING</span></div>
+      <h2 class="slide-title">견적가 1대당 <span data-px="unit" data-i18n-skip>247,000</span>원 · 이익률 <span data-px="m" data-i18n-skip>12%</span></h2>
+      <p class="slide-sub" style="right:400px;">100대 미만 15% · 100대 이상 12% — 총원가 ÷ (1 − 이익률), 천원 미만 절사.</p>
+      <div class="seg mseg" role="group" aria-label="수량 구간 선택"><button type="button" data-t="ge" aria-pressed="true">100대 이상 · 12%</button><button type="button" data-t="lt" aria-pressed="false">100대 미만 · 15%</button></div>
+
+      <div class="content" style="top:166px; display:grid; grid-template-columns:400px 1fr; gap:26px;">
+        <div class="stat-card" style="padding:22px 26px;">
+          <span class="stat-tag" data-px="qtag" data-i18n-skip>UNIT PRICE · 100+ UNITS</span>
+          <div style="margin-top:18px;"><span class="bigp" data-px="unit" data-i18n-skip>247,000</span><span class="stat-unit">원</span></div>
+          <div class="calc" style="margin-top:18px;" data-i18n-skip id="qCalc"></div>
+        </div>
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline;">
+            <div class="section-label" style="margin:0 0 10px;">생산수량별 견적가</div>
+            <span class="src" data-i18n-skip id="qMarginTag">MARGIN 12%</span>
+          </div>
+          <table class="bct-table">
+            <thead><tr><th>생산수량</th><th class="num">총원가</th><th class="num">이익률</th><th class="num">견적가 (1대)</th><th class="num">Lot 총액</th></tr></thead>
+            <tbody id="qtyBody" data-i18n-skip></tbody>
+          </table>
+          <div class="note" style="margin-top:12px;">100대 미만은 이익률 15%, 100대 이상은 12%를 적용합니다. 수량이 늘면 공구 상각·검교정비 배분도 줄어듭니다.</div>
+        </div>
+      </div>
+      <div class="footer"></div>
+    </section>
+
+    <!-- 09 — TERMS -->
+    <section class="slide" data-page="terms">
+      <div class="eyebrow"><span class="num">05</span><span class="tag">/ TERMS</span></div>
+      <h2 class="slide-title">견적 조건과 단가 조정 기준</h2>
+      <p class="slide-sub">단가가 바뀔 수 있는 조건을 미리 정해 두고, 초도 Lot 결과로 함께 확인합니다.</p>
+
+      <div class="content" style="top:166px;">
+        <div class="qgrid">
+          <div class="qrow"><i>01</i><b>VAT 별도 · 수량 구간별 이익률</b><span>100대 미만 15%, 100대 이상 12%. 공구 상각·검교정비는 생산수량으로 배분합니다.</span></div>
+          <div class="qrow"><i>02</i><b>조달 범위 (도급)</b><span>나사 · 써멀그리스 · LOCTITE · 소모품은 BCT 조달, 그 외 자재는 HS하이테크 공급입니다.</span></div>
+          <div class="qrow"><i>03</i><b>초도 Lot CT 실측 후 재확인</b><span>실측 CT가 산정값 243분과 다르면 같은 산식으로 다시 계산해 협의합니다.</span></div>
+          <div class="qrow"><i>04</i><b>SOP 개정 시 단가 인하</b><span>재작업·낭비 20분 제거 시 1대당 직접노무비 13,000원이 줄어듭니다.</span></div>
+          <div class="qrow"><i>05</i><b>SOP 확인 요청 2건</b><span>Cable Cover 나사 규격 (M2×8 / M3×8) · Back Cable Block 체결 방법</span></div>
+          <div class="qrow"><i>06</i><b>공용 치공구 · 간접 소모품</b><span>핀셋 · 멀티테스터 · 지그 · 에탄올 · 장갑 등은 제조경비에 포함되어 별도 청구하지 않습니다.</span></div>
+        </div>
+      </div>
+      <div class="footer"></div>
+    </section>
+
+    <!-- 10 — CLOSING -->
+    <section class="slide on-dark" data-page="closing" style="background:var(--primary-deep);">
+      <div class="blob" style="width:400px;height:400px; right:-120px; top:-130px; background:#2E5FAE; opacity:.55;"></div>
+      <div class="blob" style="width:370px;height:370px; left:-130px; bottom:-90px; background:#0F2C5C; opacity:.30;"></div>
+      <div class="motif" style="right:60px; top:56px; width:150px; height:150px;"></div>
+      <div class="motif" style="left:70px; bottom:80px; width:130px; height:130px;"></div>
+
+      <img src="data:image/png;base64,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" data-logo="white" style="position:absolute; left:50%; top:90px; transform:translateX(-50%); height:76px;" alt="BCT">
+
+      <div style="position:absolute; left:0; right:0; top:196px; text-align:center; font-family:var(--font-mono); font-size:13.5px; font-weight:700; letter-spacing:.14em; color:var(--amber);">NEXT STEP</div>
+      <h2 style="position:absolute; left:0; right:0; top:226px; margin:0; text-align:center; font-family:var(--font-en); font-weight:700; font-size:38px; line-height:1.35; color:#fff;">
+        Confirm the pricing,<br>then verify the CT on the first lot
+      </h2>
+
+      <div style="position:absolute; left:50%; top:356px; transform:translateX(-50%); display:flex; gap:14px;">
+        <div style="border:1px solid rgba(255,255,255,.25); border-radius:12px; padding:12px 18px; font-family:var(--font-en); font-size:14.5px; color:#fff; white-space:nowrap;"><span class="mono" style="color:var(--amber); font-size:12px; margin-right:8px;">01</span>Confirm unit price &amp; margin</div>
+        <div style="border:1px solid rgba(255,255,255,.25); border-radius:12px; padding:12px 18px; font-family:var(--font-en); font-size:14.5px; color:#fff; white-space:nowrap;"><span class="mono" style="color:#AFC3E6; font-size:12px; margin-right:8px;">02</span>Answer the SOP questions</div>
+        <div style="border:1px solid rgba(255,255,255,.25); border-radius:12px; padding:12px 18px; font-family:var(--font-en); font-size:14.5px; color:#fff; white-space:nowrap;"><span class="mono" style="color:#AFC3E6; font-size:12px; margin-right:8px;">03</span>Build the first lot · measure CT</div>
+      </div>
+
+      <div style="position:absolute; left:50%; top:446px; transform:translateX(-50%); width:90px; height:1px; background:#3A5E9C;"></div>
+
+      <p style="position:absolute; left:0; right:0; top:472px; margin:0; text-align:center; font-family:var(--font-ko); font-weight:700; font-size:16px; color:#fff;">
+        BCT · (주)비씨테크　·　CM Business
+      </p>
+      <p style="position:absolute; left:0; right:0; top:504px; margin:0; text-align:center; font-family:var(--font-en); font-size:14px; color:#AFC3E6;">
+        Pricing date 2026-10-29 · 15% margin under 100 units, 12% from 100 · VAT excluded
+      </p>
+
+      <div class="footer"></div>
+    </section>
+
+<!-- ===== SLIDES END ===== -->
+  </div>
+</div>
+
+<button class="side-nav" id="sidePrev" aria-label="Previous slide">&#8249;</button>
+<button class="side-nav" id="sideNext" aria-label="Next slide">&#8250;</button>
+
+<nav class="navbar" role="group" aria-label="Slide navigation">
+  <button id="prevBtn" aria-label="Previous slide">&#8249;</button>
+  <span class="count"><span id="curNum">01</span> / <span id="totNum">01</span></span>
+  <button id="nextBtn" aria-label="Next slide">&#8250;</button>
+  <button id="ovBtn" aria-label="Overview" title="Overview (G)" style="font-size:14px;">&#x25A6;</button>
+  <button id="fsBtn" aria-label="Fullscreen" title="Fullscreen (F)" style="font-size:13px;">&#x26F6;</button>
+  <button id="langBtn" aria-label="Switch language" title="KO / EN (L)">EN</button>
+</nav>
+
+<div class="overview" id="overview" role="dialog" aria-label="Overview">
+  <div class="ov-head"><b>PAGE OVERVIEW</b><span>페이지를 클릭하면 이동합니다 · Esc 닫기</span></div>
+  <div class="ov-grid" id="ovGrid"></div>
+</div>
+
+<script>
+(function(){
+  var DOC = 'BCT · L3 LED SYSTEM PRIME · M2 HEATER CM PRICING · 2026';   // footer centre text (Latin only, never translated)
+  // Logos per language. An English-only logo is optional:  builds to '' when the file is
+  // missing, and the Korean logo is kept. Cover/closing white logos carry data-logo="white".
+  var LOGO = {
+    color: { ko:'data:image/png;base64,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', en:'' },
+    white: { ko:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAEsCAYAAAA1u0HIAAAbDklEQVR4nO3d/XXUOBfHcYmz/zNbAZMKCBUQKiBUAFRAqIBQAaECQgVkKyBUQKiAoYI1Feg5l73DMzubjGVbkq+s7+ecnLBLmBeP45+vXp0DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACTmQwhvnHPnqR8YAAAU81oC/W/n3KrccwIAgMQ6CfSQ+lEBAEBZ9wo/HwAAyIBABwBgAQh0AAAWgEAHAGABCHQAABYS6N3cLwIAAEzSSaC/nfYYAABgZu/nfgEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACog5/7BQAoI4Swds6tnHPb707/fMhm/7v3fvtnAIYQ6MDyQvtYg/qh/nkb4il1GvLy9c05d6NhL98BzIBAByoWQjjR0H7snDvZqbzndK0hL99vqOiBMnxjlcv3uV+HMZ1+7Tet/tyrwGhmNSKEIIH9wjn3dKf6tk6q9i/OuSvvvYR81UIIn/XmCfU6WuKNJoGOIX41q+rF+Uarr+0NAfKG+CsNkdqDRM4fCfWPtYY7gb4IRwR6xajQs1dfcnG+JuCThvipc+75AkL8ULj/5Zy7qOniSqAvwlFN51wsKnSk9qv60nBf3C9MoRtPCfGzSprTU7mspWon0BfhaInXp3tzvwAsjlSTH2S8Qgjhgw7aQg85ThoUMs7jvLEwdzou4HMI4WsIQf4MYCACHSUu0hLuXKQPBzkDrf4hA/3kRpBzBhiIQEcJ0ozMRXqvaZ0gjzpn5IYw9Rx6YJEIdMxxkf7U6kVaBruFEN5o0zrdEf3kGEm1/q7VcwaIRaBjDqd6kZZga4aOJ/iqfeQYRgYJSrVO1w1wBwIdczpvoVrXqvyT9pMv+r0WauGRr9YGDQK9CHRYqNYX20+6U5XL+0QaUqV/Xeo5A4xFoMOCtV6gZYTzYki/L1V5NusWu22AQwh0WLHSUJdFVZbQxP5Z+32Rv9tGbpyA5hHosOay5sVotBlYmtirfQ8VOtMFaehXR9MIdFhU5UC5nf7y6l77Akh3Df3qaBqBDotWOlCumopLuwqkmb2a17xA6yUPsAT6EOgwPUXJ1RPmsrkI5keoo1kEOiw7DSGYnu5FmJtEqKNJBDqskyU/TTZj680GlbntUDd57gA5EOio4cJsbvqXzpmvokug8XNHVugDmkCgowavLFVaOuhKgsLMa8KdZHta5qmjCQQ6aiDBaWJTDr2xYE32+kKdmy8sHoGOWjx1Nlwwz7wqN865J977bu4XAuRGoKOmKmvWtd513fDql6ZtyEfv/SPCHK0g0FGT05n7zdnHvB5vvfcmummAUv4o9kzY9805V6oZcKVfDyr/GB7P+NzSb456wpybLzSHQJ/Pqfd+U/pJtdlaqk35fjJzSA51PGNTO8uJ1uG1917GOQDNIdAb472XQULydbXTlCzBXkNoybak65I3QgttapfWoe15sNEvaS3q9vub9f1vW3h2bwYfGpu212mYs9APmuVdI/TC9N3ZcTRHhX5ICOFFBcH+zHv/62akhBDCd+PHI8YPvYGTr5tUg8R0d7lTnYEw5zHqdCS73KCUauWydDOztTK2kM5Hqyspeu+v3QJRoeM3qW5CCNfG51mvC9/gWD0OMSH33jl3nevipY97rfuRH+uKfqVnAWw0zIvdHJe6cRjK4C5zm6UGp1WMcse/6IXxkV4oLVoVvDhKa0Vt5HN7qy1A56UuqBJyOqr8SJ9/s8QwBywj0PEf2iT7pOAo/CFKjdR/VVl13mmQPtIgn+Wzk3DVEeZPtMk1lxt9r4Q5oAh03EovlNJk2xytzs1tCHPA1U5FbuImTIN9W7FvMrxfVn8D9hDoOKTV6T+1jGrfjux+ZiXI7wj2bTN8Cu8tv19gTgQ67qQXTWuDWn4WqM5rWN7111iHWuZcazP81GpdFoypqeUEKIpAR8ycZUtyV2bnFW04UlX/sb5e6VsfM0qc1d+AHgQ6+mwaC3TrK+dVGeZ7TfCPBo7PeMlSrkA/Ah19rPVVbhqed76dpmXtMxlMm87fRi4YY3JxEsAaAh21yVmZWp53vpgw39Kq+23P+7U2hgMwi5Xi0MdSxdrlWqVrZ9Maq6ptZu8L9RDC/s0UC8YAI1Chw+QOZzMM0LM8evrtEsN8r1J/v4QxAsCcqNDRR3bVsuKqwcFwX1oYECZ96iEE6U64WFK3AlASgY6+3bQsNUNfN/I+d8lAvSa0cOMC5ESTO2oJk03GXa4svc9mmtoBpEWg49AULksrpqVaOrSW5nYJcqZrAYhGoOOuEd/vjIVbrub2tdHmdqpzAIMQ6PiXEMKpc+5zqX3HI33M2PQs/efWbDIPAASwQAQ6fleqIQRp4v1kLMxzNz1bDPRrRnoDGIpR7g0LIUhwS/P6K+ecVOauwaZnS9PySowXALBQBHo7wb39Otavh/rdUjV+2xzsywI3NNbeMyPbAQxGoM/nuy55idttCkwnsxbmgr5zAKPQhw6rXheoVC0GOpuRABiFQIfVfvMSlaq16Wo5F88BsHAEOiyGeaklQK0Fes7NZwAsHIGOVsNcPHC2UJ0DGI1AR6thbrFCp/8cwGiMcsfcOh0AN8e65dam7LFtKIDRCHTM3cT8bI5517qGuykMiAMwBU3umHM1tCcsovIb1TmASajQUdoX59yZgWrUWoXO6nAAJqFCR/GNVgyEuUU/534BAOpGoKN0VfwhhCDL3sp3a1UyAFSLQMcc1rpOO8EOAIkQ6JgbwQ4ACRDosBTsn0MIuXdYA4BFItBhsY+d/nUAGIhAh+Vq3eL2pq2sKw+gMgQ6LFfrX0MIzzM9PvO+ASwKgQ7rLkMIb9zyMYUPwCQEOmpwHkI4S/mAFpecZV4+gCkIdNTiXQjhdOHrp7c0ZgBAYgQ6apJ69Lu1Kp1mdwCjEeioyUpHv6fax/yHs+Vk7hcAoF4EOmojVeybhVboj+d+AQDqxfap8/lmoA93pfOfU1W8pZyFEP7y3l9PfBxru76tZO49u9EBGINAn8+plZHW2oS91kFZJ1opWu/Pfeece7SwQHd6/C2+LgDG0eQOmcLVSVXovZe9yl9474+cc0+ccx8NH57jBOu+m7ih2vN07hcAoE4EOm4lzdkS7s65I8PB/mbqjYzFgXHMRwcwBoGOg6RbQIP9tYE+/33rEMLUkeFT++FzYMc5AIMR6Ijivb/QZnhroT51xLvF/upXCafmAWgEgY5oOvpaKnVrTdRTwu/K2SPvJ+lStwCWj0DHIDJwzmAz9egmap1pYK0fXVClAxiEQMcYb40dtocT/z1VOoDqEegYTBd0sdT3fLrAQN9W6dbXAwBgBIGOsb4YW2FtSvDdGBzst+1L/+AaEUKQbXIZDAiMRKBjLEsV+qStR3U+utW59jLob/ED5EIIMltBvr7SKgGMQ6BjLGsV7Xqhze7izZJDTsP8XP9zrTvqLfb9ArkQ6BhrUYGu4wKsvadc28ZaDfMtQh0YgUDHUtxP8BjvnV0Scp/c8sN89/1K8zt7xAORCHQU77PO5M8Ej3FhuErf9qcvYpBcCOHdgTDfb5l4XuhlAVUj0DGWtT7Oyc3RxgfHbb2QUK+1+V1edwjh88CV8C61mgdwAIGOsWTP9CWSKt26FzWOBg8hSKvOV93zfSiZ0kaoAwcQ6Bh7YbbW5J6ELgVrvUrfHThWxc5sOvVOwnzKTci5NtUDuAWBjjEszotO2ffd17drhYSjNL9/sFqty82fNrGnCuKzEMKnWrscgJwIdAyiFaHFQUp/J67SLY943/fCWrWufeXvJjSx9y31y1x1YA+BjmhaBVpt8ky9Y9q58RHvd1Xr3+cMdg1y6ev+nrklR7p8CHVgB4GOKDofWKotq02dUlUnoyPea6rSbwt2+X5c6vwIIVxokJ8XOk9YgAbYQaAjtun0s+EwTx7ownt/nuNxC1nvjIaXcL9IvUiLhrgsS/tdz49XM5wj21Bf5CBNYIg/Bv00mqEX/1PtL7cc5Lk3i3mpYVWztYatbMcq/32tNyrf9Hu3/a4tE7/tDLY71vPgWPef3/63BdtQP/Pe1zBDAciCQMevKlwvitvpaE8NLhxzyM1+EKUia7yHEN5rIC7FnZW6Bn6NVroAzZ/e+xrWEgCSI9DnI/2bc18Ad79qlntv9vMKb3Ja9S6EcN97/3buFwKURqDPh00n0sm69alU/yGEJTS9t0IWoJHPjVBHUxgUh9ptdOvTrPQ5Xud+HiQN9UVsZAPEItBRu+xhvqV9s1lbA5B8IxsZ5V97lxIQhUBH7Uo3q76seCpbi35tCEOoowUEOmp2qcu0FqOj6Z8Q6lX5mGsWBGAJgY6azTLoSW8inlW2NGyrrnSBIGDxCHTU6n3p6nyX914WsmGQnG032kUCNIFAR40kyGevurz3lwSGWb9aUWhqR0sIdNTopZULNaFuNsyfzNmCA8yBQEdt3paYdz4EoW4KYY5mEeiord989qb2A6H+iIFys/eZP6IyR6sIdNQ09ejMGaYD5STUaeot76M2s5voigHmQKCjljCXvb3N0+rwScbtXHF7N8wLwhytI9BRQzN7FWG+G+ree6nU2Rwkr04HSJrshgFKI9Bh2WvrzeyHaNDIAjQ0wefrL5exCwAIdBgfqSyboVTNe3+lTfDSx4t0rTYMfgP2UKHDmvdaeZmampagCV66DdjYJc2NXrWtNkBOBDqs+LK9WC91cJM2D1OtD9fpeIRF3egBqRHosNAXKkF+0sLFeqdaP9KbGBz2RYP8fKk3ekAqBDrmrsibrLo02E9ohu89P+RGj0GFQAQCHSV12kfeTEUe0wzvvZdqnf71/wZ58+cHMASBjpIh/qf2kXOhvjvYW+1jJ8iBif6Y+gDALQEuF2cJ7WtdDhWR9GbnOoQgc9jl67Fzbr3wm70L+seB6Qh0TPFDB7Vt9LsEOP2dCehx/LVCXgjhRP+8hHDvtAXiipYaIC0CHfsBvbXRi+/u12b7RXCXr9p3wv3UOSffH1Z0XskCO4Q4kJHP+eAA8gkhrDTY5etYA17+35w6DfBrbbWREGe6GVAAgQ4sSAjhWJvlj/VrlSnot8F9o3+W7zeMmQDmQ6ADjQghrHf64Pe/32U7JmK326Wj6gYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQM+8aF0J445w76fmxZ977buTjnzrnVq5+1977zdh/HEL41HMcbrz3r8c+fuRrOHPOPe35sffe+6vSjxlCOHbOvet5nCzHaOA5evA8CCHI79I68rE23vvrntd24Zx72PM4L6ecm/o864jrwBQH32vM5++9fzLw3Et2vhQ4Prlt+s41VE5O0tDvYuJzbMIyvJh4HM4jniPrBSOEcJn6faZ6THnvEY+T5YI08Bw9T3A8tnpvnEIInyMeJ/YGYurxn+J66vOPONbJzhc5h0PdPrgG3HNtO++7q3POTQp0/CbHsa+VQ1pLUN79AT/bV8k/SPhYAAZoNtD1rv55z499nNqUh39ol8X7nuMhVUrNzXq1WmUKf5cw/AH0aDbQI6pzcVngdbSEKt2YEMLQKvnPnr8/mvByAEzQZKBHVueXVOdZqvSPEVW6DBBCGUMDPWWT++S+bwCNB3pkdf62wOtoUUyrx6QBeBhkPWcz+YgWAgB3aC7Q9QLyuOfHvlCd5+G9v5GpTz0/9pwLvVl3BvDI0eYEOpDIH649Mue278JD3/n/bQezRc/NjiCPd9JzkZcqnRkG+a0TBvCYcCbQ67CJ6C6bwypiHYhmtBjofX3nnfc+ZaCfFbhoHev7Svk8N7ogSo6bm2u9UTj0euWXlEDPb/A5I60ndyy0tBp5QyHnWi1ej3y9oxamskIXZTG3MIuOt4kJ9B+uAU0FeuRqR1eJfxGSPt4uneIVs9LdEF9kjEHOVZUkDEIIcrf/qmdw3Jquj+zGVtVdoxW6rL5mLtgatmrhhirWvQab2/v85YzTVaU+O+c+JwxzCfIn3vuTQhesmBsdBsfll7Lfu4VAhy2x58/GNaC1QH8a0dyeraKeaiFBvnUTcdfcN3gR041tJh/y/1M/PzD0nOtaOGTNBHpkc7uEWytBLn3jRzME+S/aB9vXFynvmwt+XvdnrtBZLQ5T0OTeYqBHBuH1woO80/n1f3rvJ+9QlcBfibpJMF7KZnJuvlBa9M5+rgEEusFAzxjkUpHLgDcrzU8x3Rs0u+fVt5TrkOAeU22zVCymiDrnvJ1rXlYtBfrjiP7zmwU2rYtOT3xTFZS2EPT9orFZS14PZm4mT7nZC9oTc03buEbca6j/vK9p5ptbXpBvrXXE+HfdX9rS6PG+cQuyZz1rftdhTLVt6iYT1Ym5NnSuEU0Eui68Yq65vUCQ30ae50MIQcL9g4GwjGkVoUrPYMJnf1RggB2Q6vz52cqhJND/72bhQd5btc80ojzmuLP7Wh5jA/2u4GYeOizekH53jWhlpbhjC/0sGVZ2k26Chwke50S/3oUQrnTJ11I3ODHPU7IVQY6BfEaxWqww//Oep7T0sCIgRoo95360coRbCfTeQTw5AyxDkP9enlXXMj6LWKM+xnZTFKnWNzoy/jrn9DZ57BBC34+luGkZcgxaCelVwn835Zi1crwxj66VA0+T+z+yBVYI4WvCpnVZDObR7mIwciPivX+h/ZovE74Xufv9oE3y71xefXfQc/fzL9Wh47pJGOh95ySBjjFYJa61QI/sF/5hbJ7vocVgbu6qdGVnNO+9BPuTxGvS517cpbePy8DgvSUaHcK3fB6rnnP4UJXEZ4sxWFSmwSb3mP7zzvA+5BdDF0XYbnWoF91znYNv+aIZc0NFFZfeKuFN7qpnlLF88RlWSqe6SotdjTrXiBYCPcbfbgFBvk/7vl/s/EK+qHjltdr2za7BlGby9d7PrCN+x+4ay2L5ZnPfcx0TM4R0i/1eFVF/F/d/D7nZyadzjWgh0NeVjILcaJBLs3nyE1Ca4+WxEw+iSyWm358LXtnBottm8ruO+5Am9+89v4c1fbZjFmW63Fvm+MTY79+i+fn3rChm8X3oFZAR69I3LuusT67K+2QcRIdl6QYuyNHX5H7oppnlX5FL19KhJdDns7sPudzBF7U3iO5Z4kF0OX7paqrilrBU66anK2o9sNrPOXAUuEtTBQtN7uX9nkPujND+vasZB9FZCvShlen9im82+irjHwcGla4GHtNDF1b2REcuP1s6tC0EupU7NHNBHjGI7qzQoi6WAvH1kBaTEMJlxf2hU6aa3R9Q7XcVff5Yls41hCb3/OSCf7S7GEwNtDleqrNHzrmPmZ+OLRALi5jX3xfofw6o9vu2ySXQsfSCrogWKvRZee+lCbtaupAN08WWZxWxJO+QEO4LZQK9/mDMfWM/hHTTxEwf7FxDWgh0S/2zGH/8m/rFrOCYPxhY7R/EBi22bRerckZol2BMoG9cQwj0fzBtZl4Euq1jvhl4ExVTnS/lhuzZiBar/fcuY1P2W+5OKl6JbQ4s+9pooMfcoTFtZl4xo5yXEgi1DIjb/d53QY1pvl8PXHnOqm7qQiW61sS/jq3uboh4tKo2GugxQZB0JHfl6x73+SID/BI/JoPiyltHTPXp+jY+0nBaJdgmlws0hqBCb3GUu15w+pZ25WIyr94+2Nwr6GHStqexa8IzMA6pRHWT+oaWfW0i0CM3X1mxPees29v23VB9K/RyWrKesp2tWkU8Vhe5yAc31RiCcTcNB7os6pJim1WkF3PcmTaXXt/a6zHVTUyF/jPyxppAR+om9661Q9pKoMc0u9S0hWNrgd5Us1kh9yMvhDED42LDOGoaHBBhVckumkW1Eugx8ydLLHGK/4oZYEeFPs8o99i1sB9ENt83d4FFegO6R7vWjn8Tga6rnfV9uKlHbiNOb2VW05K5FTk0VXP3d2XIjmtTNsc4tBY8sCu2RWjT2mFrItAjq7y1DtBCIXq8jxOMf0DaG6mhI9NjN2ZhxzWkkKKLZ5FaCvSYYDhNuLFJFrKHesRLyPb8ieegxzwW1XliA29cf0T0w8f2xwMpMAf9Di0FekwwMNK9rJgbKAI9vSkbqdzWbL9KUKEzKBWxqNBbD3Tth+27UNW6r3WtHvf8/Yb+8yyGbKZysJk8otqP7sekywuRCPTWA119jFhghsFxBYQQjiOChep8Bnvzz/v60IdU1rHz2oFDaHK/Q2uBfhXxMwR6GbLefR9L+y8vyZAQ7gv0Ic33BDpSiF2zoGvtcDcV6JHN7q8KvZzWPe35e5rb84ldez11oE95XcAgvsH9H5oKdPW+5+9pds9MuzVobp9P7CC22/570EDSAc33goFxSLVmwabFQ9lioF9E/AxV+vzN7W8zv4aWxa69HnNhfJCwYqJCR4yYc+5Hi4eyhf3Q/3NRCSFc9/SVn+zs9Yz0yzY+j9hzfa477HchhDcDfr7GEFoXqpY2d1xoH1R8LD/37Ove1410VNnAVWufSezrud8zwPlmidf35gJ9p/o76Tlpzpxz5wVfUyti5p7Pedxj+oVrdz9261S5seoJsJR7ILBBi71BxLV+Jsdy83Xg758scRZNi03u28FxfR/mK+bFZtHXncFgOFtN7lMe68eEvdYBDNRkoEf20W6rdCQSQngR0dxL37mdjVly9EceumGopjkasKjZQKdKn8WbiOr8stBradmhZtSU/YrfBz7+oa4AAD2aDXRFlV4I1Xk1uoTN5LdV4zG7twEYodVBcb+r9BDCXz1zaZ+GEC6WOCKyFB2L8Lyn6fYz1XmRz2LIOu5Tm9xveywCHcik6UAX3vskW6bi4DHuIrd9RX4pV3ZzIx7r0HREKnRgguYDvUJdRMU0dKRyK2KOXa7ntaLr6Wq6LXBlXMOYdQFum0lyc+j5b1n/4Uehz2xTYEBml/jc7Ps3U8+7Jldbq5mf+wUA+N0t0dda1HnvYzYYAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgBx9CeOOcO8/y6AAAoITXEuh/O+dWRZ4OAADk0EmghywPDQAAirlX7qkAAEAuBDoAAAtAoAMAsAAEOgAAC0CgAwCwkEDv5n4RAABgkk4C/e20xwAAAG5e7/8HBTdydwaxuRwAAAAASUVORK5CYII=', en:'' }
+  };
+  var I18N = {
+ "고객의 문제를 한 문장으로,<br>해결의 핵심은<br>단 하나의 <span style=\"color:var(--amber);\">단어</span>로": "The problem in one line,<br>the answer in<br>one <span style=\"color:var(--amber);\">word</span>",
+ "어떤 상황에서 무엇을 막아 주는 제품인지 두 줄로 설명합니다<br>제품 분류 · 핵심 원리를 함께 적습니다": "Two lines on what the product prevents, and when<br>Add the product category and its core principle",
+ "BCT · (주)비씨테크": "BCT Co., Ltd.",
+ "핵심 수치 1": "Key figure 1",
+ "핵심 수치 2": "Key figure 2",
+ "0<span style=\"font-size:14px; margin-left:3px; color:#AFC3E6;\">변경</span>": "0<span style=\"font-size:14px; margin-left:3px; color:#AFC3E6;\">changes</span>",
+ "핵심 수치 3": "Key figure 3",
+ "결론: 기존 방식은 '반응', 제안 방식은 '예방'": "Bottom line: the current way reacts, ours prevents",
+ "결론부터 숫자 세 개로 보여 줍니다. 근거는 뒤의 증거 슬라이드에서 다시 증명합니다.": "Lead with three numbers. The proof slides later back each one up.",
+ "기존 방식에서는 <b style=\"color:var(--risk);\">9,669 ea</b>": "<b style=\"color:var(--risk);\">9,669 ea</b> with the current way",
+ "감소율": "Reduction",
+ "시험 조건": "Test condition",
+ "장비 · 횟수 · 기준": "Tool · runs · criteria",
+ "기존 방식은 최대 <b style=\"color:var(--risk);\">+8,781 mTorr</b>": "Current way: up to <b style=\"color:var(--risk);\">+8,781 mTorr</b>",
+ "시험 장비": "Tools tested",
+ "5종": "5",
+ "최대 변화폭": "Largest change",
+ "장비 신호를 기다리지 않고 직접 판정": "Decides directly, without waiting for a tool signal",
+ "샘플링 주기": "Sampling period",
+ "이벤트 → 동작": "Event → action",
+ "<b>첫 번째 차별점</b>을 한 줄로 — 고객이 얻는 결과까지": "<b>First differentiator</b> in one line — with the result the customer gets",
+ "<b>두 번째 차별점</b>을 한 줄로 — 고객이 얻는 결과까지": "<b>Second differentiator</b> in one line — with the result the customer gets",
+ "<b>세 번째 차별점</b>을 한 줄로 — 고객이 얻는 결과까지": "<b>Third differentiator</b> in one line — with the result the customer gets",
+ "설치": "Installation",
+ "검증": "Evidence",
+ "현장 시험 결과 요약": "Field test results",
+ "표 머리만 블루, 본문은 hairline으로 구획합니다. 좋은 값은 Good, 나쁜 값은 Risk 색만 씁니다.": "Blue header row only, hairlines for the body. Good and Risk colours mark values, nothing else.",
+ "장비 (제조사 정식 명칭)": "Tool (maker's full name)",
+ "변화": "Change",
+ "판정": "Result",
+ "유효": "Pass",
+ "변화 없음": "No change",
+ "Reference (기존 방식)": "Reference (current way)",
+ "오염": "Contaminated",
+ "<b>Note.</b> 단위 · 측정 조건 · 반복 횟수를 표 아래에 적어 엔지니어의 질문에 먼저 답합니다.": "<b>Note.</b> Put units, conditions and run counts under the table to answer the engineer's questions first.",
+ "SOURCE · 시험 보고서 이름 · 시험 일자 · 측정 장비": "SOURCE · test report · date · instrument",
+ "Particle: 기존 19,140 ea → 제안 110 ea": "Particles: 19,140 ea today → 110 ea with BCT",
+ "제목에 결론 숫자를 넣고, 차트는 그 숫자를 눈으로 확인시키는 역할만 합니다.": "Put the result in the title; the chart only lets the eye confirm it.",
+ "<i style=\"background:#D98E87;\"></i>기존 방식": "<i style=\"background:#D98E87;\"></i>Current way",
+ "<i style=\"background:var(--primary);\"></i>BCT 제안": "<i style=\"background:var(--primary);\"></i>BCT",
+ "이벤트 후 Particle 급증": "Particles surge after the event",
+ "이벤트 전(111 ea)과 차이 없음": "Same as before the event (111 ea)",
+ "SOURCE · 시험 장비 · 측정 기준 (크기 · 위치)": "SOURCE · tool · counting criteria (size · location)",
+ "백업 전원": "Backup power",
+ "도입비는 '사고 1건'의 비용과 비교해야 합니다": "Compare the cost with one incident, not with nothing",
+ "값을 바꾸면 바로 다시 계산됩니다. 고객의 실제 장애 이력으로 함께 계산해 보십시오.": "Change any value and it recalculates. Run it with the customer's own failure history.",
+ "대상 Chamber 수<small>대</small>": "Chambers covered<small>units</small>",
+ "Chamber당 연간 이벤트<small>회 / 년</small>": "Events per chamber<small>per year</small>",
+ "이벤트 중 사고로 이어질 확률<small>%</small>": "Chance an event becomes an incident<small>%</small>",
+ "사고 1건당 손실<small>만원</small>": "Loss per incident<small>× KRW 10k</small>",
+ "사고 감소 기대<small>%</small>": "Expected incident reduction<small>%</small>",
+ "도입비 (Chamber당)<small>만원 · 모델 · 설치환경에 따라 변동</small>": "Cost per chamber<small>× KRW 10k · varies by model &amp; site</small>",
+ "* 기본값은 예시이며, 도입비는 모델 및 설치환경에 따라 달라질 수 있습니다. 연간 손실 = Chamber 수 × 이벤트 × 사고 확률 × 1건당 손실.": "* Defaults are examples; cost varies with model and installation conditions. Annual loss = chambers × events × incident chance × loss per incident.",
+ "교체 결정 전에, 장비 1대로 직접 확인하십시오": "Before you switch, prove it on one tool",
+ "'검증이 필요하다'를 반복하지 않고, 고객이 승인할 합격 기준으로 바꿔 제시합니다.": "Don't keep saying it needs validation — offer pass criteria the customer can sign off.",
+ "대상 장비 선정": "Pick the tool",
+ "합격 기준 합의": "Agree pass criteria",
+ "설치 · 기능 점검": "Install & function check",
+ "Baseline vs 제안 방식": "Baseline vs BCT",
+ "결과 보고 · 확대 결정": "Report & roll-out decision",
+ "합격 기준 (예시)": "Pass criteria (example)",
+ "이벤트 후 압력 상승 ≤ 1 mTorr": "Pressure rise after event ≤ 1 mTorr",
+ "Baseline과 같은 조건에서 비교": "Compared under the same conditions as the baseline",
+ "Particle 증가 없음": "No particle increase",
+ "이벤트 전후 동일 기준으로 측정": "Measured the same way before and after the event",
+ "오동작 0회": "Zero false trips",
+ "정상 운전 2주 동안 False Trip 없음": "No false trip in two weeks of normal running",
+ "도입 검토 시 자주 받는 질문": "Questions we hear during evaluation",
+ "고객의 반론을 먼저 꺼내고 짧게 답합니다.": "Raise the customer's objections first, and answer briefly.",
+ "<i>Q1</i>기존 방식도 충분히 빠르지 않나요?": "<i>Q1</i>Isn't the current way fast enough?",
+ "속도보다 '언제 아느냐'가 문제입니다. 기존 방식은 신호를 기다린 뒤에야 동작합니다.": "The issue is when it knows, not how fast it moves. The current way only acts after the signal arrives.",
+ "<i>Q2</i>설치하려면 장비를 오래 세워야 하나요?": "<i>Q2</i>Does installation mean long downtime?",
+ "기존 설비에 Retrofit으로 장착하며, 배관 · S/W 변경이 없습니다.": "It retrofits to existing equipment with no piping or software changes.",
+ "<i>Q3</i>오동작하면 오히려 손해 아닌가요?": "<i>Q3</i>Won't false trips cost us more?",
+ "기준값(Tolerance)을 현장에 맞게 설정하고, Pilot에서 False Trip 0회를 합격 기준으로 둡니다.": "The tolerance is set for your site, and zero false trips is a pilot pass criterion.",
+ "<i>Q4</i>정전 때도 동작하나요?": "<i>Q4</i>Does it work during a power loss?",
+ "내장 백업 전원으로 장비 전원이 끊겨도 동작합니다.": "Yes — built-in backup power keeps it running when tool power drops.",
+ "핵심 메시지를 한 번 더.<br>다음 행동은 하나만 요청하십시오.": "Say the key message once more.<br>Ask for one next step only.",
+ "<span class=\"mono\" style=\"color:var(--amber); font-size:12px; margin-right:8px;\">01</span>대상 장비 선정": "<span class=\"mono\" style=\"color:var(--amber); font-size:12px; margin-right:8px;\">01</span>Pick the tool",
+ "<span class=\"mono\" style=\"color:#AFC3E6; font-size:12px; margin-right:8px;\">02</span>합격 기준 합의": "<span class=\"mono\" style=\"color:#AFC3E6; font-size:12px; margin-right:8px;\">02</span>Agree pass criteria",
+ "<span class=\"mono\" style=\"color:#AFC3E6; font-size:12px; margin-right:8px;\">03</span>Pilot 측정": "<span class=\"mono\" style=\"color:#AFC3E6; font-size:12px; margin-right:8px;\">03</span>Run the pilot",
+ "BCT · (주)비씨테크 · 담당자 이름 직함": "BCT Co., Ltd.　·　Contact name, title",
+ "페이지를 클릭하면 이동합니다 · Esc 닫기": "Click a page to open it · Esc to close"
+};   // normalised Korean innerHTML -> English innerHTML (filled by build.py)
+  var LANG = 'ko';
+  var langHooks = [];    // re-render functions for JS-built content (charts, calculators, live notes)
+  var params = new URLSearchParams(location.search);
+  if (params.has('shot') || params.has('check') || params.has('dumpkeys')) document.body.classList.add('shot');
+
+  // ================================================================
+  // DECK-SPECIFIC RENDERERS — replace with the deck's own charts.
+  // Anything that writes text with JS sits under data-i18n-skip and
+  // reads LANG itself, then registers in langHooks.
+  // ================================================================
+
+  // ===== RENDERER price START =====
+  // ---- 견적가: 총원가 ÷ (1 − 이익률), 천원 미만 절사. 이익률은 수량 구간으로 결정: 100대 미만 15%, 100대 이상 12%.
+  //      원가 정리 rev.C (L3_PRIME_LED_M2_Heater_CM_원가정리_revC.xlsx) 기준 ----
+  var COST = {
+    dl: 157950,        // 직접노무비: CT 243분 × 39,000원/시간
+    mat: 6835,         // 직접재료비: 나사 3종 142개
+    toolFix: 500000,   // 토크드라이버 2 + 스트리퍼 + 압착기 (총 생산수량으로 상각)
+    bit: 150,          // 십자 BIT (10대) + 육각 BIT (20대)
+    cal: 200000,       // 토크드라이버 검교정 (연간 생산수량으로 배분)
+    cons: 9900,        // 써멀그리스 · LOCTITE · 사포 · 면봉
+    mfg: 0.10, ga: 0.05, log: 10000
+  };
+  var QTYS = [50, 100, 200, 500, 1000];
+  // 구간 선택: ge = 100대 이상(기본), lt = 100대 미만 (금액은 50대를 예시 수량으로 계산)
+  var TIERS = {
+    ge: { q: 100, label: '100대 이상', tag: 'UNIT PRICE · 100+ UNITS' },
+    lt: { q: 50,  label: '100대 미만 · 50대 기준', tag: 'UNIT PRICE · 50 UNITS (UNDER 100)' }
+  };
+  var TIER = (params.get('t') === 'lt' || params.get('m') === '15') ? 'lt' : 'ge';   // ?t=lt 로 100대 미만 구간으로 열기
+  function marginFor(q){ return q < 100 ? 0.15 : 0.12; }
+  function directCost(q){ return COST.dl + COST.mat + COST.toolFix / q + COST.bit + COST.cal / q + COST.cons; }
+  function totalCost(q){
+    var mfc = directCost(q) + COST.dl * COST.mfg;
+    return mfc * (1 + COST.ga) + COST.log;
+  }
+  function quote(q){ return Math.floor(totalCost(q) / (1 - marginFor(q)) / 1000) * 1000; }
+  function krw(v){ return Math.round(v).toLocaleString('ko-KR'); }
+  function pct(m){ return Math.round(m * 100) + '%'; }
+  function renderPrice(){
+    var T = TIERS[TIER], q = T.q, m = marginFor(q), unit = quote(q), tc = totalCost(q), dc = directCost(q);
+    document.querySelectorAll('[data-px]').forEach(function(el){
+      var k = el.getAttribute('data-px');
+      if (k === 'unit') el.textContent = krw(unit);
+      else if (k === 'lot') el.textContent = krw(unit * q) + '원';
+      else if (k === 'lotlbl') el.textContent = krw(q) + '대 Lot';
+      else if (k === 'm') el.textContent = pct(m);
+      else if (k === 'tier') el.textContent = T.label;
+      else if (k === 'tc') el.textContent = krw(tc);
+      else if (k === 'dc') el.textContent = krw(dc) + '원';
+      else if (k === 'ind') el.textContent = krw(tc - dc) + '원';
+      else if (k === 'qtag') el.textContent = T.tag;
+      else if (k === 'unit-svg') el.textContent = krw(unit) + ' KRW / EA';
+    });
+    document.querySelectorAll('.mseg button').forEach(function(b){
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === TIER));
+    });
+    var raw = tc / (1 - m);
+    var calc = document.getElementById('qCalc');
+    if (calc) calc.innerHTML =
+      '<div class="stat-row"><span class="k">총원가 (1대 · ' + krw(q) + '대 기준)</span><span class="v">' + krw(tc) + '원</span></div>' +
+      '<div class="stat-row"><span class="k">÷ (1 − 이익률 ' + pct(m) + ')</span><span class="v">' + krw(raw) + '원</span></div>' +
+      '<div class="stat-row"><span class="k">천원 미만 절사</span><span class="v" style="color:var(--amber);">' + krw(unit) + '원</span></div>' +
+      '<div class="stat-row"><span class="k">1대당 이익</span><span class="v">' + krw(unit - tc) + '원</span></div>' +
+      '<div class="stat-row"><span class="k">' + krw(q) + '대 Lot 총액</span><span class="v">' + krw(unit * q) + '원</span></div>';
+    var tag = document.getElementById('qMarginTag');
+    if (tag) tag.textContent = 'MARGIN 15% UNDER 100 · 12% FROM 100';
+    var body = document.getElementById('qtyBody');
+    if (body) body.innerHTML = QTYS.map(function(n){
+      var p = quote(n), on = (TIER === 'lt') === (n < 100);
+      return '<tr' + (on ? ' class="sel100"' : '') + '><td>' + krw(n) + '대</td>' +
+        '<td class="num">' + krw(totalCost(n)) + '원</td><td class="num">' + pct(marginFor(n)) + '</td>' +
+        '<td class="num"><b>' + krw(p) + '원</b></td><td class="num">' + krw(p * n) + '원</td></tr>';
+    }).join('');
+  }
+  document.querySelectorAll('.mseg').forEach(function(seg){
+    seg.addEventListener('click', function(e){
+      var b = e.target.closest('button'); if (!b) return;
+      e.stopPropagation();
+      TIER = b.getAttribute('data-t');
+      renderPrice();
+    });
+  });
+  renderPrice();
+  langHooks.push(renderPrice);
+  // ===== RENDERER price END =====
+
+  // ================================================================
+  // ENGINE — shared by every BCT web deck. Edit with care.
+  // ================================================================
+
+  // ---- header logo + footers ----
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck .slide'));
+  var total = slides.length;
+  document.getElementById('totNum').textContent = String(total).padStart(2,'0');
+  slides.forEach(function(sl, n){
+    if (!sl.classList.contains('on-dark')) {
+      var logo = document.createElement('img');
+      logo.src = LOGO.color.ko;
+      logo.alt = 'BCT';
+      logo.className = 'header-logo';
+      logo.dataset.logo = 'color';
+      sl.appendChild(logo);
+    }
+    var f = sl.querySelector('.footer');
+    if (!f) return;
+    f.innerHTML =
+      '<div class="fmark"><span class="sq"></span><b>BCT</b></div>' +
+      '<div class="fdoc">' + DOC + '</div>' +
+      '<div class="fpage">' + String(n+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0') + '</div>';
+  });
+
+  // ---- navigation ----
+  var idx = 0;
+  var sidePrev = document.getElementById('sidePrev'), sideNext = document.getElementById('sideNext');
+  function show(i){
+    idx = Math.max(0, Math.min(slides.length-1, i));
+    slides.forEach(function(sl,n){ sl.classList.toggle('active', n===idx); });
+    document.getElementById('curNum').textContent = String(idx+1).padStart(2,'0');
+    sidePrev.disabled = idx === 0;
+    sideNext.disabled = idx === slides.length - 1;
+    if (location.hash !== '#'+(idx+1)) history.replaceState(null, '', location.pathname + location.search + '#'+(idx+1));
+  }
+  document.getElementById('prevBtn').addEventListener('click', function(){ show(idx-1); });
+  document.getElementById('nextBtn').addEventListener('click', function(){ show(idx+1); });
+  sidePrev.addEventListener('click', function(){ show(idx-1); });
+  sideNext.addEventListener('click', function(){ show(idx+1); });
+
+  // ---- language: Korean is the source; English comes from the dictionary ----
+  var HANGUL = /[ㄱ-힝]/;
+  var INLINE = { B:1, SPAN:1, I:1, SMALL:1, STRONG:1, EM:1 };
+  var norm = function(h){ return h.replace(/\s+/g, ' ').trim(); };
+  var targets = (function(){
+    var found = new Set();
+    [document.getElementById('deck'), document.getElementById('overview')].forEach(function(root){
+      var walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), node;
+      while ((node = walk.nextNode())) {
+        if (!HANGUL.test(node.nodeValue)) continue;
+        var el = node.parentElement;
+        if (el.closest('[data-i18n-skip]')) continue;
+        // promote inline elements to the block that holds the whole sentence
+        while (INLINE[el.tagName] && el.parentElement && Array.prototype.some.call(el.parentElement.childNodes, function(c){ return c.nodeType === 3 && c.nodeValue.trim(); })) el = el.parentElement;
+        found.add(el);
+      }
+    });
+    return Array.from(found).filter(function(el){
+      for (var p = el.parentElement; p; p = p.parentElement) if (found.has(p)) return false;
+      return true;
+    }).map(function(el){ return { el: el, ko: el.innerHTML, key: norm(el.innerHTML) }; });
+  })();
+  function setLang(lang){
+    LANG = lang === 'en' ? 'en' : 'ko';
+    targets.forEach(function(t){
+      var en = I18N[t.key];
+      t.el.innerHTML = LANG === 'en' && en ? en : t.ko;
+    });
+    langHooks.forEach(function(fn){ fn(); });
+    document.querySelectorAll('img[data-logo]').forEach(function(img){
+      var set = LOGO[img.dataset.logo];
+      if (set) img.src = (LANG === 'en' && set.en) ? set.en : set.ko;
+    });
+    document.documentElement.lang = LANG;
+    document.getElementById('langBtn').textContent = LANG === 'en' ? 'KO' : 'EN';
+  }
+  document.getElementById('langBtn').addEventListener('click', function(){ setLang(LANG === 'en' ? 'ko' : 'en'); });
+
+  // ---- navbar shows while the pointer moves, hides when idle ----
+  var idleTimer = 0;
+  function wake(){ document.body.classList.add('ui'); clearTimeout(idleTimer); idleTimer = setTimeout(function(){ document.body.classList.remove('ui'); }, 2600); }
+  document.addEventListener('mousemove', wake);
+  document.addEventListener('touchstart', wake, { passive:true });
+  function toggleFs(){
+    if (!document.fullscreenElement) { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+    else { document.exitFullscreen && document.exitFullscreen(); }
+  }
+  document.getElementById('fsBtn').addEventListener('click', toggleFs);
+  document.addEventListener('fullscreenchange', function(){ document.body.classList.toggle('fs', !!document.fullscreenElement); fit(); });
+
+  // ---- page overview: live clones of every slide, scaled into a grid ----
+  var ov = document.getElementById('overview'), ovGrid = document.getElementById('ovGrid');
+  function scaleThumbs(){
+    ovGrid.querySelectorAll('.ov-thumb').forEach(function(t){
+      t.firstChild.style.transform = 'scale(' + (t.clientWidth / 1280) + ')';
+    });
+  }
+  function openOverview(){
+    ovGrid.innerHTML = '';
+    slides.forEach(function(sl, n){
+      var item = document.createElement('div');
+      item.className = 'ov-item' + (n === idx ? ' cur' : '');
+      item.tabIndex = 0;
+      var thumb = document.createElement('div');
+      thumb.className = 'ov-thumb';
+      var clone = sl.cloneNode(true);
+      clone.querySelectorAll('[id]').forEach(function(el){ el.removeAttribute('id'); });
+      thumb.appendChild(clone);
+      var t = sl.querySelector('.slide-title, h1, h2');
+      var label = document.createElement('div');
+      label.className = 'ov-label';
+      label.innerHTML = '<i>' + String(n+1).padStart(2,'0') + '</i><span></span>';
+      label.lastChild.textContent = t ? t.textContent.replace(/\s+/g, ' ').trim() : '';
+      item.appendChild(thumb); item.appendChild(label);
+      item.addEventListener('click', function(){ closeOverview(); show(n); });
+      item.addEventListener('keydown', function(e){ if (e.key === 'Enter') { closeOverview(); show(n); } });
+      ovGrid.appendChild(item);
+    });
+    ov.classList.add('open');
+    scaleThumbs();
+    var cur = ovGrid.querySelector('.cur'); if (cur) cur.scrollIntoView({ block:'center' });
+  }
+  function closeOverview(){ ov.classList.remove('open'); ovGrid.innerHTML = ''; }
+  document.getElementById('ovBtn').addEventListener('click', function(){ ov.classList.contains('open') ? closeOverview() : openOverview(); });
+  window.addEventListener('resize', function(){ if (ov.classList.contains('open')) scaleThumbs(); });
+
+  window.addEventListener('keydown', function(e){
+    var tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (tag === 'BUTTON' && e.target.closest('.slide') && (e.key === ' ' || e.key === 'Enter')) return;   // in-slide buttons keep Space/Enter
+    if (ov.classList.contains('open')) {
+      if (e.key === 'Escape' || e.key === 'g' || e.key === 'G') closeOverview();
+      return;
+    }
+    if (e.key === 'g' || e.key === 'G') { openOverview(); return; }
+    if (['ArrowRight','PageDown',' '].includes(e.key)) { show(idx+1); e.preventDefault(); }
+    if (['ArrowLeft','PageUp'].includes(e.key)) { show(idx-1); e.preventDefault(); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length-1);
+    if (e.key === 'f' || e.key === 'F') toggleFs();
+    if (e.key === 'l' || e.key === 'L') setLang(LANG === 'en' ? 'ko' : 'en');
+  });
+  var touchX = null;
+  document.addEventListener('touchstart', function(e){ touchX = e.touches[0].clientX; });
+  document.addEventListener('touchend', function(e){
+    if (touchX === null) return;
+    var dx = e.changedTouches[0].clientX - touchX;
+    if (dx < -40) show(idx+1);
+    if (dx > 40) show(idx-1);
+    touchX = null;
+  });
+
+  // ---- scale-to-fit: thin top/bottom margin, room at the sides for the page arrows ----
+  var deck = document.getElementById('deck');
+  function fit(){
+    if (document.body.classList.contains('shot')) return;
+    var W = window.innerWidth, H = window.innerHeight;
+    var scale = Math.min((W - 120) / 1280, (H - 12) / 720, 4);
+    deck.style.transform = 'scale(' + scale + ')';
+    var gap = (W - 1280 * scale) / 2;
+    var at = gap >= 56 ? Math.max(6, (gap - 44) / 2) : 6;
+    sidePrev.style.left = at + 'px';
+    sideNext.style.right = at + 'px';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+  var start = parseInt((location.hash || '').replace('#',''), 10);
+  show(isNaN(start) ? 0 : start-1);
+  var wanted = params.get('lang') || document.documentElement.lang;   // ?lang= wins, else <html lang>
+  setLang(wanted === 'en' ? 'en' : 'ko');
+
+  // ---- translation keys (?dumpkeys) with where each one sits: slide, element, width ----
+  if (params.has('dumpkeys')) {
+    var meta = {}, keepIdx = idx;
+    setLang('ko');
+    slides.forEach(function(sl, n){
+      show(n);
+      targets.forEach(function(t){
+        if (meta[t.key] || !sl.contains(t.el)) return;
+        meta[t.key] = { k: t.key, s: n + 1, t: t.el.tagName.toLowerCase() + (t.el.className ? '.' + String(t.el.className).split(' ')[0] : ''), w: Math.round(t.el.getBoundingClientRect().width) };
+      });
+    });
+    targets.forEach(function(t){ if (!meta[t.key]) meta[t.key] = { k: t.key, s: 0, t: 'overview', w: 0 }; });
+    show(keepIdx);
+    var pre = document.createElement('pre'); pre.id = 'i18nkeys'; pre.hidden = true;
+    pre.textContent = JSON.stringify(Object.keys(meta).map(function(k){ return meta[k]; }));
+    document.body.appendChild(pre);
+  }
+
+  // ---- layout check (?check): overflow + footer collisions in both languages ----
+  if (params.has('check')) {
+    var issues = [], blocks = [], keep = idx, keepLang = LANG;
+    var missing = targets.filter(function(t){ return !I18N[t.key]; }).map(function(t){ return t.key.slice(0, 80); });
+    ['ko','en'].forEach(function(lang){
+      setLang(lang);
+      slides.forEach(function(sl, n){
+        show(n);
+        var box = sl.getBoundingClientRect();
+        var foot = sl.querySelector('.footer');
+        var footTop = foot ? foot.getBoundingClientRect().top : box.bottom;
+        sl.querySelectorAll('*').forEach(function(el){
+          if (el.closest('.footer, .blob, .motif, svg, [data-bleed]') || el.classList.contains('header-logo')) return;
+          var cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.visibility === 'hidden') return;
+          var r = el.getBoundingClientRect();
+          if (!r.width || !r.height) return;
+          var hasText = Array.prototype.some.call(el.childNodes, function(c){ return c.nodeType === 3 && c.nodeValue.trim(); });
+          var label = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+          if (r.right > box.right + 1 || r.left < box.left - 1 || r.bottom > box.bottom + 1)
+            issues.push({ lang: lang, slide: n + 1, issue: 'outside slide', text: label });
+          else if (hasText && r.bottom > footTop + 1)
+            issues.push({ lang: lang, slide: n + 1, issue: 'overlaps footer', text: label });
+          if (hasText && el.scrollWidth > el.clientWidth + 2 && cs.overflowX !== 'visible')
+            issues.push({ lang: lang, slide: n + 1, issue: 'text clipped', text: label });
+          if (hasText && el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 2 && cs.whiteSpace === 'nowrap')
+            issues.push({ lang: lang, slide: n + 1, issue: 'nowrap text wider than box', text: label });
+          if (hasText) blocks.push({ el: el, r: r, text: label });
+        });
+        // text blocks that run into each other (e.g. a title that wraps one line more in English)
+        for (var i = 0; i < blocks.length; i++) for (var j = i + 1; j < blocks.length; j++) {
+          var A = blocks[i], B = blocks[j];
+          if (A.el.contains(B.el) || B.el.contains(A.el)) continue;
+          var ox = Math.min(A.r.right, B.r.right) - Math.max(A.r.left, B.r.left);
+          var oy = Math.min(A.r.bottom, B.r.bottom) - Math.max(A.r.top, B.r.top);
+          if (ox > 3 && oy > 3) issues.push({ lang: lang, slide: n + 1, issue: 'text overlaps text', text: A.text + '  ×  ' + B.text });
+        }
+        blocks = [];
+      });
+    });
+    setLang(keepLang); show(keep);
+    var out = document.createElement('pre'); out.id = 'checkout'; out.hidden = true;
+    out.textContent = JSON.stringify({ slides: total, missingEn: missing, issues: issues });
+    document.body.appendChild(out);
+  }
+})();
+</script>
+</body>
+</html>

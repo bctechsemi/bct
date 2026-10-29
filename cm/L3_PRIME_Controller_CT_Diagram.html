@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controller CT Diagram</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAAAtUlEQVR4nO3bsQ2AMBAEQYPok9qo1BQASwAJwUz4kpPVpV7mnHNwsV5PCPPAYoIwQZggTBAmCBOECcIEYYIwQZggTNjGN8f4t/3tQ4sJwgRhgjBBmCBMECYIE4QJwgRhgjBBmCBMECYIE4QJwgRhgjBBmCBMECYIE4QJwgRhgjBBmCBMECYIE4QJwgRhgjBBmCBMECYsvhffs5ggTBAmCBOECcIEYYIwQZggTBAmCBOECcKMeydgrAmFK29sIAAAAABJRU5ErkJggg==">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#1F4E9C; --primary-deep:#153B78; --primary-deeper:#0F2C5C;
+    --primary-pale:#EAF1FC; --primary-pale-2:#F4F8FE;
+    --canvas:#FFFFFF; --surface:#F6F9FD;
+    --ink:#0B1220; --steel:#5B6472; --steel-soft:#8A93A3;
+    --hairline:#E2E8F3; --hairline-strong:#CBD8ED;
+    --amber:#C98A2B; --amber-pale:#FBE8D3; --good:#1F8A5F; --risk:#C1443C; --risk-pale:#F8E3E1;
+    --font:'Google Sans', 'Gowun Batang', -apple-system, BlinkMacSystemFont, sans-serif;
+    --r-lg:18px; --r-md:14px; --r-sm:9px; --r-full:999px;
+    --t-prep:#B8C2D3; --t-main:#1F4E9C; --t-sub:#8FB4F0; --t-insp:#0F2C5C; --t-adj:#C98A2B; --t-waste:#C1443C;
+  }
+  *{ box-sizing:border-box; }
+  html{ background:var(--surface); }
+  body{ margin:0; font-family:var(--font); color:var(--ink); -webkit-font-smoothing:antialiased; }
+  a{ color:inherit; }
+  .wrap{ max-width:1280px; margin:0 auto; padding:0 32px; }
+
+  /* top bar */
+  .top{ position:sticky; top:0; z-index:20; background:rgba(255,255,255,.94); backdrop-filter:blur(8px); border-bottom:1px solid var(--hairline); }
+  .top .wrap{ display:flex; align-items:center; justify-content:space-between; height:64px; }
+  .top img{ height:34px; display:block; }
+  .top nav{ display:flex; gap:10px; }
+  .btn{ display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:var(--r-full); border:1.25px solid var(--hairline-strong); background:#fff; font-family:var(--font); font-size:14px; font-weight:700; color:var(--primary-deep); text-decoration:none; cursor:pointer; }
+  .btn:hover{ border-color:var(--primary); background:var(--primary-pale-2); }
+  .btn.solid{ background:var(--primary-deep); border-color:var(--primary-deep); color:#fff; }
+  .btn.solid:hover{ background:var(--primary); }
+
+  /* hero */
+  .hero{ background:var(--primary-deep); color:#fff; position:relative; overflow:hidden; }
+  .hero .wrap{ padding-top:44px; padding-bottom:40px; position:relative; }
+  .hero .blob{ position:absolute; border-radius:50%; pointer-events:none; }
+  .hero .motif{ position:absolute; right:48px; top:34px; width:132px; height:132px; border:1px solid rgba(255,255,255,.28); }
+  .hero .motif::after{ content:''; position:absolute; left:22%; top:22%; width:56%; height:56%; border:1px solid rgba(255,255,255,.45); }
+  .eyebrow{ font-size:13px; font-weight:700; letter-spacing:.14em; color:var(--amber); }
+  h1{ margin:12px 0 10px; font-size:34px; line-height:1.25; font-weight:700; letter-spacing:-.01em; max-width:900px; }
+  .hero p{ margin:0; font-size:15.5px; color:#C7D5EC; line-height:1.6; max-width:900px; }
+  .meta{ display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+  .meta span{ border:1px solid rgba(255,255,255,.25); border-radius:var(--r-full); padding:5px 13px; font-size:13px; color:#fff; }
+  .meta span b{ color:#AFC3E6; font-weight:700; margin-right:6px; letter-spacing:.04em; }
+
+  /* kpis */
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:-26px; position:relative; z-index:2; }
+  .kpi{ background:#fff; border:1.25px solid var(--hairline-strong); border-radius:var(--r-lg); padding:18px 22px; }
+  .kpi .tag{ font-size:11.5px; font-weight:700; letter-spacing:.08em; color:var(--steel-soft); }
+  .kpi .v{ margin-top:8px; font-size:40px; font-weight:700; line-height:1; color:var(--primary-deep); letter-spacing:-.02em; }
+  .kpi .v small{ font-size:16px; color:var(--steel); margin-left:5px; font-weight:500; letter-spacing:0; }
+  .kpi .s{ margin-top:8px; font-size:13.5px; color:var(--steel); }
+  .kpi.key .v{ color:var(--amber); }
+  .kpi.risk .v{ color:var(--risk); }
+
+  section{ margin-top:36px; }
+  .sec-h{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:14px; }
+  .sec-h h2{ margin:0; font-size:21px; font-weight:700; color:var(--ink); }
+  .sec-h h2 i{ font-style:normal; color:var(--primary); font-size:14px; letter-spacing:.1em; margin-right:10px; }
+  .sec-h p{ margin:0; font-size:13.5px; color:var(--steel); }
+  .panel{ background:#fff; border:1px solid var(--hairline); border-radius:var(--r-lg); padding:22px 24px; }
+
+  /* process stack */
+  .stack{ display:flex; height:54px; border-radius:10px; overflow:hidden; }
+  .stack div{ display:flex; flex-direction:column; justify-content:center; padding:0 10px; color:#fff; font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; min-width:0; }
+  .stack div small{ font-weight:500; font-size:11.5px; opacity:.85; }
+  .plist{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:16px; }
+  .plist div{ border-top:3px solid var(--c); padding-top:10px; }
+  .plist b{ display:block; font-size:14px; line-height:1.35; }
+  .plist span{ display:block; margin-top:4px; font-size:24px; font-weight:700; color:var(--primary-deep); }
+  .plist span small{ font-size:13px; color:var(--steel); font-weight:500; margin-left:4px; }
+
+  /* gantt */
+  .legend{ display:flex; flex-wrap:wrap; gap:8px; }
+  .legend button{ display:inline-flex; align-items:center; gap:7px; padding:6px 13px; border-radius:var(--r-full); border:1px solid var(--hairline); background:#fff; font-family:var(--font); font-size:13px; font-weight:700; color:var(--steel); cursor:pointer; }
+  .legend button i{ width:12px; height:12px; border-radius:3px; background:var(--c); }
+  .legend button[aria-pressed="true"]{ border-color:var(--primary-deep); color:var(--primary-deep); background:var(--primary-pale-2); }
+  .gt{ width:100%; border-collapse:collapse; table-layout:fixed; margin-top:14px; }
+  .gt th{ position:sticky; top:64px; z-index:5; background:var(--primary); color:#fff; font-size:13px; font-weight:700; padding:9px 10px; text-align:left; }
+  .gt th.c, .gt td.c{ text-align:center; }
+  .gt td{ border-bottom:1px solid var(--hairline); padding:7px 10px; font-size:13.5px; vertical-align:middle; }
+  .gt td.no{ font-size:11.5px; color:var(--steel-soft); white-space:nowrap; }
+  .gt td.el b{ display:block; font-weight:500; line-height:1.4; }
+  .gt td.el small{ display:block; font-size:11.5px; color:var(--steel-soft); margin-top:2px; }
+  .gt td.min{ font-weight:700; color:var(--primary-deep); text-align:right; font-size:14.5px; }
+  .gt tr.grp td{ background:var(--primary-pale); border-bottom:1px solid var(--hairline-strong); font-weight:700; color:var(--primary-deeper); font-size:14.5px; padding:10px; }
+  .gt tr.grp td.min{ color:var(--primary-deeper); }
+  .badge{ display:inline-block; padding:3px 9px; border-radius:var(--r-full); font-size:11.5px; font-weight:700; white-space:nowrap; background:var(--surface); color:var(--steel); border:1px solid var(--hairline); }
+  .badge .dot{ display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:6px; vertical-align:0; }
+  .badge.waste{ background:var(--risk-pale); color:var(--risk); border-color:#F0C9C5; }
+  .badge.bct{ background:var(--amber-pale); color:#8A5A12; border-color:#F0D3A8; }
+  .tl{ position:relative; height:26px; }
+  .tl .grid{ position:absolute; inset:0; background-image:linear-gradient(to right, var(--hairline) 1px, transparent 1px); background-size:var(--tick) 100%; }
+  .tl .bar{ position:absolute; top:5px; height:16px; border-radius:3px; min-width:3px; }
+  .tl .span{ position:absolute; top:3px; height:20px; border-radius:4px; background:rgba(31,78,156,.18); border:1px solid rgba(31,78,156,.35); }
+  .tl .lab{ position:absolute; top:0; line-height:26px; font-size:11.5px; font-weight:700; color:var(--steel); white-space:nowrap; }
+  .axis{ position:relative; height:18px; }
+  .axis span{ position:absolute; transform:translateX(-50%); font-size:11px; font-weight:700; color:#C7D5EC; }
+  .gt th .axis span{ color:#C7D5EC; }
+  tr.dim td{ opacity:.28; }
+  .waste-text{ color:var(--risk); font-weight:700 !important; }
+
+  /* type summary */
+  .types{ display:grid; grid-template-columns:150px 1fr; row-gap:12px; column-gap:16px; align-items:center; }
+  .types .k{ font-size:14.5px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .types .k i{ width:12px; height:12px; border-radius:3px; background:var(--c); }
+  .types .tr{ position:relative; height:28px; background:var(--surface); border-radius:6px; }
+  .types .tr div{ position:absolute; left:0; top:0; bottom:0; border-radius:6px; background:var(--c); }
+  .types .tr span{ position:absolute; top:0; line-height:28px; font-size:13.5px; font-weight:700; white-space:nowrap; }
+
+  .notes{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .note{ background:var(--primary-pale-2); border:1px solid var(--hairline); border-radius:var(--r-md); padding:14px 18px; font-size:13.5px; color:var(--steel); line-height:1.55; }
+  .note b{ color:var(--ink); display:block; margin-bottom:4px; font-size:14.5px; }
+
+  footer{ margin-top:40px; background:var(--primary-deep); color:#C7D5EC; }
+  footer .wrap{ display:flex; justify-content:space-between; align-items:center; height:44px; font-size:12px; letter-spacing:.04em; }
+  footer b{ color:#fff; letter-spacing:.02em; }
+
+  @media (max-width:900px){
+    .kpis{ grid-template-columns:repeat(2,1fr); }
+    .plist{ grid-template-columns:repeat(2,1fr); }
+    .notes{ grid-template-columns:1fr; }
+    .gt col.step, .gt td.stepc, .gt th.stepc{ display:none; }
+  }
+  @media print{
+    @page{ size:A4 landscape; margin:10mm; }
+    html{ background:#fff; }
+    .top{ position:static; }
+    .top nav{ display:none; }
+    .gt th{ position:static; }
+    .panel{ break-inside:avoid; }
+    tr{ break-inside:avoid; }
+    .hero, .gt th, .tl .bar, .stack div, .types .tr div, footer, .kpi, .legend button i{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAEsCAYAAAA1u0HIAAAkU0lEQVR4nO3d3W4UV7bA8bV2twmTr+m5iGSTCe48QcwTxNxFIyDOE8RoINJcAU8APAFwNVIwsnmCcQg6Onc4T4DzBBRJgChzMT06MxMSu2sd7XY74xB3VXV3feyq+v+kCAhNd7lcrlV77bXXFgEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA5Ez7F+5dN7Ebeb8xAAAoh5ldcyZ2taTPAwAABVDV605EekW8OQAAKE3PB3QAAFBzBHQAABqAgA4AQAMQ0AEAaAACOgAADQnog6oPAgAAzGXg1OzmfO8BAACqZLHdqfQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUBta9QEAKEd/7a/9vZ87PedcX1R7/v+pxv2kf2PmooNf49Gv3e5+FG3/ZfR7AGEhoAMNC9rD/YUVVeuL0w/UZEXEB29LDNwzGIhIJCaRqX1tse7GcRw9+5/PdnP+HAAZEdCBGvvjuburTmVFRT8UlVURGY28K2WyYyZfm8hOZ39vN/pfRvRAGVoT0Ptrm32Lh0+qPo7ADETUj7R8TvUgteokkqH8U5wNfLrVp1pJs4ajv7rZi9/aX1fRj0X96DuAAJ5u12L5Khbb/u7h5R2pueWPNx6JjR6eUFPq9t5v4tRRt+oDQKV8KvYgIKiMUrJqIuIO/of6P6iKxQuyfGHD/8/dUYpV7KvYZLf7r+5utHPx4IEAxQbxN+MrqrZqOlzV+j2Hr6iTlY7oleULG5GZ7MRm95sQ3IGQENAxjRU/KlTRtY6K2NtDH+hHo69RevVfnR0CfH5BfPhWvObEPj0I4o3RV5X1jur6KLjH8oXb37tNWh6YX4PuE8lIuZfEj74kvt/ZG+5wk55e/6PNftyNP1VnV2uSTs+FmWzVZdROyr3+lJQ7kOUnRVaduFU74eT0+Y3a3KRDKG7rqF5v2Gg8syOj9t3Y4jvffvnZVtXHBNTNaLYUKOwm7fTR8oWNJ++d/3yds3x8IF8+v/HIn6dxlXrbrTh1m1wzwPQI6ChDn5v0Kyfko80+gTzDNXN+41H/o7/mvYYeaCQCOqq4Sf+trTdpX+x2+ty963Zi+IQReQYqq3Zi4cnp8/dutfWaAbIioKN8Kmujm/S5e9fbll63t+PH6uxG1cdSN6p21U4sPGLqBpiMZWuojA9sy+c3VnRv71qTK+L9qNzeGm76Bxm/DADzZXhOn9/40P1f5xpLJIFfY4SOEEbrjZ0nPRyVHwRz5FVsaW8PHzf1mgFmRUBHCPp2YuFx/0+f+1amjeHnfUfV6/lvjIKDa6Z10zZAEgI6QtGzrnvcv7DxqTQgxe6rs/28b9XH0oZpG//gVPVxACEgoCMoJrLl09RS4+Vo4xR7bb+GuvEPTssXNh77B6mqjwWoEgEdwek4reWyttF8+YnhY1LslVhhXh1tR0BHiHqjQrkajbj8VMHBfHl7+q8HOq/e2AJLIA0BHaHqj5Z61SSY+6mCqo8DIwR1tBYBHeFSWXvv3EbQy70I5kEiqKOVCOgImnNyK9TUu3/YYGQeeFAP9NoBikBAR+j68Zv7wS3/8mvmnZNaTAm0fNrmb1UfBFAWAjqCp06vhDTSGi1N63Z8oAjmmDCByirr1NEWBHTUQS9+a389mL7sJ2K6v9WIqq2G9EAIFIWAjlpQ0Y8lAPGbw9usM6+VXXWds2zkgjYgoKMeVFb7a9X2eu9fuHddndS+NW1bWCz3nz64dCbavjio+liAMhDQURvxvq5VOm8u7GNeFxbbzW8eXgpimgYoC/uhV+drEStp5KA9MemJyrLUmKp+WNVnH8yboz7B/PKNqo8DKBsBvSLq9tai7b9EZX/uQdra9ePYVlT8BiLVBcmpqaxUlWo3tkCtBTW79vTh5dtVHwdQBQJ6y0Tbn+36QiER2fZ/7q9t9mUYr5rK9RoUe/X6a3/tl/kgdJBqHzZttPe1ie06k13paCQSRyLDgcjJwavzzf58i3R6oyzPUFZi1b6KrYjoB4Et2xuoxdeiLz+jBS9ai4DectH2RR8c/U1wq3/+3nrwgX1/wY/SSwvojUi1mzw1lW3nbFukuztNkdgrD087R/+uv3Z3NY517WAFQqXXzEBdfHb8sFo41fiaqIb0MHNgX3vmJJhGOiZy3zkL8gErqiA7WgYCOn4Rffnnrf7a5o7F4a6zjrW843rv/L31UM9DBgMVuyNOdqLty78KxHkZv6//76qfyoljd1Wl9FUAkbq9s2XeoMt6cJjWKNsWDyUcFhV17eF4VLnjNyN2de6MiE/FBkjLSfP6VLsbZStqJ1Kxm+o670cPLt8o64bqg9w3Dy6t+8/1n1/S9VN6MAdCRkDHb/iUrDp31o/ygjs9qqVU6scL8ZWajc4H40B+5iCQV7P22j8Q+s/3149PuRbcMOYMwRz4LwI6Jo/Ufcq2hfzoXNWC2xBmIpXt/47Iw2ii4q+fwxF77qP1g6/3bChfKxAK5tAxmevelnhYx7TzXOLu8IZKLQzU7Gb0INxlWuOiy/f7F+7eMNG5ryWL5c43Dy/V52ELKBEjdEw0GgHpryubKzeUfxY+Oq9He1c/f3wm+jLcYH7UQRp+vtH6uPsbwRyYgICORGa+o11AXLHd9fzoXMK3W8disHHBpa/NmLpKnO5vQDoCOpIvELOwgoYVW6inLvjOeQe7h9UsmB8N6n7DFBPJXJ+hFl+klSuQjoCORENxQRUeOStuOVQN1p1HTSkG++bBpasHy9sSDdTZWbq/AdkQ0FEvXd+mtBiBrzsfr7mufzD/1bz65KAeHXR/ozEJkBUBHYlU45BGrIOiunT1/+Q3rQl3dF7HOfM5gvr44SXMjmxAqAjoSGbV7HB2LLPCCvRi54KtnvYFYU0M5keD+pE59VoW/AEhIKAjkarzu2oFwcY7xLWrGM6+akNBmJ9Tt4NOdwRzYEY0lsFEfjcti8NJQ7uO7bTh6zxK3f66tMQ3D5r/4AIUiRE6Jor3NaRgEhU1pxrY19maVDuAfBHQMXEJV0gd09Timy1Lt0euux/kXtIAwkRAx7EV307tVkCnJpLOsJh0+0eb/RCr2/0DDKNzANMgoONX3ju3sWZd90iknH3Hs7DY7hcV3IYL8aqEJ5L/WyisABBAM1EUh19GqqNdxgJKs5eRelazVQlsazVT2Xm605wGMgDKQUBvsf7qZm//zf2VTkevmA3XAotrpaSe1Ukwy/IOOd0rrF4AQHMR0FsSuKX3srf3c6fnOp0VNVtRlQ9Mhysd0Z5f4B0m+6rIPt79tc2excNwGud4Zl8xdw5gFgT0ili88GT5wkY5nyVDkXhBuqPvtkloKeYJouLXYO+vhHYyimyeA6DZCOgIksZyLXpQ8BrsoawEFs8La54DoPmockeYDVUeXip8pBqrhrZcrbDmOQCaj4CO4IJ5ab3LLaz15ybFbT4DoPkI6GhnMB9tPKPLEhZG5wBmRkBHK4P5WFAj9DgW5s8BzIyiOFRtoBZfe/qwuOVpCYLphud1u0YzGQAzI6CjSrvq9j6pYt11f22zb/FQQkJBHIB5kHJHJVTsprrOWZqo/ILROYC5MEJHyewrdXa1+tHofj+wpjLsew5gLgR0lCmKzba+rTyYB8jsn1UfAoB6I6CjTH2nbnP5wsZ1M9lxe3s3o/8tf/4cAJqIOXRUoa8q63Zi4cnp8xub/Y/+GtTyMQCoIwI6KkVgB4B8ENARUmB/9N75zwveYQ0AmomAjuDm2EnDA8D0COgIdrTe/9PnK9IW4fWVB1AzBHSEqm9d97h/YePTYt6+S3U9gEYhoCNoJrJ1+ty969J8VPoDmAsBHcFTZzdOn797Nc/3jLYvBjdC76+xfA/A7AjoqAVVvfXeuY21RvdP319oT80AgNwR0FEbzkneTWiCGqXHaqTdAcyMgI466Y2q31c3c9nH3MyeSkhUVqs+BAD1RUBH3fTjt+J8iuRUgxqhq+iHVR8DgPpic5bqfC1iFc/hqh/p+vXPuYx4y6JqV/947u4X3z28vDPP+5jprqpJQHr9tc9Xqt9aFkAdEdArom5vLdoOY6ex/ppPYe/1ZdhZidVWD0aKYc/ndpzeEpEzc73HcLhr3bCSVPFQfdqdgA5gagR0+CVcg3EQ8f9t+VPSX7u7Gse6riIFNXaZ24rv+/7tl5+NjncmJxYiiYcSEhX9WERuV30cAOonrOEJghFtX9755sGldXWd903kvgTIqbs+94OMSXCFcaxHBzALAjpSG7CMArvZteDWbYv0/3ju7lyV4aYy1zx8EeL9LjvOAZgaAR2ZRF9evq0uPhtaUO+ozjVKd2bBzVer0yt5Lc0D0B4EdGTmq6/V1I/Uw0pRzxP8Ot1tCU8vfnM/11a3AJqPgI6pRF/+eUsCS1PHb+2vz9XTPbR5dEbpAGZAQMfUVO1mUKfN6Qfz/HNTYZQOoPYI6JipAj6ktdJqMtemLc5ZiAH9YC493971ABqMgI6ZmMhXAZ263nxLvbq7oRX7jfVsYWFTWuL0hbs3KAYEZkdAx8xtU5uy9ahfjx7qWntf9Jf3XvAh6l+4d11Fr9vbw8dkJYDZENAxG6u6D32+W4+Gmnb3VPV6k4OcD+YmduPwj6Md9Rr89QJFIaBjJp1uWAFdTPs51AWE9TUVtG1swMH8l/9NUAemR0BHM3Tk9/O+hYrdkXD17a3h36T5wfyXv7YTC4/n7QQItAkBHbMZysxz1oUw+8Pc7+G6twMepY/n0zcaUSR3+vy9WwnB/FCv4/RR/8JGqBsEAUEhoGMmsc6X4s6b2vx7ugddHDemKus+qNc1/e6Pe/n8xiO/p33Wf2MiW6fP3ZurxS/QBgR0zERFPmziqXOuE/zWpT6o17EavP+nz1fs7fixzzRM+2/V2Q2COpCMgI6Zbsx+P/ImnjrfCjb0UfrRwjG/J7zUQP/83avWdY9FZl+NMArq5+/dyvfIgOYgoGNqsXPBrYs2zW/u27lO2txuKPpO3eYoBR/oaN0//PkUu6nmEoh9qn75/Mbf6jrlABSJgI6pvHf+3ro6Ca9ISfUfOY/SQ654/20KPrDRug+4o8I3PyqfIcWeSGXN3h6yVh14BQEdmfU/2uw7tTBTnma57pg2HqWHW/E+YbS+fGHjSZWBfRTIz93zHd+eTFP4NoMV1qoDv0ZARyZ+PbCdGD72S4lCPGVmFuX5fr7iPfB16amB3afi3z2odyjl+jh9buP2KJC70XK0Mq4TGtAAR3SP/gE4bsQVvxVfL3i0NTczzTWge9GDyzeWL9z7dJ5Crgr1fSq+23Xryxc2Iovli1hs+7uHo454uQVxJ+5DdbJe4Tk6COp/+vyT6H8+C2t/AaBkBHQk3Kx1zdzwUw10VH5U91+jHdNypy6+aLE+knrrq5MrHdEryxc2/MLuHROJROxr/yBkYoNudz+SwclBtHPxV9MMh7vYDf3mN6o9NVtRlQ9ER6sceqNV4tXrW9f5BjRXoweX6rBCASgEAR2jUfje63t91+msjG7YTj+u2ah099VAlBff4/30hY07KnJFmkJlVce/0dFvVCxeEHl7KKOAf4TFB7+60eScjRoQBKo3akBz/u4fvvnycvC9BIAiENArYsOFzeXzv755lkr96Er9CKtnMux1R+UUhzfsIEZdmVlc7N7svkDO4rhuDzmtpKq3Tp+79/tvHv75ZtXHApSNgF6VvJfyzKRegXsSPzdc5Pv7Arn+2t0mpN5bYdxVTgjqaBuq3FF3UZ6FXhM/ZPvyjppdK/pzkI+DrnLN2MgGyIqAjlozlcKD+aHIz82qFJoNQH58lf/yhY3HdJVDWxDQUWtO90qdK1XtXBTJf4kcCrMy2siGVrFoAQI6astUtqLtv5QaXEcNZ5w7S1CvD4vtflGrIICQENBRW2WPzo/2elc3/KRmrWHbSWX7m4eX67LZDjAXAjpqyWK5U/bo/Kho+7NdNaVILmy7B1MkQDsQ0FFHketWv8Vp9OWft9SUgBGmSN3eJ36KpOoDAcpCQEftqLOLodyoCerBBvOzVWZwgCoQ0FErFttNvyZcAkJQDwrBHK1FQEet5s1DLXAaBXUXn6FQrlK76jpnGJmjrQjoqAWL5f43Dy8FvYXrqFDOdc6wpK2a60Nd52woUzFAFQjoqEswX5caOFjS5tepC3tzlzgN468PgjnajoCOGqTZ6xHMjwb1pw8unVExdvwq1kAtvhjqNAxQNgI6guU3Qwk9zZ4kenD5hsbyCSn4Quyq2zsTffnZVjFvD9QPAR0hitTZ2dFmKDUXPby07VPwJnK/6mNpUtbGZ0AofgN+jYCO4G7WB5XKYS1NmzcF/82DS+sHTWjY2GXeB706Z22AIhHQEQj76vBm3dTipoOlbYzWZzDw9QhNe9AD8tbN/R2B6eyqs2ttuVH70bqIrPfXNm9YvL8loh9WfUzhP+jtr5NeB9IR0FHhjVputCWQTwjsq/3z99ZN5bqI9as+prC0+/oAZkFAR5kGvjjMOdvmRv3fNLyIbBHYDxHIgVkR0FE0gvg0gX3t7moc67qKfNquS5NADsyLgI68DUzsK2eyIx3b8e1QOcXZjTMXO36OPY6HN3Q0x97YdLwvdrsjrnu7qYWQQJkI6JidyVNT2/VLscx0t9P5eYfipXyL5/zv/ztqb0RwJ2MDFISAjv8yefrL79UiE/GjpoGIDkRsYOaiTieORPYjAnf5o/YjwX1NRVZF5IP6PPjJNrUTQLG04PcHUJD+2mZPZLgax7KqYisi6gN8r+IT7h8Cn5rIzkHWxm2TTgfKQUAHGqS/9vmKiOvHsQ/wsqKjAF9IoB8H7tGUy+AgeA93qZkAqkNAB1qiv/bXvkh3NAc/HLrRr6px4py8n2bxv3Y6Npp28dMtIicHjLoBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1JlKyy0uLl5X1dWk1/z444+fDAaDwSzvv7S0tGZmPam/ne+//z6a9R8vLS39TUSSzsPuixcvrs36/hmP4aqIfJz0muFweOeHH37YLvs933333ZU4jm+lfFwh52jKazTxOlhcXPQ/S/2M7xV9//33OynHdltEPkh6jZldnOfa9BYXF/0xJ94H5pT4tWb5/r948eLslNdebtdLCeenaFHatdYEXWkxf5E6524kvcbM7swazD1Vva2qy1JzqnpRRLbm+Pdfi8j1hJesLi4uflHwD91K2sPbwsLC/Sreczgc9pxzie+jqoU8gE95jd4UkYk/M6q6rqqfZnkjM/vCPyCkvOyDtPNrZpIDfy/YlIKo6ldJATHL93/aay/P66XT6ayaWWHnpwRbGa612nPSYqp6I+2pzsz8CAFzOnHihA8aiQ9GqpoU8FEQVf191tdmGMlnfnh1zjUhcwUEw7V5dJ5hJHF/3lQeDkRRNPDZjqTz4Ucb45QtSjTNlNA0wT/D59Y+cwWEpLUBPcPoXOI4njnFjN9ilB6efr8/1SjZzP6Q9Peq+v7cBwVgJq0M6BlH51uMzvMfpfusR9oo/Z133lnJ+aMxwcuXL6cK6BnS5NOMurMWzwHIoJUBPePo3Bf/IH+pWY9ut7vOiS9Nv8o0ea/XYx4dyIlraYrxw7SKVEbnxXj27NmumSVWm/rsCTf6YPVSljZN5eTJkwR0ICetW7b28uXLNedc2o2HufMxX5nui9n+/e9/Z16bnabb7d4ZDodJxW+93/3ud+uDwYAVBgXrdDr9KZd9TQzAnU6nN+0SMr9ca6p/gEqoqi8OnnZJZ1kFnYl9INqkdQE9w9z54NmzZ7kF9E6nczWO46JvWn7O+dOcG9jsquqdPM/FoU6nsxPH8SDleP0PKQG9eFNfMz57clxvhvFa6qneq9vt+ofrXakJVb2mqlMfr5nN3MsiBN99991OiOu4fUMeM8sS0J9KC3RbWAyXtiwqt5Go9+233+b6fkf5JV5+7XaGrykzP93gawzGP8CFFce9++67/mn/SsoStj5TH8Wa5SFwnCb/TYBS1anfq25r0X0wL/JnA9PJ+hBpNX+gyqpVc+idTmctY/eqoPlAvrS09Mg59yivYO4DuXPu7LNnz1bLuGENh8PUBx3nHMVxBTOzqee9J6XJZwnOJWSv0GBTPERG0gKtGqHHcfxxSjfEwYsXLwobUbd1RH6ckydP7u7t7SWm3c0ssXgR85tlVD0pTT7Lw8Esnw8c8vVQWeo2Op0OI/S2pdvNzPdbbsWI3Bf+xXH8flkj8uPS7nEcJ85F+q+VavdimdnUnd8mjcRnDM50i0PhU0Y//fQTAb1hsgTCnSYH8nEv9Zv/+c9//vD8+fO5d6ial3MudXrjjTfeSJ0mwexmCcKT0uSkz1G2rFmhvb09Uu5NkiUg7u/v7zQxtX5k6dnteXaOK2Ie3TmXuGXkOO3OMsLiJLZynfIhYOrRNq1iMadM19wgoPtekdpUFJc2Hzv4+9//vtvA1LofOfmLeTm0Jh4+Q5C2A1vN92Cug+Uq0+SzpPyBKTNMUVvOmGvR/Hk/w37djQrkh8Zf+7pz7on/nMXFxWCqxzPULfRn6UCG8s042g7qIRP1knZfH2vF6Lw1AV1VUzf7SGtHWsdAfhz/Oc65zaWlpSenTp3aDCBYpmZFOp0Oo/QCzPq9nxS4Z9xalYCOQoviVPWfbTnFBPQxM9ttciDPMmqvoqI8y3mP45jd14rRzzNNPmOnQgI6Cn0gNbMnbTnFbVmHnhoQ9vf3oxoWu31tZh/k8D7+uFZff/31W6+//vr23t7enbLqCXxAT+kN4JWWRTCzW0tLS9ezvr6l66h/8zXPk+mhIyBmlPWae9qWM9yWgJ5axFNkACsgkP/SDMb3Mo7j+GqGHvVZb9TrCwsL60tLS5GZ+S1kd4pc3ubf+9SpU4mvUdW5H1qm0GtLkJ7j6+zlsTHLITZoQZGsJW1fW5NyzzBCLyxgnTp16nGOqfUtVT1ztBmM3470xYsX675JjKpezOtr8Sl5P9c+TsknLi3LQdoTdNXz/I2UtOugmUXTBPSUoJx4Tb722muteIBC/jsFZnmdc46A3rD9zxOp6tOQ1vkmNYPxAXzSSNfvjPb8+fP3fU92EcmtJ72qFtrcJcscVwDFe42TMucdTfP9SBntD5KWJ87SMhbIet3owdavrdD4lPvLly9X0nbjGa/TDso8zWAOtzocL9e7oap+DX7IN83UByrSsvnzQTghTf502nawk97LVxmbma80ZiReU+++++66mW1KDf3UkravrQjoWajqPyQQeXZ1G899rx/+QPrf13XDk7rtm10HvlXrpILEtFHN+PsRTTFa+sekWpY6jdDjOP701KlTU02f7e/v7/7www+/bPrkV5Q45179OeRhpyCdlmzM0oqA7udZMhTrhFAF6bum+UC+VUSbQp+O93PwORfR5SJLSqxu+2bXvVjUFxL5ucdJaflXg3DSaN9PqfjXT3p4mHG5W1WmbsrU7Xb9z94vAX1cTxPMz1/TfV/xnhVlaktRXLDGFesX/dz3s2fPCu+1XlQRHZplHMwzN+RI2phl/D4TH5pnbEgDZDFo02kioFcYyH3xmq9YH4+eS3W0iK7T6XySZxHdtDL0c2cnr5JbtY6zJhOnoo5Jky/P+v01s7kKR4EEUZvOTuNT7qHNzx1dQy6B+Pbbb306cLvCIrrUgF7W2vBxDUPmkakfXdYsZfzqsSe95OmkJZ/TfM0+fZ80raKq7ImOQmiL2r62IqD7G8msDS+aHsgzFNFdzaMTXQYhBcRrz58/z5wxWVpa8r0BajkfmhSUfWVwt9v1gThTmjxptH+4Djjh5zCk7z8aJA5wBVORGh/QA7AVx/FW3QozjhbRmVnR69Cz9Aqo1fkLXdq6fl8ZPJ5Hz5QmTxrtjx+qkz6PgI6iRG06tQT0gj1//vyG1Ni4kQ3LxRomrVXruCXvIOuqg7SHMj9SSujZT0AP3PiB+r6EY9nMVvOoz2mSxgf0lBvJSF3nQFvS4KSVqbOi+UY9aQ2XxvUEx/6dmS1nHe379H2n0/HvN/E1bNAStsNmVRKI8ZRgloAeSYs0PqCPC3ISX8OymXAbnLSxOUQZUooMD2+CgzxG++PvXSO+f2b2yWuvvTZVxurVpag//vjj1V6v96vM3d7e3mpdO7FVgbavLQ3oWeZQWDZTudQq5za1byxDUqvWw+Cbkt3qZx3t+/R92ij+1c5zofIPJ1EUzXWcPsC/GuQXFxejtIwJpsvqtVHjA/rJkycHP//8c6nbc9a573GWan2/dj7n90yd8tjb2wv+Zt+UEc7hUp+07Fav1+v5wJTl+5e2TS69+lHECH1/f79V943GPxJGUTTI0NqVOfQK+a1aU17ymxENSpF4Mzx58mQvQ1veKEuBEq19MQ0zy9Rd8PuarS6aV+MD+lja5is9tuesbnvbtKJEVf26vCNqh6QRTpbtbI+OqlNGS78E8aSGPUmtY4EZG00N2nbmWhHQfZo4w2uO7YiF4re3TXtNHMcsmyvxhngYeNNGN6+99lov7b1e6dT1j6o7AaI1WT2PgN5QWdIuQbWIbYtOp5PlQapVabMyJKUsj6bGk9LkhyPzrKNrPyef8Ne0f0Xezaietu2UtmKEnmX9ZN6FccgmS3OITqfDCL3cEXqmNHnGbViPpu9bd4NF/rJOj8Yt7F3RioDuu51l6BiUa+U2MksdmYXc/77G/pDWe31smh3XjntNps0xknrBA6/2Pch4RqK2nblWBPSM87B9vwynpMPBuCBu0m5e09Q/YCZJ251GWdLkh2nPlG1Yj6bvJ95gj3aeA5JkXeKoLWv72op16K8EhsRR+BtvvLE2GAy28trYRAqwuLi46px7lPIyv8/5RQncTz/9tJqhLS+j8wIepNJ6M2RJkx92WEzamCVl3hyYWqfT6WdpKqMta/vathF6amCI45hK93Kl7uLmnCOg5+zly5e9PLryHXZYTCpQOpq+T7nBUpSKrDKN0GPm0Jvr+++/30lLwdR1X+sa+zDl7yPmzwuRunVqliCsqsvjaZNcRklMeSGLrJtpdVq4/0NrRuhj9zM0mKE4rgR+n/UMa0kZnVfg6PrzlIfg3t7eXuaR9XA4zNR5DkhC29fJWhXQh8PhdtprnHME9HL47Q8TOedC2n+5UXOQU7w8MaCnFSi9kr5PDOj0c0dGmQooX758yQi97Wl3EblS0uG0WhzHH6e8hHR7cTL1Xs8wD+m3ve3llfY87DwH5GHQwv0fWjVC98zsTspLSLsXzE9rkG4Pdg5yME2VelrL5KPpe7/zYcpxURiHvHoWRG08la0L6CdOnLid9hpVZZReIFVNTbfHcXyzyGNosyl6r2e5MS5PufPhRGzQgoxSrzltYdvXVq1DP3pTWVpa8qn3iXPl/u8O93ou9+ja0bYxbTWB7xlQ1baHZnZraWnpetbX13FTkTxHwn60lLAm+Ljv4dNJN+Q6nMs4jh8l7eueInr+/HltOuK98847K1N0ZSvFFPsG/D6pwPnly5e7Tby/ty6ge2Z2Mymg+7T766+/fnUwGNwo8bBaQVVT156rapXnPXVeuO78zW5SQ59Xt071D1YpASzPPRDoFheQhYWF7dC+J85lTiqvJDXgevPNN88OBoPGraJpXcr9sDguQweyK6yLLUTadAbFcAFsnZrHfPxxac+se60DmF4rA/rhKD3lJaNRekmH0wqLi4vracVwqsrceYUbs0xYBZLbfOQxc/RH/6426WggRK0N6IzSy6eqaXPT0bgPPoqVtN1pbvOKx43GUzZ7mbhHO4B0rQ3oHqP08jA6r4dXtk6dK01+XPr+uPc/otG1C0DRWlkUd3SUfurUqS9StvD8uNfr3W5iRWRZfL/vn3766dOU1O0jRuflrDJI+vsJjWRmSrkfl75PyQAQ0IE5tDqge8+fP0+tusZ8xuuPz3Ieq+eXISVtPZnnhhbHBW+/WUvC5xPQgTm0PqDXjb/hmlniiGnaSuW28OnetHNXhJC2cRwOhwPn3MTCw/39/d+sHTezrVn2lt7f3z9uJcmuiEz8/GP6P/jvVxnfM//1FVqQmZSdyPJzPe31PO91l/LwhQAdvxgVQOnTEnt7e4nZIn+DfvHiReoGQwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFET7F+5dN7EbRX0AAAAolpldcyZ2teDPAQAABVLV605EekV+CAAAKFzPB3QAAFBzBHQAABqAgA4AQAMQ0AEAaAACOgAADQnog6oPAgAAzGXg1OzmfO8BAACkQhbbnf8HYG1NQzAzd1MAAAAASUVORK5CYII=" alt="BCT (주)비씨테크">
+    <nav>
+      <a class="btn" href="cm_pricing_L3_PRIME_controller.html#4">← CM Pricing Presentation</a>
+      
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="blob" style="width:380px;height:380px; right:-120px; top:-170px; background:#2E5FAE; opacity:.5;"></div>
+  <div class="motif"></div>
+  <div class="wrap">
+    <div class="eyebrow">CT DIAGRAM · REV.B · L3 LED SYSTEM PRIME</div>
+    <h1>Controller Assembly CT Diagram</h1>
+    <p>요소작업 단위로 1대 Assembly에 걸리는 시간을 순서대로 쌓은 표입니다. 막대 하나가 요소작업 하나이며, 가로축은 작업 시작부터 누적된 시간(분)입니다.</p>
+    <div class="meta">
+      <span><b>SOP</b>2026-06-24 Controller Assembly SOP rev.00</span>
+      <span><b>산정</b>실무교육 후 BCT 산정 · 2026-10-29</span>
+      <span><b>기준</b>1대 · 여유율 미적용</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="kpis" id="kpis"></div>
+
+  <section>
+    <div class="sec-h"><h2><i>01</i>공정별 CT</h2><p>SOP 장(章) 기준 5개 공정 · 단위: 분</p></div>
+    <div class="panel">
+      <div class="stack" id="stack"></div>
+      <div class="plist" id="plist"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-h"><h2><i>02</i>CT Diagram — 요소작업 순서</h2><p>범례를 누르면 해당 작업구분만 강조됩니다</p></div>
+    <div class="panel" style="padding-top:18px;">
+      <div class="legend" id="legend"></div>
+      <table class="gt" id="gt">
+        <colgroup><col style="width:74px"><col class="step" style="width:118px"><col><col style="width:96px"><col style="width:62px"><col style="width:44%"></colgroup>
+        <thead><tr><th>No</th><th class="stepc">SOP 단계</th><th>요소작업</th><th class="c">작업구분</th><th class="c">분</th><th><div class="axis" id="axis"></div></th></tr></thead>
+        <tbody id="gbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-h"><h2><i>03</i>작업구분별 시간</h2><p>재작업·낭비는 SOP 개정 시 줄일 수 있는 시간입니다</p></div>
+    <div class="panel"><div class="types" id="types"></div></div>
+  </section>
+
+  <section>
+    <div class="notes">
+      <div class="note"><b>[재작업 루프] 온도센서 케이블 · 1.6분</b>Ch3/5/9/11 Driver Board를 빼냈다가 온도센서 케이블 나사를 체결한 뒤 다시 끼웁니다. 케이블을 먼저 체결하도록 SOP를 바꾸면 없앨 수 있습니다.</div>
+      <div class="note"><b>조정·설정 · DIP 채널 4분</b>Driver Board 12장의 DIP 스위치를 채널 조합표대로 설정합니다. 설정값 대조(검사)는 별도 항목으로 잡았습니다.</div>
+      <div class="note"><b>근거 'BCT제안'</b>현행 SOP에는 없지만 CM 운영에 필요한 공정(작업지시·Kitting, ESD 준비, 자주검사, 채널 대조, 출하 준비·MES 기록)입니다.</div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap"><b>BCT · (주)비씨테크</b><span>L3 LED SYSTEM PRIME · CONTROLLER · CT DIAGRAM REV.B · 2026</span></div></footer>
+
+<script>
+(function(){
+  var DATA = [{"name": "0. 작업 준비", "min": 5, "elems": [{"no": "C-0-01", "step": "작업지시", "elem": "작업지시서·S/N 확인, 자재 Kitting 대조(BOM 26종)", "page": "-", "basis": "BCT제안", "type": "준비", "unit": "회", "qty": 1, "freq": 1, "min": 4, "note": null}, {"no": "C-0-02", "step": "작업지시", "elem": "ESD 손목밴드 착용·도전매트 확인, 공구 배치", "page": "-", "basis": "BCT제안", "type": "준비", "unit": "회", "qty": 1, "freq": 1, "min": 1, "note": null}]}, {"name": "3. Main Board Assembly", "min": 18.45, "elems": [{"no": "C-3-01", "step": "1-1) Card Guide Assembly", "elem": "Main Board 개봉·외관확인 후 작업대 안착", "page": "p.09", "basis": "SOP", "type": "부수작업", "unit": "ea", "qty": 1, "freq": 1, "min": 0.5, "note": null}, {"no": "C-3-02", "step": "1-1) Card Guide Assembly", "elem": "Card Guide 조립방향 확인 후 전면 위치결정 (18개소)", "page": "p.09-10", "basis": "SOP", "type": "부수작업", "unit": "ea", "qty": 18, "freq": 1, "min": 1.5, "note": null}, {"no": "C-3-03", "step": "1-2) Card Guide 체결", "elem": "나사 SET 사전조립 (M3x8+스프링+평+절연와셔)", "page": "p.10", "basis": "SOP", "type": "부수작업", "unit": "set", "qty": 36, "freq": 1, "min": 6, "note": null}, {"no": "C-3-04", "step": "1-2) Card Guide 체결", "elem": "Board 반전(전면↔후면) 및 자세 변경", "page": "p.10", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 2, "freq": 1, "min": 0.3, "note": null}, {"no": "C-3-05", "step": "1-2) Card Guide 체결", "elem": "후면에서 일자드라이버로 나사 SET 체결 (Guide당 2개)", "page": "p.10", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 36, "freq": 1, "min": 7.2, "note": null}, {"no": "C-3-06", "step": "2-1) Base Assembly", "elem": "Rack Case Base 준비, 좌/우 방향 확인 후 Main Board 안착", "page": "p.11", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 1, "freq": 1, "min": 0.4, "note": null}, {"no": "C-3-07", "step": "2-2) Base 체결", "elem": "M3x5(우산머리/십자) 체결 – 나사자리 중심 정렬", "page": "p.12", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 12, "freq": 1, "min": 1.8, "note": null}, {"no": "C-3-08", "step": "3) 배터리 Assembly", "elem": "CR2032 극성 확인 후 배터리 홀더 삽입", "page": "p.13", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 1, "freq": 1, "min": 0.25, "note": null}, {"no": "C-3-09", "step": "공정 자주검사", "elem": "Card Guide 18개 방향·나사 누락 자주검사", "page": "-", "basis": "BCT제안", "type": "검사", "unit": "회", "qty": 1, "freq": 1, "min": 0.5, "note": null}]}, {"name": "4. Controller Case Assembly", "min": 15.549999999999999, "elems": [{"no": "C-4-01", "step": "1-1) Fan Assembly", "elem": "Fan Fix Bracket 내측에 Filter Cover → DC Fan 순서 적층 (풍향·케이블 방향)", "page": "p.16", "basis": "SOP", "type": "부수작업", "unit": "ea", "qty": 4, "freq": 1, "min": 1, "note": null}, {"no": "C-4-02", "step": "1-1) Fan Assembly", "elem": "나사 SET 사전조립 (M3x35+스프링+평와셔)", "page": "p.16", "basis": "SOP", "type": "부수작업", "unit": "set", "qty": 16, "freq": 1, "min": 2, "note": null}, {"no": "C-4-03", "step": "1-1) Fan Assembly", "elem": "M3x35(둥근머리/십자) 체결 – 3부품 동시 체결", "page": "p.16-17", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 16, "freq": 1, "min": 4, "note": null}, {"no": "C-4-04", "step": "1-2) FAN 케이블", "elem": "FAN 1~4 케이블 Main Board 커넥터 순서 체결 (끝까지 삽입)", "page": "p.18", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 4, "freq": 1, "min": 0.6, "note": null}, {"no": "C-4-05", "step": "2) Fan Bracket Assembly", "elem": "Fan Fix Bracket 위치 맞춤 (Base 좌측 안쪽 4 Hole, 양쪽)", "page": "p.19", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 1, "freq": 1, "min": 0.4, "note": null}, {"no": "C-4-06", "step": "2) Fan Bracket Assembly", "elem": "M3x6(접시머리/십자) 체결 – 한쪽 4개 × 양쪽", "page": "p.19", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 8, "freq": 1, "min": 1, "note": null}, {"no": "C-4-07", "step": "3) Front Support", "elem": "Front Support 위치 맞춤 (Base 좌측 바깥쪽 2 Hole, 양쪽)", "page": "p.20", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 1, "freq": 1, "min": 0.25, "note": null}, {"no": "C-4-08", "step": "3) Front Support", "elem": "M3x6(접시머리/십자) 체결", "page": "p.20", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 4, "freq": 1, "min": 0.55, "note": null}, {"no": "C-4-09", "step": "4) Front Cover", "elem": "Front Cover Hole 정렬 (Support·Base)", "page": "p.21", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 1, "freq": 1, "min": 0.25, "note": null}, {"no": "C-4-10", "step": "4) Front Cover", "elem": "M3x6(접시머리/십자) 체결", "page": "p.21", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 8, "freq": 1, "min": 1.2, "note": null}, {"no": "C-4-11", "step": "5) Back Support", "elem": "Back Support 위치 맞춤 (Base 우측, 양쪽)", "page": "p.22", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 1, "freq": 1, "min": 0.25, "note": null}, {"no": "C-4-12", "step": "5) Back Support", "elem": "M3x6(접시머리/십자) 체결", "page": "p.22", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 4, "freq": 1, "min": 0.5, "note": null}, {"no": "C-4-13", "step": "6) Back Cover", "elem": "Back Cover Hole 정렬 (Support·Base)", "page": "p.23", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 1, "freq": 1, "min": 0.25, "note": null}, {"no": "C-4-14", "step": "6) Back Cover", "elem": "M3x6(접시머리/십자) 체결", "page": "p.23", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 8, "freq": 1, "min": 1.2, "note": null}, {"no": "C-4-15", "step": "2)~6) 공통", "elem": "측면 체결을 위한 Case 자세 변경(회전)", "page": "p.19-23", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 4, "freq": 1, "min": 0.5, "note": null}, {"no": "C-4-16", "step": "7-1) PWR1 케이블", "elem": "PWR1 케이블 상·하·좌·우 방향 확인 후 Base Hole 삽입 (고무패킹 확인)", "page": "p.24", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 1, "freq": 1, "min": 0.4, "note": null}, {"no": "C-4-17", "step": "7-1) PWR1 케이블", "elem": "M3x8(우산머리/십자) 체결 – 케이블 고정", "page": "p.24", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 2, "freq": 1, "min": 0.3, "note": null}, {"no": "C-4-18", "step": "7-2) PWR1 케이블", "elem": "케이블 번호 확인 후 Main Board 단자 연결·배선 (Driver Board 체결부 회피)", "page": "p.25", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 4, "freq": 1, "min": 0.7, "note": null}, {"no": "C-4-19", "step": "7-2) PWR1 케이블", "elem": "단자 인장 TEST (손으로 빠짐 확인)", "page": "p.25", "basis": "SOP", "type": "검사", "unit": "ea", "qty": 4, "freq": 1, "min": 0.2, "note": null}]}, {"name": "5. Driver Board Assembly", "min": 28.200000000000006, "elems": [{"no": "C-5-01", "step": "1) Shielding Pad", "elem": "Driver Board 개봉·외관 확인 (ESD)", "page": "p.27", "basis": "SOP", "type": "부수작업", "unit": "ea", "qty": 12, "freq": 1, "min": 1.6, "note": null}, {"no": "C-5-02", "step": "1) Shielding Pad", "elem": "Shielding Pad·Driver Board 방향 확인 후 Hole 정렬", "page": "p.27", "basis": "SOP", "type": "부수작업", "unit": "ea", "qty": 12, "freq": 1, "min": 2, "note": null}, {"no": "C-5-03", "step": "1) Shielding Pad", "elem": "M3x6(우산머리/십자) 체결 – 보드당 4개", "page": "p.27", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 48, "freq": 1, "min": 8, "note": null}, {"no": "C-5-04", "step": "2-1) Main Board 장착", "elem": "Main Board 온도센서 케이블 4개 일자 배치", "page": "p.28", "basis": "SOP", "type": "부수작업", "unit": "ea", "qty": 4, "freq": 1, "min": 0.4, "note": null}, {"no": "C-5-05", "step": "2-1~2) Main Board 장착", "elem": "Driver Board Card Guide 삽입 (위→아래, 상단 Hole 정렬, 케이블 꺾임 주의)", "page": "p.28-29", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 12, "freq": 1, "min": 2.4, "note": null}, {"no": "C-5-06", "step": "2-3~4) Main Board 장착", "elem": "Card Guide 고정버튼 눌러 고정", "page": "p.30-31", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 12, "freq": 1, "min": 0.8, "note": null}, {"no": "C-5-07", "step": "3) 채널 번호 조정", "elem": "DIP 스위치 1~4 채널 조합 설정 (핀셋, 장착 상태)", "page": "p.32-33", "basis": "SOP", "type": "조정·설정", "unit": "ea", "qty": 12, "freq": 1, "min": 4, "note": null}, {"no": "C-5-08", "step": "3) 채널 번호 조정", "elem": "채널 설정값 vs 조합표 대조 확인", "page": "-", "basis": "BCT제안", "type": "검사", "unit": "ea", "qty": 12, "freq": 1, "min": 1, "note": null}, {"no": "C-5-09", "step": "4) 온도센서 케이블", "elem": "[재작업 루프] Ch3/5/9/11 Driver Board 고정 해제 후 인출", "page": "p.34", "basis": "SOP", "type": "재작업·낭비", "unit": "ea", "qty": 4, "freq": 1, "min": 0.6, "note": null}, {"no": "C-5-10", "step": "4) 온도센서 케이블", "elem": "나사 SET 사전조립 (M3x6+스프링+평+절연와셔)", "page": "p.34", "basis": "SOP", "type": "부수작업", "unit": "set", "qty": 4, "freq": 1, "min": 0.6, "note": null}, {"no": "C-5-11", "step": "4) 온도센서 케이블", "elem": "온도센서 케이블 Hole 정렬 후 나사 SET 체결", "page": "p.34-35", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 4, "freq": 1, "min": 0.8, "note": null}, {"no": "C-5-12", "step": "4) 온도센서 케이블", "elem": "[재작업 루프] Driver Board 재삽입·고정 (인접 소자 간섭 주의)", "page": "p.34", "basis": "SOP", "type": "재작업·낭비", "unit": "ea", "qty": 4, "freq": 1, "min": 1, "note": null}, {"no": "C-5-13", "step": "공정 자주검사", "elem": "PWR1·PWR2·T/S 케이블 눌림·꺾임 확인", "page": "p.31", "basis": "SOP", "type": "검사", "unit": "회", "qty": 1, "freq": 1, "min": 5, "note": null}]}, {"name": "6. Case Assembly 마무리", "min": 12.95, "elems": [{"no": "C-6-01", "step": "1) Top Cover", "elem": "Top Cover Assembly 전 내부 최종 확인 (이물·케이블·나사 누락)", "page": "-", "basis": "BCT제안", "type": "검사", "unit": "회", "qty": 1, "freq": 1, "min": 0.5, "note": "사진촬영"}, {"no": "C-6-02", "step": "1) Top Cover", "elem": "Top Cover 방향 확인 (HS 로고 좌측 하단) 후 안착", "page": "p.37", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 1, "freq": 1, "min": 0.25, "note": null}, {"no": "C-6-03", "step": "1) Top Cover", "elem": "M3x6(접시머리/십자) 상면 체결", "page": "p.37", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 4, "freq": 1, "min": 1.2, "note": null}, {"no": "C-6-04", "step": "1) Top Cover", "elem": "측면 체결을 위한 자세 변경", "page": "p.37", "basis": "SOP", "type": "부수작업", "unit": "회", "qty": 2, "freq": 1, "min": 0.2, "note": null}, {"no": "C-6-05", "step": "1) Top Cover", "elem": "M3x6(접시머리/십자) 측면 체결 (양쪽 6개)", "page": "p.37", "basis": "SOP", "type": "주작업", "unit": "ea", "qty": 6, "freq": 1, "min": 0.8, "note": null}, {"no": "C-6-06", "step": "출하 준비", "elem": "외관검사·S/N 라벨 부착, 보고서, MES 부품 이력 관리 기록", "page": "-", "basis": "BCT제안", "type": "검사", "unit": "회", "qty": 1, "freq": 1, "min": 10, "note": null}]}];
+  var TYPES = [
+    { k:'준비', c:'var(--t-prep)' }, { k:'주작업', c:'var(--t-main)' }, { k:'부수작업', c:'var(--t-sub)' },
+    { k:'조정·설정', c:'var(--t-adj)' }, { k:'검사', c:'var(--t-insp)' }, { k:'재작업·낭비', c:'var(--t-waste)' }
+  ];
+  var TC = {}; TYPES.forEach(function(t){ TC[t.k] = t.c; });
+  var PC = ['#AFC3E6', '#1F4E9C', '#3E6FB8', '#6E93D1', '#153B78'];
+  var total = 0, n = 0, byType = {};
+  DATA.forEach(function(p){ p.elems.forEach(function(e){ total += e.min; n++; byType[e.type] = (byType[e.type] || 0) + e.min; }); });
+  var fmt = function(v){ return (Math.round(v * 100) / 100).toLocaleString('ko-KR', { maximumFractionDigits:2 }); };
+  var pct = function(v){ return (v / total * 100).toFixed(1) + '%'; };
+  var esc = function(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+
+  // KPIs
+  document.getElementById('kpis').innerHTML =
+    '<div class="kpi key"><div class="tag">CYCLE TIME · 1 UNIT</div><div class="v">' + fmt(total) + '<small>분</small></div><div class="s">' + (total / 60).toFixed(2) + ' 시간 · 여유율 미적용</div></div>' +
+    '<div class="kpi"><div class="tag">ELEMENTS</div><div class="v">' + n + '<small>개</small></div><div class="s">5개 공정 · SOP 단계 기준</div></div>' +
+    '<div class="kpi"><div class="tag">MAIN WORK</div><div class="v">' + fmt(byType['주작업'] || 0) + '<small>분</small></div><div class="s">주작업 비율 ' + pct(byType['주작업'] || 0) + '</div></div>' +
+    '<div class="kpi risk"><div class="tag">REWORK · WASTE</div><div class="v">' + fmt(byType['재작업·낭비'] || 0) + '<small>분</small></div><div class="s">전체의 ' + pct(byType['재작업·낭비'] || 0) + ' · 개선 대상</div></div>';
+
+  // process stack
+  document.getElementById('stack').innerHTML = DATA.map(function(p, i){
+    var w = p.min / total * 100;
+    return '<div style="width:' + w + '%; background:' + PC[i % PC.length] + ';' + (i === 0 ? 'color:var(--primary-deeper);' : '') + '" title="' + esc(p.name) + ' ' + p.min + '분">' +
+      (w > 7 ? esc(p.name.replace(/^\d+\.\s*/, '')) + '<small>' + fmt(p.min) + '분 · ' + pct(p.min) + '</small>' : '') + '</div>';
+  }).join('');
+  document.getElementById('plist').innerHTML = DATA.map(function(p, i){
+    return '<div style="--c:' + PC[i % PC.length] + '"><b>' + esc(p.name) + '</b><span>' + fmt(p.min) + '<small>분 · ' + pct(p.min) + '</small></span></div>';
+  }).join('');
+
+  // axis
+  var step = total > 150 ? 30 : 10, ticks = [];
+  for (var t = 0; t <= total - step / 2; t += step) ticks.push(t);
+  var tickPct = step / total * 100;
+  document.getElementById('axis').innerHTML = ticks.map(function(t){
+    return '<span style="left:' + (t / total * 100) + '%">' + t + '</span>';
+  }).join('') + '<span style="left:100%; transform:translateX(-100%); color:#fff;">' + fmt(total) + '</span>';
+
+  // gantt rows
+  var cum = 0, rows = [];
+  DATA.forEach(function(p){
+    var s0 = cum;
+    rows.push('<tr class="grp"><td colspan="3">' + esc(p.name) + '</td><td></td><td class="min">' + fmt(p.min) + '</td>' +
+      '<td><div class="tl" style="--tick:' + tickPct + '%"><div class="grid"></div><div class="span" style="left:' + (s0 / total * 100) + '%; width:' + (p.min / total * 100) + '%"></div></div></td></tr>');
+    p.elems.forEach(function(e){
+      var l = cum / total * 100, w = e.min / total * 100;
+      var waste = e.type === '재작업·낭비';
+      var badge = waste ? 'badge waste' : 'badge';
+      var lab = (l + w > 82) ? 'right:' + (100 - l + 0.8) + '%' : 'left:calc(' + (l + w) + '% + 6px)';
+      rows.push('<tr data-type="' + esc(e.type) + '"><td class="no">' + esc(e.no) + '</td>' +
+        '<td class="stepc" style="font-size:12.5px; color:var(--steel);">' + esc(e.step) + '</td>' +
+        '<td class="el"><b' + (waste ? ' class="waste-text"' : '') + '>' + esc(e.elem) + '</b>' +
+        '<small>' + [e.page && e.page !== '-' ? esc(e.page) : '', e.basis !== 'SOP' ? '<span class="badge bct">' + esc(e.basis) + '</span>' : '', e.note ? esc(e.note) : '']
+          .filter(Boolean).join(' · ') + '</small></td>' +
+        '<td class="c"><span class="' + badge + '"><i class="dot" style="background:' + TC[e.type] + '"></i>' + esc(e.type) + '</span></td>' +
+        '<td class="min">' + fmt(e.min) + '</td>' +
+        '<td><div class="tl" style="--tick:' + tickPct + '%"><div class="grid"></div>' +
+        '<div class="bar" style="left:' + l + '%; width:' + w + '%; background:' + TC[e.type] + ';"></div>' +
+        '<span class="lab" style="' + lab + '">' + fmt(cum) + '→' + fmt(cum + e.min) + '</span></div></td></tr>');
+      cum += e.min;
+    });
+  });
+  rows.push('<tr class="grp"><td colspan="3">합계 — 1대 순작업시간</td><td></td><td class="min">' + fmt(total) + '</td><td style="font-size:13px; color:var(--primary-deeper);">' + (total / 60).toFixed(2) + ' 시간</td></tr>');
+  document.getElementById('gbody').innerHTML = rows.join('');
+
+  // legend filter
+  var active = null;
+  var legend = document.getElementById('legend');
+  legend.innerHTML = TYPES.map(function(t){
+    return '<button type="button" aria-pressed="false" data-k="' + t.k + '" style="--c:' + t.c + '"><i></i>' + t.k + ' · ' + fmt(byType[t.k] || 0) + '분</button>';
+  }).join('');
+  legend.addEventListener('click', function(ev){
+    var b = ev.target.closest('button'); if (!b) return;
+    active = active === b.dataset.k ? null : b.dataset.k;
+    legend.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', String(x.dataset.k === active)); });
+    document.querySelectorAll('#gbody tr[data-type]').forEach(function(tr){ tr.classList.toggle('dim', !!active && tr.dataset.type !== active); });
+  });
+
+  // type summary
+  var maxT = Math.max.apply(null, TYPES.map(function(t){ return byType[t.k] || 0; }));
+  document.getElementById('types').innerHTML = TYPES.map(function(t){
+    var v = byType[t.k] || 0, w = v / maxT * 100, inside = w > 30;
+    return '<div class="k" style="--c:' + t.c + '"><i></i>' + t.k + '</div>' +
+      '<div class="tr" style="--c:' + t.c + '"><div style="width:' + w + '%"></div>' +
+      '<span style="' + (inside ? 'right:' + (100 - w + 1) + '%; color:' + (t.k === '준비' || t.k === '부수작업' ? 'var(--primary-deeper)' : '#fff') + ';' : 'left:calc(' + w + '% + 10px); color:var(--ink);') + '">' + fmt(v) + '분 · ' + pct(v) + '</span></div>';
+  }).join('');
+})();
+</script>
+</body>
+</html>

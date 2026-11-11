@@ -284,6 +284,11 @@ body:not(.locked) .gate-card{transform:translateY(-16px) scale(.97);transition:t
             <span class="tag live">Live</span>
             <svg class="arrow" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></svg>
           </a>
+          <a class="row" href="./company/bct_company_profile_2026.html" target="_blank" rel="noopener">
+            <div class="txt"><div class="t">회사소개서</div><div class="d">COMPANY PROFILE · KO / EN · PDF</div></div>
+            <span class="tag live">Live</span>
+            <svg class="arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
         </div>
       </div>
 
@@ -467,7 +472,7 @@ setTimeout(()=>document.querySelectorAll('[data-count]').forEach(el=>{
 }),1000);
 
 /* ---------- ticker ---------- */
-const items=['Sales','Quotation','Transaction Statement','Ecount ERP','Contract Manufacturing','ASENDIA OPS Hub','HS HiTek','Repair Service','SOP · Repair Certificate','Development','PBIC · Backstream Isolation','RF Power Components'];
+const items=['Sales','Quotation','Transaction Statement','Ecount ERP','Company Profile','Contract Manufacturing','ASENDIA OPS Hub','HS HiTek','Repair Service','SOP · Repair Certificate','Development','PBIC · Backstream Isolation','RF Power Components'];
 const html=items.map(t=>`<span><i></i>${t}</span>`).join('');
 document.getElementById('tick').innerHTML=html+html;
 

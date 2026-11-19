@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BCT Quality Control</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+.mods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.mods{grid-template-columns:1fr}}
+.mod{position:relative;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;text-decoration:none;color:inherit;transition:.2s;min-height:250px}
+a.mod:hover{border-color:var(--primary);box-shadow:0 14px 34px -20px rgba(31,78,156,.5);transform:translateY(-2px)}
+.mod .n{position:absolute;right:18px;top:16px;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink3)}
+.mod .ic{width:44px;height:44px;border-radius:13px;background:var(--pale);color:var(--primary);display:flex;align-items:center;justify-content:center}
+.mod .ic svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mod .hd{display:flex;align-items:center;gap:12px;padding-right:28px}
+.mod h2{margin:0;font-size:20px;letter-spacing:-.02em}
+.mod p{margin:10px 0 0!important}
+.mod p{margin:0;color:var(--ink2);font-size:13.5px}
+.mod .foot{margin-top:auto;padding-top:16px}
+.mod.soon{background:transparent;border-style:dashed}
+.mod.soon .ic{background:var(--gry-bg);color:var(--ink3)}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats3 div{background:var(--pale2);border-radius:11px;padding:10px 12px}
+.stats3 b{display:block;font-size:24px;letter-spacing:-.03em;line-height:1.1}
+.stats3 span{font-size:12px;color:var(--ink2)}
+.stats3 .r b{color:var(--red)} .stats3 .a b{color:#A86F1C}
+.plan{font-size:13px;color:var(--ink2);line-height:1.7;margin:0;padding-left:18px}
+.due{margin-top:22px}
+.due h3{font-size:14px;margin:0 0 10px;color:var(--ink2)}
+.due-list{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.due-list a{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line2);text-decoration:none;color:inherit}
+.due-list a:last-child{border-bottom:0}
+.due-list a:hover{background:var(--pale2)}
+.due-list .no{font-family:var(--mono);font-weight:700;color:var(--deep);font-size:13px;width:70px;flex:none}
+.due-list .nm{flex:1;min-width:0;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.due-list .dt{font-family:var(--mono);font-size:12.5px;color:var(--ink2)}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="ph">
+    <div>
+      <div class="eyebrow"><i></i>BCT Co., Ltd. · Quality Control</div>
+      <h1>품질관리 시스템</h1>
+      <p>계측기 교정, 생산현장 온습도, 3정5S 점검을 한 곳에서 기록하고 추적합니다.</p>
+    </div>
+  </div>
+
+  <div class="mods">
+    <a class="mod" href="./instruments.html">
+      <span class="n">01</span>
+      <div class="hd"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 14a8 8 0 0 1 16 0"/><path d="M12 14l4-5"/><circle cx="12" cy="14" r="1.4"/><path d="M3 18h18"/></svg></div>
+      <h2>계측기 관리</h2></div><p>교정 일정 · 교정 이력 · 관리대장 출력</p>
+      <div class="foot"><div class="stats3" id="insStats"><div><b>–</b><span>전체</span></div><div class="r"><b>–</b><span>기한 초과</span></div><div class="a"><b>–</b><span>30일 이내</span></div></div></div>
+    </a>
+    <a class="mod" href="./env.html">
+      <span class="n">02</span>
+      <div class="hd"><div class="ic"><svg viewBox="0 0 24 24"><path d="M10 14.5V4a2 2 0 0 1 4 0v10.5a4 4 0 1 1-4 0z"/><path d="M12 9v7"/></svg></div>
+      <h2>온습도 관리</h2></div><p>생산현장 구역별 온도·습도 기록과 이탈 조치</p>
+      <div class="foot"><div class="stats3" id="envStats"><div><b>–</b><span>구역</span></div><div><b>–</b><span>오늘 측정</span></div><div class="r"><b>–</b><span>미조치 이탈</span></div></div></div>
+    </a>
+    <a class="mod" href="./5s.html">
+      <span class="n">03</span>
+      <div class="hd"><div class="ic"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg></div>
+      <h2>3정5S 관리</h2></div><p>생산현장 · 부품창고 · 반입구 점검과 개선 추적</p>
+      <div class="foot"><div class="stats3" id="fsStats"><div><b>–</b><span>이번 달 점검</span></div><div><b>–</b><span>평균 점수</span></div><div class="r"><b>–</b><span>미결 개선</span></div></div></div>
+    </a>
+  </div>
+
+  <div class="due hidden" id="due">
+    <h3>교정 조치가 필요한 계측기</h3>
+    <div class="due-list" id="dueList"></div>
+  </div>
+</main>
+
+<script src="./assets/qc.js"></script>
+<script>
+QC.init('home', async () => {
+  // 3정5S 요약
+  (async () => {
+    const m0 = QC.todayKST().slice(0,7) + '-01';
+    const [a, o] = await Promise.all([
+      QC.sb.from('qc_5s_audits').select('score_pct').gte('audit_date', m0),
+      QC.sb.from('qc_5s_actions').select('id', {count:'exact', head:true}).neq('status','done'),
+    ]);
+    const b = document.querySelectorAll('#fsStats b'), xs = (a.data||[]).filter(r => r.score_pct != null);
+    b[0].textContent = (a.data||[]).length; b[1].textContent = xs.length ? Math.round(xs.reduce((t,r)=>t+Number(r.score_pct),0)/xs.length) : '–'; b[2].textContent = o.count ?? '–';
+  })();
+  // 온습도 요약
+  (async () => {
+    const since = new Date(QC.todayKST() + 'T00:00:00+09:00').toISOString();
+    const [z, t, d] = await Promise.all([
+      QC.sb.from('qc_env_zones').select('id', {count:'exact', head:true}).eq('active', true),
+      QC.sb.from('qc_env_readings').select('id', {count:'exact', head:true}).gte('measured_at', since),
+      QC.sb.from('qc_env_readings').select('id', {count:'exact', head:true}).or('temp_out.eq.true,hum_out.eq.true').is('action_taken', null),
+    ]);
+    const b = document.querySelectorAll('#envStats b');
+    b[0].textContent = z.count ?? '–'; b[1].textContent = t.count ?? '–'; b[2].textContent = d.count ?? '–';
+  })();
+  const { data, error } = await QC.sb.from('qc_instrument_status').select('id,mgmt_no,name,status,cal_state,days_left,next_due').neq('status','disposed');
+  if(error) return QC.toast(error.message, true);
+  const c = k => data.filter(r => r.cal_state === k).length;
+  const b = document.querySelectorAll('#insStats b');
+  b[0].textContent = data.length; b[1].textContent = c('overdue'); b[2].textContent = c('due_soon');
+  const need = data.filter(r => r.cal_state === 'overdue' || r.cal_state === 'due_soon').sort((a,b) => a.days_left - b.days_left);
+  if(need.length){
+    document.getElementById('due').classList.remove('hidden');
+    document.getElementById('dueList').innerHTML = need.map(r => `<a href="./instruments.html#${encodeURIComponent(r.mgmt_no)}">
+      <span class="no">${QC.esc(r.mgmt_no)}</span><span class="nm">${QC.esc(r.name)}</span><span class="dt">${QC.fmtDate(r.next_due)}</span>
+      ${r.cal_state==='overdue'?`<span class="badge red">D+${Math.abs(r.days_left)}</span>`:`<span class="badge amb">D-${r.days_left}</span>`}</a>`).join('');
+  }
+});
+</script>
+</body>
+</html>

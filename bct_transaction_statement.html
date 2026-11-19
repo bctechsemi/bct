@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700;800&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --primary:#1F4E9C; --primary-deep:#153B78; --primary-deeper:#0F2C5C;
@@ -415,7 +416,10 @@
   /* ---------------- constants ---------------- */
   var CAP = { two:8, buyer:20, seller:20 };
   var PARTY_KEYS = ['code','name','bizno','ceo','address'];
-  var SB_URL='https://okiamzritzrrxhouzolm.supabase.co', SB_KEY='sb_publishable_nmVTVGoaQqIMKvit5YHL5g_S7uahQlr', SB_TABLE='bct_customers';
+  /* 거래처 DB: Supabase BCT_HUB 프로젝트 (Business Hub 로그인 세션 공유 — storageKey 'bct-hub-auth') */
+  var SB_TABLE='bct_customers';
+  var SBC=supabase.createClient('https://xvwmmwgevyvuqskudvst.supabase.co','sb_publishable_YwuQ7HuxRB8IKZfrJv-I-w_JDRobdDC',
+    {auth:{persistSession:true,autoRefreshToken:true,storageKey:'bct-hub-auth'}});
 
   /* ---------------- utils ---------------- */
   function pad(n,l){ n=String(n); while(n.length<(l||2)) n='0'+n; return n; }
@@ -713,30 +717,31 @@
     updateCustCount();
     return {added:added,updated:updated,ok:ok};
   }
-  /* ---------------- Supabase (REST, fetch · 인증 없음) ---------------- */
+  /* ---------------- Supabase (BCT_HUB · Hub 로그인 필요) ---------------- */
   var sbBusy=false, sbOk=null;   // sbOk: null=미확인, true=서버 연결, false=오프라인(저장본 사용)
-  function sbFetch(path,opt){
-    opt=opt||{}; var h=Object.assign({apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},opt.headers||{});
-    return fetch(SB_URL+'/rest/v1/'+path,Object.assign({},opt,{headers:h})).then(function(r){
-      if(!r.ok) return r.text().then(function(t){ var m=t; try{ var j=JSON.parse(t); m=j.message||j.hint||t; }catch(e){} throw new Error(m||('HTTP '+r.status)); });
-      return r;
+  function sbSession(){
+    return SBC.auth.getSession().then(function(r){
+      if(!r.data.session) throw new Error('Business Hub에서 로그인한 뒤 사용할 수 있습니다');
+      return r.data.session;
     });
   }
+  function sbCheck(r){ if(r.error) throw new Error(r.error.message); return r.data; }
   function rowToCust(r){ return { code:r.code, bizno:r.code, name:r.name||'', ceo:r.ceo||'', phone:r.phone||'', address:r.address||'' }; }
   function sbLoad(){
     var all=[], PAGE=1000;
     function page(off){
-      return sbFetch(SB_TABLE+'?select=code,name,ceo,phone,address&order=name.asc&limit='+PAGE+'&offset='+off).then(function(r){ return r.json(); }).then(function(rows){
+      return SBC.from(SB_TABLE).select('code,name,ceo,phone,address').order('name',{ascending:true}).range(off,off+PAGE-1).then(sbCheck).then(function(rows){
         all=all.concat(rows); return rows.length===PAGE?page(off+PAGE):all;
       });
     }
     sbBusy=true; updateCustCount();
-    return page(0).then(function(rows){
+    return sbSession().then(function(){ return page(0); }).then(function(rows){
       customers=rows.map(rowToCust); LS.set(KEY_CUST,customers); sbBusy=false; sbOk=true; updateCustCount(); return customers.length;
     },function(e){ sbBusy=false; sbOk=false; updateCustCount(); throw e; });
   }
+  // 넘긴 칸만 덮어씁니다 (견적서에서 입력한 영문·업태·종목 등은 그대로 유지)
   function sbUpsert(row){
-    return sbFetch(SB_TABLE+'?on_conflict=code',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([row])});
+    return sbSession().then(function(){ return SBC.from(SB_TABLE).upsert([row],{onConflict:'code'}); }).then(sbCheck);
   }
   function updateCustCount(){
     var n=$('custCount');
@@ -945,7 +950,7 @@
 
   /* ---------------- boot ---------------- */
   applyLW(); syncBindings(); renderItemsPanel(); updateCustCount(); renderPreview(); fit();
-  sbLoad().catch(function(){ toast('서버에 연결하지 못해 저장된 거래처 목록을 사용합니다'); });
+  sbLoad().catch(function(e){ toast(/로그인/.test(e.message)?'Business Hub에 로그인하지 않아 저장된 거래처 목록을 사용합니다':'서버에 연결하지 못해 저장된 거래처 목록을 사용합니다'); });
   if(!S.seller.bizno) $('sellerFold').open=true;
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ renderPreview(); });
   window.__bctTs={ get state(){ return S; }, get customers(){ return customers; }, rerender:function(){ syncBindings(); renderItemsPanel(); renderPreview(); } };

@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700;800&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --primary:#1F4E9C; --primary-deep:#153B78; --primary-deeper:#0F2C5C;
@@ -108,6 +109,33 @@
     color:var(--primary); font-weight:700; font-size:12.5px; cursor:pointer; font-family:var(--font-en);
   }
   .addrow-btn:hover{ background:var(--primary-pale); border-color:var(--primary); }
+
+  /* 수요처: 거래처 DB 검색·저장 */
+  .ac-wrap{ position:relative; }
+  .ac-wrap input{ width:100%; }
+  .ac-list{ position:absolute; left:0; right:0; top:100%; margin-top:4px; z-index:30; background:#fff; border:1px solid var(--hairline-strong);
+    border-radius:var(--r-sm); box-shadow:0 14px 30px -12px rgba(11,18,32,.3); max-height:280px; overflow-y:auto; display:none; }
+  .ac-list.open{ display:block; }
+  .ac-item{ padding:8px 11px; cursor:pointer; border-bottom:1px solid var(--hairline); }
+  .ac-item:last-child{ border-bottom:0; }
+  .ac-item.active, .ac-item:hover{ background:var(--primary-pale); }
+  .ac-item .n{ font-weight:700; font-size:13px; }
+  .ac-item .s{ font-family:var(--font-mono); font-size:11px; color:var(--steel); margin-top:2px; }
+  .ac-empty{ padding:10px 12px; font-size:12px; color:var(--steel); }
+  #custCount{ margin-left:auto; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11px; font-weight:500; color:var(--steel); }
+  .sdot{ width:9px; height:9px; border-radius:50%; background:#9AA9C0; display:inline-block; flex:none; }
+  .sdot.ok{ background:#1E9E52; } .sdot.fail{ background:#F08A00; }
+  .cust-actions{ display:flex; gap:8px; margin-top:2px; }
+  .cust-btn{ flex:1; padding:9px 10px; border:1px solid var(--hairline-strong); border-radius:var(--r-sm); background:#fff; color:var(--primary-deep);
+    font-weight:700; font-size:12.5px; cursor:pointer; font-family:inherit; }
+  .cust-btn:hover{ border-color:var(--primary); }
+  .cust-btn.solid{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .cust-btn.solid:hover{ background:var(--primary-deep); }
+  .cust-btn[disabled]{ opacity:.5; cursor:wait; }
+  .qt-toast{ position:fixed; left:50%; bottom:24px; transform:translate(-50%,12px); background:var(--ink); color:#fff; padding:10px 16px; border-radius:10px;
+    font-size:13px; z-index:200; opacity:0; transition:.25s; pointer-events:none; max-width:calc(100% - 32px); }
+  .qt-toast.show{ opacity:1; transform:translate(-50%,0); }
+  @media print{ .ac-list, .qt-toast{ display:none !important; } }
 
   .switch-row{ display:flex; align-items:center; gap:10px; padding:10px 0; cursor:pointer; user-select:none; }
   .switch{ position:relative; width:38px; height:22px; border-radius:999px; background:var(--hairline-strong); transition:background .15s; flex:0 0 auto; }
@@ -267,8 +295,8 @@
       </div>
       <div class="field-row"><div class="field full"><label data-i18n="address">Address</label><input type="text" id="f_s_addr" value="560-39, Bangdo-ri, Docheok-myeon, Gwangju-si, Gyeonggi-do, Republic of Korea"></div></div>
 
-      <div class="subhead" style="margin-top:14px;" data-i18n="customer">Customer</div>
-      <div class="field-row"><div class="field full"><label data-i18n="companyName">Company Name</label><input type="text" id="f_c_name" placeholder=""></div></div>
+      <div class="subhead" style="margin-top:14px;"><span data-i18n="customer">Customer</span><span id="custCount" title="거래처 목록">거래처 –</span></div>
+      <div class="field-row"><div class="field full"><label data-i18n="companyName">Company Name</label><div class="ac-wrap"><input type="text" id="f_c_name" autocomplete="off" placeholder="거래처 목록에서 검색 (상호 · 사업자번호 · 대표자) 또는 직접 입력"><div class="ac-list" id="acList"></div></div></div></div>
       <div class="field-row">
         <div class="field full"><label data-i18n="attn">Attn.</label><input type="text" id="f_c_attn" placeholder=""></div>
       </div>
@@ -288,6 +316,7 @@
         <div class="field"><label>Item (EN)</label><input type="text" id="f_c_item_en" placeholder=""></div>
       </div>
       <div class="field-row"><div class="field full"><label data-i18n="address">Address</label><input type="text" id="f_c_addr" placeholder=""></div></div>
+      <div class="cust-actions"><button type="button" class="cust-btn solid" id="btnSaveCust">이 수요처를 거래처 목록에 저장</button><button type="button" class="cust-btn" id="btnClearCust">입력 지우기</button></div>
     </div>
 
     <div class="pgroup">
@@ -714,6 +743,135 @@
       showFailureHint(err);
     }
   });
+})();
+</script>
+<script>
+/* ---------------- 수요처(고객사) ↔ 거래처 DB (Supabase BCT_HUB · bct_customers) ----------------
+   거래명세서와 같은 거래처 목록을 씁니다. Business Hub 로그인 세션을 공유합니다 (storageKey 'bct-hub-auth'). */
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var SBC = supabase.createClient('https://xvwmmwgevyvuqskudvst.supabase.co', 'sb_publishable_YwuQ7HuxRB8IKZfrJv-I-w_JDRobdDC',
+    { auth:{ persistSession:true, autoRefreshToken:true, storageKey:'bct-hub-auth' } });
+  var TABLE = 'bct_customers', CACHE = 'bct_qt_customers';
+  // DB 컬럼 ↔ 견적서 입력란
+  var MAP = { name:'f_c_name', contact:'f_c_attn', ceo:'f_c_rep_ko', ceo_en:'f_c_rep_en', code:'f_c_regno',
+              biz_type:'f_c_type_ko', biz_type_en:'f_c_type_en', biz_item:'f_c_item_ko', biz_item_en:'f_c_item_en', address:'f_c_addr' };
+  var COLS = 'code,name,ceo,ceo_en,phone,address,biz_type,biz_type_en,biz_item,biz_item_en,contact';
+  var customers = [], busy = false, ok = null;
+  try{ customers = JSON.parse(localStorage.getItem(CACHE) || '[]'); }catch(e){ customers = []; }
+
+  function esc(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function digits(v){ return String(v || '').replace(/\D/g, ''); }
+  function norm(v){ return String(v == null ? '' : v).replace(/[\s\(\)\[\]\*_\-\.\/]/g, '').toLowerCase(); }
+  function fmtBizno(v){ var d = digits(v); return d.length === 10 ? d.slice(0,3) + '-' + d.slice(3,5) + '-' + d.slice(5) : String(v || '').trim(); }
+  var tt;
+  function toast(m){
+    var el = document.querySelector('.qt-toast');
+    if(!el){ el = document.createElement('div'); el.className = 'qt-toast'; document.body.appendChild(el); }
+    el.textContent = m; el.classList.add('show'); clearTimeout(tt); tt = setTimeout(function(){ el.classList.remove('show'); }, 2800);
+  }
+  // 값을 넣고 견적서 미리보기가 갱신되도록 input 이벤트를 보냅니다
+  var filling = false;
+  function setVal(id, v){ var el = $(id); el.value = v == null ? '' : v; filling = true; el.dispatchEvent(new Event('input', { bubbles:true })); filling = false; }
+
+  function session(){
+    return SBC.auth.getSession().then(function(r){ if(!r.data.session) throw new Error('Business Hub에서 로그인한 뒤 사용할 수 있습니다'); return r.data.session; });
+  }
+  function check(r){ if(r.error) throw new Error(r.error.message); return r.data; }
+  function updateCount(){
+    var st = busy ? 'load' : (ok === true ? 'ok' : (ok === false ? 'fail' : 'load'));
+    $('custCount').innerHTML = '거래처 ' + customers.length.toLocaleString('en-US') + ' <span class="sdot ' + st + '"></span>';
+    $('custCount').title = busy ? '서버에서 불러오는 중…' : ok === true ? '서버 연결됨 (클릭하면 다시 불러오기)' : ok === false ? '서버 연결 실패 — 저장된 목록 사용 중 (클릭하면 다시 시도)' : '';
+  }
+  function load(){
+    busy = true; updateCount();
+    var all = [], PAGE = 1000;
+    function page(off){
+      return SBC.from(TABLE).select(COLS).order('name', { ascending:true }).range(off, off + PAGE - 1).then(check).then(function(rows){
+        all = all.concat(rows); return rows.length === PAGE ? page(off + PAGE) : all;
+      });
+    }
+    return session().then(function(){ return page(0); }).then(function(rows){
+      customers = rows; try{ localStorage.setItem(CACHE, JSON.stringify(rows)); }catch(e){}
+      busy = false; ok = true; updateCount(); return rows.length;
+    }, function(e){ busy = false; ok = false; updateCount(); throw e; });
+  }
+  $('custCount').addEventListener('click', function(){
+    load().then(function(n){ toast('거래처 ' + n + '건을 불러왔습니다'); }, function(e){ toast('불러오지 못했습니다: ' + e.message); });
+  });
+
+  /* ----- 검색 ----- */
+  var acIdx = -1, acRes = [], inp = $('f_c_name');
+  function search(q){
+    q = norm(q); if(!q) return [];
+    var qd = digits(q), out = [];
+    for(var i = 0; i < customers.length && out.length < 8; i++){
+      var c = customers[i];
+      if(norm(c.name).indexOf(q) >= 0 || norm(c.ceo).indexOf(q) >= 0 || norm(c.ceo_en).indexOf(q) >= 0 || norm(c.code).indexOf(q) >= 0 ||
+         (qd.length >= 3 && digits(c.code).indexOf(qd) >= 0)) out.push(c);
+    }
+    return out;
+  }
+  function renderAc(){
+    var box = $('acList');
+    if(!acRes.length){
+      if(inp.value.trim()){ box.innerHTML = '<div class="ac-empty">일치하는 거래처가 없습니다 — 그대로 입력하면 신규 수요처로 쓰이고, “이 수요처를 거래처 목록에 저장”으로 등록할 수 있습니다</div>'; box.classList.add('open'); }
+      else box.classList.remove('open');
+      return;
+    }
+    box.innerHTML = acRes.map(function(c, i){
+      return '<div class="ac-item' + (i === acIdx ? ' active' : '') + '" data-i="' + i + '"><div class="n">' + esc(c.name) + '</div><div class="s">' +
+        esc([c.code, c.ceo, c.biz_type].filter(Boolean).join(' · ')) + '</div></div>';
+    }).join('');
+    box.classList.add('open');
+  }
+  function pick(c){
+    Object.keys(MAP).forEach(function(k){ setVal(MAP[k], c[k]); });
+    $('acList').classList.remove('open'); acRes = []; acIdx = -1;
+  }
+  inp.addEventListener('input', function(){ if(filling) return; acRes = search(inp.value); acIdx = -1; renderAc(); });
+  inp.addEventListener('focus', function(){ if(inp.value){ acRes = search(inp.value); renderAc(); } });
+  inp.addEventListener('blur', function(){ setTimeout(function(){ $('acList').classList.remove('open'); }, 150); });
+  inp.addEventListener('keydown', function(e){
+    if(!acRes.length) return;
+    if(e.key === 'ArrowDown'){ acIdx = (acIdx + 1) % acRes.length; renderAc(); e.preventDefault(); }
+    else if(e.key === 'ArrowUp'){ acIdx = (acIdx - 1 + acRes.length) % acRes.length; renderAc(); e.preventDefault(); }
+    else if(e.key === 'Enter'){ if(acIdx >= 0){ pick(acRes[acIdx]); e.preventDefault(); } else if(acRes.length === 1){ pick(acRes[0]); e.preventDefault(); } }
+    else if(e.key === 'Escape'){ $('acList').classList.remove('open'); }
+  });
+  $('acList').addEventListener('mousedown', function(e){
+    var it = e.target.closest('.ac-item'); if(!it) return; e.preventDefault(); pick(acRes[+it.getAttribute('data-i')]);
+  });
+
+  /* ----- 저장 (신규 등록 / 기존 수정) ----- */
+  $('btnSaveCust').addEventListener('click', function(){
+    var name = $('f_c_name').value.trim();
+    if(!name){ toast('수요처 회사명을 먼저 입력하세요'); return; }
+    var code = fmtBizno($('f_c_regno').value);
+    if(!code){ alert('거래처코드로 쓸 사업자등록번호(Reg. No.)를 입력해 주세요.\n해외 고객사처럼 사업자번호가 없으면 자체 코드(예: US-APPLIED)를 입력하면 됩니다.'); $('f_c_regno').focus(); return; }
+    if(code !== $('f_c_regno').value) setVal('f_c_regno', code);
+    var hit = null;
+    customers.forEach(function(c){
+      if(hit) return;
+      if(digits(code).length === 10 ? digits(c.code) === digits(code) : norm(c.code) === norm(code)) hit = c;
+    });
+    if(hit && norm(hit.name) !== norm(name) &&
+       !confirm('같은 거래처코드(' + code + ')의 기존 거래처 “' + hit.name + '”이(가) 있습니다.\n“' + name + '”(으)로 덮어쓸까요?\n\n새 거래처로 저장하려면 [취소] 후 사업자등록번호를 확인하세요.')) return;
+    // 입력한 칸만 저장합니다 — 비워 둔 칸은 서버의 기존 값을 지우지 않습니다.
+    var row = { code: hit ? hit.code : code, name: name };
+    Object.keys(MAP).forEach(function(k){ if(k === 'code' || k === 'name') return; var v = $(MAP[k]).value.trim(); if(v) row[k] = v; });
+    if(hit && Object.keys(row).every(function(k){ return String(hit[k] || '') === String(row[k] || ''); })){ toast('변경된 내용이 없습니다 (이미 목록에 있는 거래처)'); return; }
+    var bt = $('btnSaveCust'); bt.disabled = true;
+    session().then(function(){ return SBC.from(TABLE).upsert([row], { onConflict:'code' }); }).then(check).then(function(){
+      bt.disabled = false;
+      toast(hit ? '거래처 정보를 수정했습니다' : '새 거래처로 저장했습니다');
+      return load();
+    }).catch(function(e){ bt.disabled = false; alert('거래처 저장 실패: ' + e.message); });
+  });
+  $('btnClearCust').addEventListener('click', function(){ Object.keys(MAP).forEach(function(k){ setVal(MAP[k], ''); }); });
+
+  updateCount();
+  load().catch(function(e){ if(/로그인/.test(e.message)) toast('Business Hub에 로그인하지 않아 저장된 거래처 목록을 사용합니다'); });
 })();
 </script>
 </body>

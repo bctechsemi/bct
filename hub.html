@@ -354,13 +354,16 @@ body:not(.locked) .gate-card{transform:translateY(-16px) scale(.97);transition:t
         <div class="strip-t"><h3>Quality Control</h3><p>품질관리 시스템</p></div>
         <div class="devlist">
           <a class="prod qcmod" href="./quality/instruments.html" target="_blank" rel="noopener">
-            <div><div class="pt">계측기 관리</div></div><span class="tag live dot-only" title="Live">Live</span>
+            <div><div class="pt">계측기</div></div><span class="tag live dot-only" title="Live">Live</span>
           </a>
           <a class="prod qcmod" href="./quality/env.html" target="_blank" rel="noopener">
-            <div><div class="pt">온습도 관리</div></div><span class="tag live dot-only" title="Live">Live</span>
+            <div><div class="pt">온습도</div></div><span class="tag live dot-only" title="Live">Live</span>
           </a>
           <a class="prod qcmod" href="./quality/5s.html" target="_blank" rel="noopener">
             <div><div class="pt">3정5S</div></div><span class="tag live dot-only" title="Live">Live</span>
+          </a>
+          <a class="prod qcmod" href="./quality/workers.html" target="_blank" rel="noopener">
+            <div><div class="pt">작업자 인증</div></div><span class="tag live dot-only" title="Live">Live</span>
           </a>
         </div>
         <span class="num">05</span>
@@ -493,7 +496,7 @@ setTimeout(()=>document.querySelectorAll('[data-count]').forEach(el=>{
 }),1000);
 
 /* ---------- ticker ---------- */
-const items=['Sales','Quotation','Transaction Statement','Ecount ERP','Company Profile','Contract Manufacturing','ASENDIA OPS Hub','HS HiTek','Repair Service','SOP · Repair Certificate','Development','PBIC · Backstream Isolation','RF Power Components','Quality Control','Instrument Calibration','Temperature · Humidity','3정5S Audit'];
+const items=['Sales','Quotation','Transaction Statement','Ecount ERP','Company Profile','Contract Manufacturing','ASENDIA OPS Hub','HS HiTek','Repair Service','SOP · Repair Certificate','Development','PBIC · Backstream Isolation','RF Power Components','Quality Control','Instrument Calibration','Temperature · Humidity','3정5S Audit','Worker Qualification'];
 const html=items.map(t=>`<span><i></i>${t}</span>`).join('');
 document.getElementById('tick').innerHTML=html+html;
 

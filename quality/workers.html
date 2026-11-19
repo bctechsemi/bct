@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>작업자 인증 — BCT Quality</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{cursor:default}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--ink2);margin-bottom:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+.mx-wrap{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:auto}
+table.mx{border-collapse:separate;border-spacing:0;width:100%;min-width:980px}
+.mx th,.mx td{border-bottom:1px solid var(--line2);text-align:center;padding:8px 6px}
+.mx thead th{background:var(--pale2);font-size:12px;color:var(--ink2);font-weight:700;position:sticky;top:0;z-index:1}
+.mx thead tr:first-child th{border-bottom:1px solid var(--line)}
+.mx th.grp{font-family:var(--mono);letter-spacing:.08em;color:var(--primary);border-left:2px solid var(--line)}
+.mx th.sk{vertical-align:bottom;min-width:62px;cursor:help}
+.mx th.sk b{display:block;font-family:var(--mono);font-size:12px;color:var(--deep)}
+.mx th.sk span{display:block;font-weight:500;font-size:11.5px;line-height:1.3;color:var(--ink2);margin-top:2px}
+.mx .first{border-left:2px solid var(--line)}
+.mx th.wk,.mx td.wk{position:sticky;left:0;background:#fff;text-align:left;z-index:2;min-width:150px;border-right:1px solid var(--line)}
+.mx thead th.wk{background:var(--pale2);z-index:3}
+.mx td.wk b{font-size:14.5px}
+.mx td.wk span{font-size:12.5px;color:var(--ink2);margin-left:6px}
+.mx td.wk small{display:block;font-family:var(--mono);font-size:11.5px;color:var(--ink2);margin-top:2px}
+.mx tbody tr:hover td{background:var(--pale2)}
+.mx tbody tr:hover td.wk{background:var(--pale2)}
+.cell{display:inline-flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;cursor:pointer;padding:2px 4px;border-radius:8px}
+.cell:hover{background:var(--pale)}
+.lv{font-family:var(--mono);font-weight:700;font-size:12.5px;min-width:34px;padding:4px 8px;border-radius:7px;display:inline-block;border:1.5px solid transparent}
+.lv0{background:var(--gry-bg);color:var(--ink2)}
+.lv1{background:var(--amb-bg);color:#8E5C14}
+.lv2{background:var(--pale);color:var(--deep)}
+.lv3{background:var(--grn-bg);color:#1E7A53}
+.lv4{background:var(--deep);color:#fff}
+.lv.pend{border-style:dashed;border-color:var(--amber)}
+.lv.exp{border-color:var(--red)}
+.lv.soon{border-color:var(--amber)}
+.cell em{font-style:normal;font-size:10.5px;font-weight:700;color:#8E5C14}
+.cell em.x{color:var(--red-ink)}
+.hist{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.hrow{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px}
+.hrow .m{grid-column:1/-1;color:var(--ink2);font-size:12.5px}
+.sec-t{font-size:13px;font-weight:700;color:var(--ink2);margin:4px 0 8px}
+.skinfo{background:var(--pale2);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.6;margin-bottom:14px;color:var(--ink2)}
+.mlist{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
+.mrow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px}
+.mrow.off{opacity:.5}
+.mrow .t{flex:1;min-width:0}
+.mrow .t small{display:block;color:var(--ink2);font-size:12px;margin-top:2px}
+@media print{
+  .pdoc .mxp th,.pdoc .mxp td{font-size:8.5pt;padding:3px 2px}
+  .pdoc .sign td{height:42px;width:64px}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="no-print">
+    <div class="ph">
+      <div>
+        <div class="eyebrow"><i></i>Quality Control · Competence</div>
+        <h1>작업자 인증</h1>
+        <p>작업 항목별로 누가 어떤 수준까지 작업·검사·교육할 수 있는지 관리합니다 (ISO 9001 7.2).</p>
+      </div>
+      <div class="actions">
+        <button class="btn hidden" id="bApproveAll" type="button"></button>
+        <button class="btn hidden" id="bWorkers" type="button">작업자 관리</button>
+        <button class="btn hidden" id="bSkills" type="button">작업 항목 관리</button>
+        <button class="btn" id="bPrint" type="button"></button>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+    <div class="legend" id="legend"></div>
+    <div class="mx-wrap"><table class="mx" id="mx"><tbody><tr><td class="empty">불러오는 중…</td></tr></tbody></table></div>
+  </div>
+  <div class="print-only pdoc" id="printDoc"></div>
+</main>
+
+<script src="./assets/qc.js"></script>
+<script>
+const { sb, esc, icon, toast, fld, nz } = QC;
+const LEVEL = { 0:'미인증', 1:'교육 중 (감독 하 작업)', 2:'단독 작업', 3:'검사 · 승인', 4:'교육자' };
+const BASIS = ['경력 인정','OJT 평가','외부 교육','재평가','조정'];
+const CATS = ['공통','조립','시험'];
+const SOON_DAYS = 60;
+const st = { workers:[], skills:[], cur:{}, people:{}, profiles:[] };
+const key = (w, s) => w + ':' + s;
+const today = () => QC.todayKST();
+const daysTo = d => d ? Math.round((new Date(d + 'T00:00:00+09:00') - new Date(today() + 'T00:00:00+09:00')) / 864e5) : null;
+const who = id => (id && st.people[id]) || '';
+
+async function load(){
+  const [w, s, c, p] = await Promise.all([
+    sb.from('qc_workers').select('*').order('sort').order('name'),
+    sb.from('qc_skills').select('*').order('sort'),
+    sb.from('qc_qual_current').select('*'),
+    sb.from('profiles').select('id,name,email'),
+  ]);
+  if(w.error) return toast(w.error.message, true);
+  st.workers = w.data; st.skills = s.data;
+  st.cur = {}; (c.data || []).forEach(q => st.cur[key(q.worker_id, q.skill_id)] = q);
+  st.profiles = p.data || [];
+  st.people = Object.fromEntries(st.profiles.map(x => [x.id, x.name || x.email]));
+  render();
+}
+const activeWorkers = () => st.workers.filter(w => w.active);
+const activeSkills = () => st.skills.filter(s => s.active).sort((a, b) => CATS.indexOf(a.category) - CATS.indexOf(b.category) || a.sort - b.sort);
+
+function cellState(q){
+  if(!q) return { lv:0, cls:'', tag:'' };
+  const d = q.status === 'approved' && q.level > 0 ? daysTo(q.valid_until) : null;
+  if(q.status === 'pending') return { lv:q.level, cls:'pend', tag:'<em>승인 대기</em>' };
+  if(d != null && d < 0) return { lv:q.level, cls:'exp', tag:'<em class="x">만료</em>' };
+  if(d != null && d <= SOON_DAYS) return { lv:q.level, cls:'soon', tag:`<em>D-${d}</em>` };
+  return { lv:q.level, cls:'', tag:'' };
+}
+
+function render(){
+  const ws = activeWorkers(), ss = activeSkills(), all = Object.values(st.cur);
+  const pending = all.filter(q => q.status === 'pending').length;
+  const soon = all.filter(q => q.status === 'approved' && q.level > 0 && daysTo(q.valid_until) != null && daysTo(q.valid_until) >= 0 && daysTo(q.valid_until) <= SOON_DAYS).length;
+  const exp = all.filter(q => q.status === 'approved' && q.level > 0 && daysTo(q.valid_until) != null && daysTo(q.valid_until) < 0).length;
+  document.getElementById('kpis').innerHTML = [
+    ['blu','작업자', ws.length, '명'], ['amb','승인 대기', pending, '건'], ['amb','재평가 60일 이내', soon, '건'], ['red','인증 만료', exp, '건'],
+  ].map(([c, k, v, u]) => `<div class="kpi ${c}"><div class="k"><i></i>${k}</div><div class="v">${v}<small>${u}</small></div></div>`).join('');
+
+  document.getElementById('legend').innerHTML = [0,1,2,3,4].map(l => `<span><span class="lv lv${l}">L${l}</span>${LEVEL[l]}</span>`).join('') +
+    '<span><span class="lv lv2 pend">L2</span>승인 대기</span><span><span class="lv lv2 soon">L2</span>재평가 임박</span><span><span class="lv lv2 exp">L2</span>만료</span>';
+
+  const admin = QC.isAdmin();
+  const bA = document.getElementById('bApproveAll');
+  bA.classList.toggle('hidden', !(admin && pending)); bA.innerHTML = `${icon.edit}승인 대기 ${pending}건 일괄 승인`;
+  ['bWorkers','bSkills'].forEach(id => document.getElementById(id).classList.toggle('hidden', !admin));
+
+  if(!ws.length || !ss.length){ document.getElementById('mx').innerHTML = '<tbody><tr><td class="empty">작업자 또는 작업 항목이 없습니다</td></tr></tbody>'; return; }
+  const groups = CATS.map(c => [c, ss.filter(s => s.category === c)]).filter(g => g[1].length);
+  let h = `<thead><tr><th class="wk" rowspan="2">작업자</th>${groups.map(([c, list]) => `<th class="grp" colspan="${list.length}">${c}</th>`).join('')}</tr><tr>`;
+  groups.forEach(([, list]) => list.forEach((s, i) => h += `<th class="sk ${i===0?'first':''}" title="${esc(s.name)}\n${esc(s.description||'')}\nSOP: ${esc(s.sop_refs||'')}\n재평가 ${s.cycle_months}개월"><b>${esc(s.code)}</b><span>${esc(s.name)}</span></th>`));
+  h += '</tr></thead><tbody>';
+  ws.forEach(w => {
+    const lvls = ss.map(s => (st.cur[key(w.id, s.id)] || {}).level || 0);
+    h += `<tr><td class="wk"><b>${esc(w.name)}</b><span>${esc(w.title||'')}</span><small>최고 L${Math.max(...lvls)} · ${esc(w.dept||'')}</small></td>`;
+    groups.forEach(([, list]) => list.forEach((s, i) => {
+      const c = cellState(st.cur[key(w.id, s.id)]);
+      h += `<td class="${i===0?'first':''}"><button type="button" class="cell" data-w="${w.id}" data-s="${s.id}" aria-label="${esc(w.name)} ${esc(s.name)} L${c.lv}"><span class="lv lv${c.lv} ${c.cls}">L${c.lv}</span>${c.tag}</button></td>`;
+    }));
+    h += '</tr>';
+  });
+  document.getElementById('mx').innerHTML = h + '</tbody>';
+}
+
+/* ---------- 셀: 이력 + 인증 등록 ---------- */
+async function openCell(wid, sid){
+  const w = st.workers.find(x => x.id === wid), s = st.skills.find(x => x.id === sid);
+  const { data:hist } = await sb.from('qc_qualifications').select('*').eq('worker_id', wid).eq('skill_id', sid).order('created_at', { ascending:false });
+  const cur = st.cur[key(wid, sid)], admin = QC.isAdmin();
+  const histHtml = (hist || []).map(q => `<div class="hrow">
+      <span class="lv lv${q.level} ${q.status==='pending'?'pend':''}">L${q.level}</span>
+      <span><b>${esc(q.basis)}</b> · ${q.status==='approved' ? `승인 ${QC.fmtDate(q.approved_at)} ${esc(who(q.approved_by))}` : q.status==='pending' ? '승인 대기' : '취소됨'}</span>
+      <span class="mono" style="font-size:12px">${q.valid_until ? '~' + q.valid_until : ''}</span>
+      <div class="m">${esc(q.evidence||'')}${q.evaluator ? ' · 평가자 ' + esc(q.evaluator) : ''}${q.file_path ? ` · <a href="#" data-file="${esc(q.file_path)}">근거 파일</a>` : ''}</div></div>`).join('') || '<div class="empty" style="padding:14px">인증 이력이 없습니다</div>';
+  const html = `<div class="skinfo"><b>${esc(s.code)} ${esc(s.name)}</b> (${esc(s.category)}) · 재평가 ${s.cycle_months}개월<br>${esc(s.description||'')}<br>SOP: ${esc(s.sop_refs||'—')}</div>
+    <div class="sec-t">이력</div><div class="hist">${histHtml}</div>
+    ${admin ? `<div class="sec-t">새 인증 등록 (관리자 · 저장 즉시 승인)</div><div class="grid2">
+      ${fld('level','레벨', cur ? cur.level : 2, {options: [0,1,2,3,4].map(l => [l, `L${l} ${LEVEL[l]}`])})}
+      ${fld('basis','근거', 'OJT 평가', {options: BASIS.map(b => [b, b])})}
+      ${fld('evidence','근거 내용', '', {area:true, full:true, req:true, hint:'예) ASES-100-47 Rev.7 OJT 3회, 실기 평가 합격 (샘플 S/N …)'})}
+      ${fld('evaluator','평가자', '')}
+      ${fld('valid_until','유효기한', '', {type:'date', hint:`비우면 승인일 + ${s.cycle_months}개월`})}
+      <div class="f full"><label>근거 파일 (평가표 · 수료증, PDF/사진)</label><input type="file" name="file" accept="application/pdf,image/*"></div>
+    </div>` : '<div class="hint" style="font-size:12.5px;color:var(--ink2)">인증 등록·승인은 관리자만 할 수 있습니다.</div>'}`;
+  const f = QC.openModal(`${w.name} ${w.title||''} · ${s.code} ${s.name}`, html, admin ? async fd => {
+    const rec = { worker_id: wid, skill_id: sid, level: Number(fd.get('level')), basis: fd.get('basis'), evidence: nz(fd.get('evidence')),
+      evaluator: nz(fd.get('evaluator')), valid_until: nz(fd.get('valid_until')), status: 'approved' };
+    const file = fd.get('file');
+    if(file && file.size) rec.file_path = await QC.upload(file, `workers/${wid}`);
+    const { error } = await sb.from('qc_qualifications').insert(rec);
+    if(error) throw new Error(error.message);
+    toast('인증을 등록했습니다'); await load();
+  } : async () => {}, admin ? (cur && cur.status === 'pending' ? { ok:'새 인증 저장', extra:{ label:'현재 대기 건 승인', run: async () => {
+      const { error } = await sb.from('qc_qualifications').update({ status:'approved' }).eq('id', cur.id);
+      if(error) throw new Error(error.message); toast('승인했습니다'); await load(); } } } : { ok:'새 인증 저장' }) : { ok:'닫기' });
+  f.querySelectorAll('[data-file]').forEach(a => a.onclick = async e => { e.preventDefault(); const u = await QC.fileUrl(a.dataset.file); u ? window.open(u, '_blank', 'noopener') : toast('파일을 열 수 없습니다', true); });
+  if(!admin){ const ex = f.querySelector('[data-extra]'); ex && ex.classList.add('hidden'); }
+}
+
+/* ---------- 일괄 승인 ---------- */
+async function approveAll(){
+  const ids = Object.values(st.cur).filter(q => q.status === 'pending').map(q => q.id);
+  if(!ids.length) return;
+  const pendingNote = Object.values(st.cur).filter(q => q.status === 'pending' && /확인 필요/.test(q.evidence || '')).length;
+  if(!confirm(`승인 대기 ${ids.length}건을 승인합니다.\n승인자: ${who(QC.S.user.id)} · 승인일: ${today()}\n${pendingNote ? `\n※ "확인 필요" 표시가 있는 ${pendingNote}건이 포함되어 있습니다.\n` : ''}\n계속할까요?`)) return;
+  const { error } = await sb.from('qc_qualifications').update({ status:'approved' }).in('id', ids);
+  if(error) return toast('승인 실패: ' + error.message, true);
+  toast(`${ids.length}건을 승인했습니다`); load();
+}
+
+/* ---------- 작업자 / 항목 관리 ---------- */
+function openWorkers(){
+  QC.openModal('작업자 관리', `<div class="mlist">${st.workers.map(w => `<div class="mrow ${w.active?'':'off'}"><div class="t"><b>${esc(w.name)} ${esc(w.title||'')}</b><small>${esc(w.dept||'')}${w.user_id ? ' · 계정 ' + esc(who(w.user_id)) : ' · 계정 미연결'}${w.joined_on ? ' · 입사 ' + w.joined_on : ''}${w.active ? '' : ' · 비활성'}</small></div>
+    <button class="btn sm" type="button" data-wedit="${w.id}">${icon.edit}수정</button></div>`).join('')}</div>`, async () => workerForm(), { ok:'+ 작업자 추가' });
+  document.querySelector('.modal.show .mb').onclick = e => { const b = e.target.closest('[data-wedit]'); if(b) workerForm(st.workers.find(w => w.id === b.dataset.wedit)); };
+}
+function workerForm(w){
+  const isNew = !w; w = w || { dept:'기술부', sort: st.workers.length + 1, active:true };
+  setTimeout(() => QC.openModal(isNew ? '작업자 추가' : `${w.name} 수정`, `<div class="grid2">
+    ${fld('name','이름', w.name, {req:true})}${fld('title','직급', w.title)}
+    ${fld('dept','부서', w.dept)}${fld('joined_on','입사일', w.joined_on, {type:'date'})}
+    ${fld('user_id','Hub 계정 연결', w.user_id || '', {options: [['','(연결 안 함)'], ...st.profiles.map(p => [p.id, `${p.name || ''} (${p.email})`])], full:true})}
+    ${fld('sort','표시 순서', w.sort, {type:'number'})}${fld('active','상태', String(w.active), {options:[['true','재직'],['false','비활성 (퇴사 등)']]})}
+    ${fld('note','비고', w.note, {full:true})}
+  </div>`, async fd => {
+    const rec = { name: nz(fd.get('name')), title: nz(fd.get('title')), dept: nz(fd.get('dept')), joined_on: nz(fd.get('joined_on')),
+      user_id: nz(fd.get('user_id')), sort: Number(fd.get('sort')) || 0, active: fd.get('active') === 'true', note: nz(fd.get('note')) };
+    const { error } = isNew ? await sb.from('qc_workers').insert(rec) : await sb.from('qc_workers').update(rec).eq('id', w.id);
+    if(error) throw new Error(/unique/i.test(error.message) ? '이미 다른 작업자에 연결된 계정입니다' : error.message);
+    toast('저장했습니다'); await load();
+  }), 0);
+}
+function openSkills(){
+  QC.openModal('작업 항목 관리', `<div class="mlist">${activeSkills().concat(st.skills.filter(s => !s.active)).map(s => `<div class="mrow ${s.active?'':'off'}"><div class="t"><b>${esc(s.code)} ${esc(s.name)}</b><small>${esc(s.category)} · 재평가 ${s.cycle_months}개월 · ${esc(s.sop_refs||'')}</small></div>
+    <button class="btn sm" type="button" data-sedit="${s.id}">${icon.edit}수정</button></div>`).join('')}</div>`, async () => skillForm(), { ok:'+ 항목 추가' });
+  document.querySelector('.modal.show .mb').onclick = e => { const b = e.target.closest('[data-sedit]'); if(b) skillForm(st.skills.find(s => s.id === b.dataset.sedit)); };
+}
+function skillForm(s){
+  const isNew = !s; s = s || { category:'조립', cycle_months:24, sort:(Math.max(0, ...st.skills.map(x => x.sort)) + 10), active:true };
+  setTimeout(() => QC.openModal(isNew ? '작업 항목 추가' : `${s.code} 수정`, `<div class="grid2">
+    ${fld('code','코드', s.code, {req:true, hint:'예) A06, T07'})}${fld('category','구분', s.category, {options: CATS.map(c => [c, c])})}
+    ${fld('name','항목명', s.name, {req:true, full:true})}
+    ${fld('description','작업 내용', s.description, {area:true, full:true})}
+    ${fld('sop_refs','관련 SOP', s.sop_refs, {full:true})}
+    ${fld('cycle_months','재평가 주기 (개월)', s.cycle_months, {type:'number', attr:'min="1" max="120"'})}${fld('sort','표시 순서', s.sort, {type:'number'})}
+    ${fld('active','사용 여부', String(s.active), {options:[['true','사용'],['false','사용 안 함']]})}
+  </div>`, async fd => {
+    const rec = { code: String(fd.get('code')).trim().toUpperCase(), category: fd.get('category'), name: nz(fd.get('name')), description: nz(fd.get('description')),
+      sop_refs: nz(fd.get('sop_refs')), cycle_months: Number(fd.get('cycle_months')) || 24, sort: Number(fd.get('sort')) || 0, active: fd.get('active') === 'true' };
+    const { error } = isNew ? await sb.from('qc_skills').insert(rec) : await sb.from('qc_skills').update(rec).eq('id', s.id);
+    if(error) throw new Error(/unique/i.test(error.message) ? '이미 있는 코드입니다' : error.message);
+    toast('저장했습니다'); await load();
+  }), 0);
+}
+
+/* ---------- 인쇄 ---------- */
+function printMatrix(){
+  const ws = activeWorkers(), ss = activeSkills(), groups = CATS.map(c => [c, ss.filter(s => s.category === c)]).filter(g => g[1].length);
+  const cell = (w, s) => { const q = st.cur[key(w.id, s.id)]; if(!q) return '0'; return 'L' + q.level + (q.status === 'pending' ? '*' : ''); };
+  document.getElementById('printDoc').innerHTML = `
+    <table class="hd" style="margin-bottom:8px"><tr><td rowspan="2" class="ttl" style="font-size:15pt;letter-spacing:.15em">작업자 인증 현황 (Skill Matrix)</td>
+      <td class="lbl">출력일</td><td>${today()}</td><td rowspan="2" style="padding:0;width:210px"><table class="sign"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td></td><td></td><td></td></tr></table></td></tr>
+      <tr><td class="lbl">대상</td><td>${ws.length}명 · ${ss.length}개 항목</td></tr></table>
+    <table class="list mxp"><thead><tr><th rowspan="2">작업자</th>${groups.map(([c, l]) => `<th colspan="${l.length}">${c}</th>`).join('')}</tr>
+      <tr>${groups.map(([, l]) => l.map(s => `<th>${esc(s.code)}<br>${esc(s.name)}</th>`).join('')).join('')}</tr></thead>
+      <tbody>${ws.map(w => `<tr><td class="l">${esc(w.name)} ${esc(w.title||'')}</td>${groups.map(([, l]) => l.map(s => `<td>${cell(w, s)}</td>`).join('')).join('')}</tr>`).join('')}</tbody></table>
+    <div style="font-size:8.5pt;margin-top:6px">L0 미인증 · L1 교육 중(감독 하 작업) · L2 단독 작업 · L3 검사·승인 · L4 교육자 · * 승인 대기</div>
+    <table class="list" style="margin-top:8px"><thead><tr><th style="width:44px">코드</th><th style="width:150px">항목</th><th>작업 내용</th><th style="width:220px">관련 SOP</th><th style="width:50px">재평가</th></tr></thead>
+      <tbody>${ss.map(s => `<tr><td>${esc(s.code)}</td><td class="l">${esc(s.name)}</td><td class="l">${esc(s.description||'')}</td><td class="l">${esc(s.sop_refs||'')}</td><td>${s.cycle_months}개월</td></tr>`).join('')}</tbody></table>`;
+  window.print();
+}
+
+document.getElementById('bPrint').innerHTML = icon.print + '매트릭스 인쇄';
+document.getElementById('bPrint').onclick = printMatrix;
+document.getElementById('bApproveAll').onclick = approveAll;
+document.getElementById('bWorkers').onclick = openWorkers;
+document.getElementById('bSkills').onclick = openSkills;
+document.getElementById('mx').addEventListener('click', e => { const b = e.target.closest('.cell'); if(b) openCell(b.dataset.w, b.dataset.s); });
+
+QC.init('workers', load);
+</script>
+</body>
+</html>

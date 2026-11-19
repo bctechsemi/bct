@@ -10,6 +10,7 @@ const QC_NAV = [
   { key:'instruments', label:'계측기 관리', href:'./instruments.html' },
   { key:'env',         label:'온습도 관리', href:'./env.html' },
   { key:'5s',          label:'3정5S',     href:'./5s.html' },
+  { key:'workers',     label:'작업자 인증', href:'./workers.html' },
 ];
 
 const QC = (() => {

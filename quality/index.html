@@ -11,8 +11,9 @@
 <link rel="stylesheet" href="./assets/qc.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
-.mods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-@media (max-width:900px){.mods{grid-template-columns:1fr}}
+.mods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width:1200px){.mods{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.mods{grid-template-columns:1fr}}
 .mod{position:relative;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;text-decoration:none;color:inherit;transition:.2s;min-height:250px}
 a.mod:hover{border-color:var(--primary);box-shadow:0 14px 34px -20px rgba(31,78,156,.5);transform:translateY(-2px)}
 .mod .n{position:absolute;right:18px;top:16px;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink3)}
@@ -71,6 +72,12 @@ a.mod:hover{border-color:var(--primary);box-shadow:0 14px 34px -20px rgba(31,78,
       <h2>3정5S 관리</h2></div><p>생산현장 · 부품창고 · 반입구 점검과 개선 추적</p>
       <div class="foot"><div class="stats3" id="fsStats"><div><b>–</b><span>이번 달 점검</span></div><div><b>–</b><span>평균 점수</span></div><div class="r"><b>–</b><span>미결 개선</span></div></div></div>
     </a>
+    <a class="mod" href="./workers.html">
+      <span class="n">04</span>
+      <div class="hd"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 11l2 2 4-4"/></svg></div>
+      <h2>작업자 인증</h2></div><p>작업 항목별 인증 레벨 · 재평가 · 교육 기록</p>
+      <div class="foot"><div class="stats3" id="wkStats"><div><b>–</b><span>작업자</span></div><div class="a"><b>–</b><span>승인 대기</span></div><div class="r"><b>–</b><span>재평가 60일 내·만료</span></div></div></div>
+    </a>
   </div>
 
   <div class="due hidden" id="due">
@@ -82,6 +89,18 @@ a.mod:hover{border-color:var(--primary);box-shadow:0 14px 34px -20px rgba(31,78,
 <script src="./assets/qc.js"></script>
 <script>
 QC.init('home', async () => {
+  // 작업자 인증 요약
+  (async () => {
+    const [w, q] = await Promise.all([
+      QC.sb.from('qc_workers').select('id', {count:'exact', head:true}).eq('active', true),
+      QC.sb.from('qc_qual_current').select('status,level,valid_until'),
+    ]);
+    const lim = new Date(Date.now() + 60*864e5).toISOString().slice(0,10), rows = q.data || [];
+    const b = document.querySelectorAll('#wkStats b');
+    b[0].textContent = w.count ?? '–';
+    b[1].textContent = rows.filter(r => r.status === 'pending').length;
+    b[2].textContent = rows.filter(r => r.status === 'approved' && r.level > 0 && r.valid_until && r.valid_until <= lim).length;
+  })();
   // 3정5S 요약
   (async () => {
     const m0 = QC.todayKST().slice(0,7) + '-01';

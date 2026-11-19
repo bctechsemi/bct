@@ -527,7 +527,7 @@ async function initAuth(){
   }
   if(state.session){
     await loadProfile();
-    state.authView = (IS_ADMIN_FILE && state.profile.role !== 'admin') ? 'forbidden' : 'app';
+    state.authView = ((IS_ADMIN_FILE && state.profile.role !== 'admin') || state.profile.role === 'customer') ? 'forbidden' : 'app';
   } else {
     state.authView = 'login';
   }
@@ -561,7 +561,7 @@ async function login(){
     };
     saveSession(state.session);
     await loadProfile();
-    state.authView = (IS_ADMIN_FILE && state.profile.role !== 'admin') ? 'forbidden' : 'app';
+    state.authView = ((IS_ADMIN_FILE && state.profile.role !== 'admin') || state.profile.role === 'customer') ? 'forbidden' : 'app';
   } catch(e){
     state.authError = '로그인 실패: ' + e.message;
   }
@@ -876,10 +876,15 @@ function renderLoginScreen(){
 }
 
 function renderForbiddenScreen(){
+  const isCustomer = state.profile && state.profile.role === 'customer';
   return '' +
   '<div class="login-wrap"><div class="login-card">' +
     '<div class="login-title">접근 권한이 없습니다</div>' +
-    '<p class="form-hint">이 화면은 관리자(admin) 계정만 사용할 수 있습니다.<br>일반 엔지니어용 화면을 이용해 주세요.</p>' +
+    (isCustomer
+      ? '<p class="form-hint">이 화면은 BCT 내부 직원 전용입니다.<br>고객용 화면을 이용해 주세요.</p>' +
+        '<a class="btn btn-primary" style="width:100%;margin-top:14px;justify-content:center;text-decoration:none" href="bct_asendia_service_progress.html">생산관리현황 열기</a>' +
+        '<a class="btn btn-ghost" style="width:100%;margin-top:8px;justify-content:center;text-decoration:none" href="bct_asendia_spc.html">SPC 차트 열기</a>'
+      : '<p class="form-hint">이 화면은 관리자(admin) 계정만 사용할 수 있습니다.<br>일반 엔지니어용 화면을 이용해 주세요.</p>') +
     '<button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="logout()">로그아웃</button>' +
   '</div></div>';
 }

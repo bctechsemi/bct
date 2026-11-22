@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QC 공정도 — BCT Quality</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+.mseg{margin-bottom:14px}
+.dinfo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.dinfo div{padding:11px 14px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);min-width:0}
+.dinfo span{display:block;font-size:11.5px;color:var(--ink3);font-weight:600;margin-bottom:3px}
+.dinfo b{font-size:13.5px;font-weight:600;word-break:keep-all}
+.dinfo b.mono{font-family:var(--mono);color:var(--deep)}
+.dinfo .w2{grid-column:span 2}
+@media (max-width:900px){.dinfo{grid-template-columns:repeat(2,minmax(0,1fr))}.dinfo .w2{grid-column:span 2}}
+.legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--ink2);margin:0 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend svg{width:18px;height:18px}
+.draft{background:var(--amb-bg);color:#7A4F10;border-radius:12px;padding:10px 14px;font-size:13px;margin-bottom:12px}
+.qwrap{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:auto;max-height:calc(100vh - 150px)}
+table.qcp{border-collapse:separate;border-spacing:0;width:100%;min-width:1500px;font-size:12.5px;line-height:1.45}
+.qcp th{position:sticky;top:0;z-index:2;background:var(--pale2);color:var(--ink2);font-weight:700;font-size:11.5px;text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.qcp td{padding:8px;border-bottom:1px solid var(--line2);vertical-align:top}
+.qcp td.no{font-family:var(--mono);font-weight:700;color:var(--deep);white-space:nowrap}
+.qcp td.flow{width:44px;padding:0;position:relative;text-align:center}
+.qcp td.flow::before{content:'';position:absolute;left:50%;top:0;bottom:0;border-left:1.5px solid var(--mist2)}
+.qcp td.flow svg{position:relative;width:24px;height:24px;margin-top:8px;background:#fff}
+.qcp tr.first td.flow::before{top:20px}
+.qcp tr.last td.flow::before{bottom:calc(100% - 20px)}
+.qcp td.pr b{display:block;font-size:13px}
+.qcp td.spec{min-width:230px;font-weight:600;color:var(--ink)}
+.qcp td.mt{min-width:170px}
+.qcp td.sk{font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+.qcp td.sk a{color:var(--primary);text-decoration:none}
+.qcp td.ref{font-size:11.5px;color:var(--ink2);min-width:110px}
+.qcp tr.stage td{background:var(--deep);color:#fff;font-weight:700;font-size:12px;letter-spacing:.04em;padding:7px 10px;position:sticky;left:0}
+.qcp tr.insp td.pr b{color:var(--deep)}
+.qcp tr:not(.stage):hover td{background:var(--pale2)}
+.qcp td.op{white-space:nowrap}
+.note{font-size:12.5px;color:var(--ink2);margin-top:10px;line-height:1.6}
+@media print{
+  @page{size:A3 landscape;margin:8mm}
+  .qwrap{max-height:none;overflow:visible;border:0}
+  table.qcp{min-width:0;font-size:7.6pt}
+  .qcp th{position:static;font-size:7.4pt;padding:3px 4px;border:1px solid #888;background:#EEF2F8}
+  .qcp td{padding:3px 4px;border:1px solid #bbb}
+  .qcp tr{break-inside:avoid}
+  .qcp tr.stage td{background:#DDE5F2!important;color:#000;position:static;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .qcp td.op,.qcp th.op{display:none}
+  .qcp td.flow svg{width:16px;height:16px;margin-top:3px}
+  .pcov{display:block!important}
+  .dinfo,.mseg,.ph,.draft,.legend .np{display:none!important}
+}
+.pcov{display:none}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="ph no-print">
+    <div>
+      <div class="eyebrow"><i></i>Quality Control · QC Process Chart</div>
+      <h1>QC 공정도</h1>
+      <p>모델별 공정 순서와 공정마다의 관리 항목·규격·검사 방법·자격을 한 장에 정리합니다. 고객 조립·조정 절차서를 근거로 한 BCT 양식입니다 (BCT-QP-05).</p>
+    </div>
+    <div class="actions">
+      <label class="chk"><input type="checkbox" id="onlyInsp"> 검사 공정만</label>
+      <button class="btn" id="bPrint" type="button"></button>
+      <button class="btn pri hidden" id="bAdd" type="button"></button>
+    </div>
+  </div>
+
+  <div class="seg mseg no-print" id="mseg"></div>
+  <div class="pcov pdoc" id="pcov"></div>
+  <div class="dinfo" id="dinfo"></div>
+  <div class="draft hidden" id="draft"></div>
+  <div class="legend" id="legend"></div>
+  <div class="qwrap"><table class="qcp" id="tbl"><tbody><tr><td class="empty">불러오는 중…</td></tr></tbody></table></div>
+  <div class="note" id="note"></div>
+</main>
+
+<script src="./assets/qc.js"></script>
+<script>
+const { sb, esc, icon, toast, fld, nz } = QC;
+const STAGE = { incoming:'수입 · 불출', unit:'단위 부품 조립', unit_test:'단위 부품 시험 · 조정', assy:'완제품 조립', final:'최종 시험 · Calibration', ship:'출하' };
+const STAGE_ORDER = Object.keys(STAGE);
+const SYM = { op:'작업', insp:'검사', op_insp:'작업 + 검사', store:'포장 · 보관' };
+const sym = s => ({
+  op:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#fff" stroke="var(--primary)" stroke-width="2"/></svg>',
+  insp:'<svg viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12z" fill="var(--pale)" stroke="var(--deep)" stroke-width="2"/></svg>',
+  op_insp:'<svg viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12z" fill="#fff" stroke="var(--deep)" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="var(--primary)" stroke-width="2"/></svg>',
+  store:'<svg viewBox="0 0 24 24"><path d="M3 4h18L12 20z" fill="#fff" stroke="var(--deep)" stroke-width="2"/></svg>',
+}[s] || '');
+const STATUS = { planned:['제정 예정','gry'], draft:['초안','amb'], effective:['시행','grn'], obsolete:['폐기','red'] };
+const st = { charts:[], cur:null, steps:[], docs:{}, onlyInsp:false };
+
+async function load(keep){
+  const [c, d] = await Promise.all([
+    sb.from('qc_process_charts').select('*').order('sort'),
+    sb.from('doc_register').select('doc_no,title,current_rev,status,effective_on,author,reviewer,approver').eq('doc_type','QCP'),
+  ]);
+  if(c.error) return toast(c.error.message, true);
+  st.charts = c.data; st.docs = Object.fromEntries((d.data || []).map(x => [x.doc_no, x]));
+  const q = new URLSearchParams(location.search).get('doc');
+  if(!keep) st.cur = (st.charts.find(x => x.doc_no === q) || st.charts[0] || {}).id;
+  await loadSteps();
+}
+async function loadSteps(){
+  if(!st.cur){ document.getElementById('tbl').innerHTML = '<tbody><tr><td class="empty">등록된 QC 공정도가 없습니다</td></tr></tbody>'; return; }
+  const { data, error } = await sb.from('qc_process_steps').select('*').eq('chart_id', st.cur).order('seq');
+  if(error) return toast(error.message, true);
+  st.steps = data; render();
+}
+
+function render(){
+  const ch = st.charts.find(x => x.id === st.cur), doc = st.docs[ch.doc_no] || {}, admin = QC.isAdmin();
+  history.replaceState(null, '', '?doc=' + encodeURIComponent(ch.doc_no));
+  document.title = `${ch.model} QC 공정도 — BCT Quality`;
+  document.getElementById('mseg').innerHTML = st.charts.map(x => `<button type="button" data-id="${x.id}" class="${x.id === st.cur ? 'on' : ''}">${esc(x.model)}</button>`).join('');
+  const [stTxt, stCls] = STATUS[doc.status] || ['—','gry'];
+  document.getElementById('dinfo').innerHTML = [
+    ['문서번호', `<b class="mono">${esc(ch.doc_no)}</b>`], ['모델', `<b>${esc(ch.model)}</b>`], ['Rev · 상태', `<b class="mono">${esc(doc.current_rev || '—')}</b> <span class="badge ko ${stCls}" style="margin-left:4px">${stTxt}</span>`], ['제품', `<b>${esc(ch.description || '')}</b>`],
+    ['근거 조립 절차서', `<b>${esc(ch.basis_asm || '')}</b>`, 'w2'], ['근거 조정·검사 절차서', `<b>${esc(ch.basis_adj || '')}</b>`, 'w2'],
+    ['작성', `<b>${esc(doc.author || '—')}</b>`], ['검토', `<b>${esc(doc.reviewer || '—')}</b>`], ['승인', `<b>${esc(doc.approver || '—')}</b>`], ['시행일', `<b class="mono">${esc(doc.effective_on || '—')}</b>`],
+  ].map(([k, v, c]) => `<div class="${c || ''}"><span>${k}</span>${v}</div>`).join('');
+  const dr = document.getElementById('draft');
+  dr.classList.toggle('hidden', doc.status === 'effective');
+  dr.textContent = doc.status === 'effective' ? '' : `${stTxt} — 승인 전 문서입니다. 생산관리책임자 승인 후 문서관리대장에서 "제정 등록"을 하면 시행됩니다.`;
+  document.getElementById('legend').innerHTML = Object.entries(SYM).map(([k, t]) => `<span>${sym(k)}${t}</span>`).join('') +
+    '<span>자격: 작업자 인증 항목·레벨 (<a href="workers.html">작업자 인증</a>)</span><span>* 계측기 관리대장 미등록 장비</span>';
+  document.getElementById('bAdd').classList.toggle('hidden', !admin);
+  document.getElementById('note').textContent = ch.note ? '비고: ' + ch.note : '';
+
+  const rows = st.steps.filter(s => !st.onlyInsp || s.symbol !== 'op');
+  let h = `<thead><tr><th>No</th><th>흐름</th><th>공정</th><th>작업 내용</th><th>관리 항목</th><th>규격 · 기준</th><th>검사 방법 · 계측기</th><th>주기</th><th>기록</th><th>자격</th><th>이상 시 조치</th><th>근거</th>${admin ? '<th class="op"></th>' : ''}</tr></thead><tbody>`;
+  let prev = null;
+  rows.forEach((s, i) => {
+    if(s.stage !== prev){ h += `<tr class="stage"><td colspan="${admin ? 13 : 12}">${STAGE[s.stage] || s.stage}</td></tr>`; prev = s.stage; }
+    const cls = [s.symbol !== 'op' ? 'insp' : '', i === 0 ? 'first' : '', i === rows.length - 1 ? 'last' : ''].join(' ');
+    h += `<tr class="${cls}">
+      <td class="no">${esc(s.proc_no || '')}</td>
+      <td class="flow" title="${SYM[s.symbol]}">${sym(s.symbol)}</td>
+      <td class="pr"><b>${esc(s.process)}</b></td>
+      <td>${esc(s.work || '')}</td>
+      <td>${esc(s.control_item || '')}</td>
+      <td class="spec">${esc(s.spec || '')}</td>
+      <td class="mt">${esc(s.method || '')}</td>
+      <td>${esc(s.frequency || '')}</td>
+      <td>${esc(s.record || '')}</td>
+      <td class="sk">${esc(s.skill || '')}</td>
+      <td>${esc(s.reaction || '')}</td>
+      <td class="ref">${esc(s.ref || '')}</td>
+      ${admin ? `<td class="op"><button class="btn sm" type="button" data-edit="${s.id}">${icon.edit}</button></td>` : ''}
+    </tr>`;
+  });
+  document.getElementById('tbl').innerHTML = h + '</tbody>';
+
+  document.getElementById('pcov').innerHTML = `<table class="hd" style="margin-bottom:6px"><tr>
+    <td rowspan="3" class="ttl" style="font-size:15pt;letter-spacing:.1em">QC 공정도 — ${esc(ch.model)}</td>
+    <td class="lbl">문서번호</td><td>${esc(ch.doc_no)}</td><td class="lbl">Rev</td><td>${esc(doc.current_rev || '')} ${doc.status !== 'effective' ? '(' + stTxt + ')' : ''}</td>
+    <td rowspan="3" style="padding:0;width:200px"><table class="sign" style="width:100%"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:44px"></td><td></td><td></td></tr></table></td></tr>
+    <tr><td class="lbl">근거(조립)</td><td colspan="3">${esc(ch.basis_asm || '')}</td></tr>
+    <tr><td class="lbl">근거(조정)</td><td colspan="3">${esc(ch.basis_adj || '')} · 출력일 ${QC.todayKST()} (출력본은 비관리 사본)</td></tr></table>`;
+}
+
+/* ---------- 편집 (관리자) ---------- */
+function stepForm(s){
+  const isNew = !s, last = st.steps[st.steps.length - 1];
+  s = s || { seq: (last ? last.seq : 0) + 10, stage: last ? last.stage : 'unit', symbol:'op', frequency:'전수', reaction:'재작업' };
+  const f = QC.openModal(isNew ? '공정 추가' : `${s.proc_no || ''} ${s.process} 수정`, `<div class="grid2">
+    ${fld('seq', '순서', s.seq, { type:'number', hint:'작을수록 앞. 사이에 넣으려면 중간 값(예: 35)' })}${fld('proc_no', '공정 번호', s.proc_no)}
+    ${fld('stage', '단계', s.stage, { options: Object.entries(STAGE) })}${fld('symbol', '흐름 기호', s.symbol, { options: Object.entries(SYM) })}
+    ${fld('process', '공정', s.process, { req:true, full:true })}
+    ${fld('work', '작업 내용', s.work, { area:true, full:true })}
+    ${fld('control_item', '관리 항목', s.control_item, { full:true })}
+    ${fld('spec', '규격 · 기준', s.spec, { area:true, full:true })}
+    ${fld('method', '검사 방법 · 계측기', s.method, { full:true })}
+    ${fld('frequency', '주기', s.frequency)}${fld('record', '기록', s.record)}
+    ${fld('skill', '자격 (작업자 인증)', s.skill, { hint:'예) A02 L2, T03 L2 (판정 L3)' })}${fld('ref', '근거 (절차서 §·쪽)', s.ref)}
+    ${fld('reaction', '이상 시 조치', s.reaction, { full:true })}
+  </div>`, async fd => {
+    const rec = Object.fromEntries(['proc_no','stage','symbol','process','work','control_item','spec','method','frequency','record','skill','ref','reaction'].map(k => [k, nz(fd.get(k))]));
+    rec.seq = Number(fd.get('seq')) || 0; rec.chart_id = st.cur; rec.updated_by = QC.S.user.id;
+    const { error } = isNew ? await sb.from('qc_process_steps').insert(rec) : await sb.from('qc_process_steps').update(rec).eq('id', s.id);
+    if(error) throw new Error(error.message);
+    toast('저장했습니다'); await loadSteps();
+  }, isNew ? { ok:'추가' } : { ok:'저장', extra:{ label:'삭제', run: async () => {
+    if(!confirm(`"${s.process}" 공정을 삭제할까요?`)) return false;
+    const { error } = await sb.from('qc_process_steps').delete().eq('id', s.id);
+    if(error) throw new Error(error.message); toast('삭제했습니다'); await loadSteps(); } } });
+  return f;
+}
+
+document.getElementById('bPrint').innerHTML = icon.print + '인쇄 (A3)';
+document.getElementById('bAdd').innerHTML = icon.plus + '공정 추가';
+document.getElementById('bPrint').onclick = () => window.print();
+document.getElementById('bAdd').onclick = () => stepForm();
+document.getElementById('onlyInsp').onchange = e => { st.onlyInsp = e.target.checked; render(); };
+document.getElementById('mseg').onclick = e => { const b = e.target.closest('[data-id]'); if(b){ st.cur = Number(b.dataset.id); loadSteps(); } };
+document.getElementById('tbl').onclick = e => { const b = e.target.closest('[data-edit]'); if(b) stepForm(st.steps.find(s => s.id === Number(b.dataset.edit))); };
+
+QC.init('docs', () => load());
+</script>
+</body>
+</html>

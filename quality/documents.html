@@ -12,7 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 .kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
-.scheme{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:16px}
+.scheme{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:16px}
 .scheme div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--ink2);line-height:1.45}
 .scheme b{display:block;font-family:var(--mono);font-size:12.5px;color:var(--deep);margin-bottom:2px}
 @media (max-width:900px){.scheme{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -89,6 +89,7 @@ const TYPES = {
   SOP: { label:'작업절차서', desc:'업무 프로세스 절차', fmt:'BCT-SOP-분야-NN' },
   WI:  { label:'작업표준',   desc:'제품 · 장비별 작업 방법', fmt:'BCT-WI-대상-NNN' },
   QF:  { label:'양식 · 대장', desc:'기록 양식 · 시스템 대장', fmt:'BCT-QF-NN' },
+  QCP: { label:'QC 공정도', desc:'모델별 공정·관리 항목·규격', fmt:'BCT-QCP-모델' },
   EXT: { label:'외부 문서',  desc:'고객 문서 (원 번호 · Rev 유지)', fmt:'고객 번호 그대로' },
 };
 const STATUS = { planned:['제정 예정','gry'], draft:['작성 중','amb'], effective:['시행','grn'], obsolete:['폐기','red'] };
@@ -134,7 +135,7 @@ function render(){
   document.getElementById('kpis').innerHTML = k.map(([c, t, v, u, f]) => `<button type="button" class="kpi ${c} ${(st.status || (st.q === '확인 필요' ? 'check' : '')) === f && f ? 'on' : ''}" data-f="${f}"><div class="k"><i></i>${t}</div><div class="v">${v}<small>${u}</small></div></button>`).join('');
 
   document.getElementById('scheme').innerHTML = Object.entries(TYPES).map(([t, x]) => `<div><b>${x.fmt}</b>${x.label} — ${x.desc}<br><span class="mono" style="font-size:11.5px">${st.docs.filter(d => d.doc_type === t && d.status !== 'obsolete').length}건</span></div>`).join('');
-  document.getElementById('typeSeg').innerHTML = [['', '전체'], ['QM','매뉴얼'], ['QP','절차서'], ['SOP','작업절차·표준'], ['QF','양식'], ['EXT','외부']].map(([v, t]) => `<button type="button" data-v="${v}" class="${st.type === v ? 'on' : ''}">${t}</button>`).join('');
+  document.getElementById('typeSeg').innerHTML = [['', '전체'], ['QM','매뉴얼'], ['QP','절차서'], ['SOP','작업절차·표준'], ['QCP','QC 공정도'], ['QF','양식'], ['EXT','외부']].map(([v, t]) => `<button type="button" data-v="${v}" class="${st.type === v ? 'on' : ''}">${t}</button>`).join('');
   document.getElementById('stSeg').innerHTML = [['', '모든 상태'], ['effective','시행'], ['planned','제정 예정'], ['draft','작성 중']].map(([v, t]) => `<button type="button" data-v="${v}" class="${st.status === v ? 'on' : ''}">${t}</button>`).join('');
   document.getElementById('bAdd').classList.toggle('hidden', !QC.isAdmin());
 

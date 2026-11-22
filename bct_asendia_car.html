@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BCT - 시정조치</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+/* Theme (shared with index.html via the same storage key). Applied before first paint. */
+(function(){
+  try{ document.documentElement.setAttribute('data-theme', localStorage.getItem('bct_hub_theme') === 'dark' ? 'dark' : 'light'); }
+  catch(e){ document.documentElement.setAttribute('data-theme', 'light'); }
+})();
+function isDarkTheme(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
+/* Chart colours that follow the theme */
+function clayChart(k){
+  var d = isDarkTheme();
+  return ({ line: d ? '#A4D4C5' : '#1A3A3A', grid: d ? '#2B3D3C' : '#EBE6D6', ref: d ? '#7E857C' : '#9A968A', text: d ? '#A3A89F' : '#6A6A6A' })[k];
+}
+</script>
+<style>
+  :root{
+    /* ---- Meta-derived design tokens ---- */
+    --primary:#0064E0; --primary-deep:#0457CB; --primary-soft:#0091FF; --on-primary:#FFFFFF;
+    --ink-button:#000000; --on-ink-button:#FFFFFF;
+    --fb-blue:#1876F2;
+    --success:#31A24C; --attention:#F2A918; --warning:#F7B928;
+    --critical:#E41E3F; --critical-strong:#F0284A; --pink:#FF3D8F;
+    --canvas:#FFFFFF; --surface-soft:#F1F4F7;
+    --ink-deep:#0A1317; --ink:#1C1E21; --charcoal:#444950; --slate:#4B4C4F;
+    --steel:#5D6C7B; --stone:#8595A4;
+    --hairline:#CED0D4; --hairline-soft:#DEE3E9; --disabled-text:#BCC0C4;
+    --r-sm:4px; --r-md:6px; --r-lg:8px; --r-xl:16px; --r-xxl:24px; --r-xxxl:32px; --r-full:100px;
+    --sp-xxs:4px; --sp-xs:8px; --sp-sm:10px; --sp-md:12px; --sp-base:16px; --sp-lg:20px; --sp-xl:24px; --sp-xxl:32px;
+    --font: 'Inter','Noto Sans KR',-apple-system,sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--surface-soft); color:var(--ink);
+    font-family:var(--font); font-size:14px; line-height:1.43; letter-spacing:-0.14px;
+  }
+  .num{ font-variant-numeric:tabular-nums; }
+
+  /* ---- topbar ---- */
+  .topbar{
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    padding:20px 32px; background:var(--canvas); border-bottom:1px solid var(--hairline-soft);
+  }
+  .brand{ display:flex; align-items:center; gap:16px; }
+  .brand img{ height:56px; width:auto; display:block; }
+  .brand-text-kr{ font-family:'Black Han Sans','Noto Sans KR',sans-serif; font-weight:400; font-size:34px; color:var(--ink-deep); letter-spacing:.5px; text-align:center; }
+  .brand-text-sub{ font-size:12px; color:var(--steel); margin-top:2px; text-align:center; }
+  .conn-dot{
+    display:inline-block; width:14px; height:14px; border-radius:50%;
+    margin-left:12px; vertical-align:middle; box-shadow:0 0 0 2px var(--canvas);
+  }
+  .topbar-actions{ display:flex; align-items:center; gap:10px; }
+  .ops-hub-btn{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:6px 6px 6px 18px; border-radius:999px; text-decoration:none;
+    background:linear-gradient(135deg, #4A7FD1 0%, #2358A8 55%, #153B78 100%);
+    color:#fff; font-weight:700; font-size:13.5px; white-space:nowrap;
+    box-shadow:0 8px 18px -6px rgba(21,59,120,.55), inset 0 1px 0 rgba(255,255,255,.28);
+    transition:transform .15s, box-shadow .15s;
+  }
+  .ops-hub-btn:hover{ transform:translateY(-1px); box-shadow:0 12px 24px -6px rgba(21,59,120,.6), inset 0 1px 0 rgba(255,255,255,.32); }
+  .ops-hub-btn:active{ transform:translateY(0); }
+  .ops-hub-btn-icon{
+    width:26px; height:26px; border-radius:50%; background:#fff; color:#1F4E9C; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ops-hub-btn-icon svg{ width:14px; height:14px; }
+  .user-email{ font-size:12px; color:var(--steel); margin-right:4px; }
+  .ruler{ height:3px; background:linear-gradient(90deg, var(--primary), var(--primary-soft) 50%, var(--hairline-soft) 50%); background-size:200% 100%; opacity:.9; }
+
+  .section-nav{ background:var(--canvas); border-bottom:1px solid var(--hairline-soft); padding:14px 32px; display:flex; justify-content:center; }
+  .section-tabs{ display:flex; gap:8px; justify-content:center; }
+  .section-tab{
+    font-family:var(--font); font-weight:700; font-size:14px; letter-spacing:-0.14px;
+    padding:9px 20px; border-radius:var(--r-full); border:1px solid var(--hairline);
+    background:var(--canvas); color:var(--ink); cursor:pointer;
+  }
+  .section-tab.active{ background:var(--ink-deep); color:var(--canvas); border-color:var(--ink-deep); }
+  .section-tab-link{ text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+  .section-tab-link:hover{ background:var(--surface-soft); }
+
+  .content{ padding:28px 32px 64px; max-width:min(1800px, 96vw); margin:0 auto; }
+  .page-head h1{ font-family:var(--font); font-weight:500; font-size:24px; line-height:1.25; color:var(--ink-deep); margin:0 0 4px; letter-spacing:-0.2px; }
+  .page-head p{ font-size:14px; color:var(--steel); margin:0 0 22px; }
+
+  /* ---- cards ---- */
+  .card-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+  .stat-card{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); padding:20px; }
+  .stat-label{ font-size:12px; color:var(--steel); margin-bottom:8px; }
+  .stat-value{ font-family:var(--font); font-size:24px; font-weight:600; color:var(--ink-deep); }
+
+  /* ---- pill quick-filter bar (also used for section tabs styling family) ---- */
+  .cat-bar{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .cat-btn{
+    font-family:var(--font); font-size:13px; font-weight:700; letter-spacing:-0.13px;
+    padding:9px 16px; border-radius:var(--r-full); border:1px solid var(--hairline);
+    background:var(--canvas); color:var(--ink); cursor:pointer; display:flex; align-items:center; gap:8px;
+  }
+  .cat-btn .count{ font-size:11px; padding:2px 8px; border-radius:var(--r-full); background:var(--surface-soft); color:var(--steel); }
+  .cat-btn.active{ background:var(--ink-deep); color:var(--canvas); border-color:var(--ink-deep); }
+  .cat-btn.active .count{ background:rgba(255,255,255,.22); color:#fff; }
+
+  .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap; }
+  .search-input{ width:300px; }
+
+  /* ---- form controls ---- */
+  .input, .select{
+    font-family:var(--font); font-size:14px; color:var(--ink);
+    background:var(--canvas); border:1px solid var(--hairline); border-radius:var(--r-lg);
+    padding:0 14px; height:44px; width:100%;
+  }
+  .input:focus, .select:focus{ outline:none; border:2px solid var(--fb-blue); padding:0 13px; }
+  .btn{
+    font-family:var(--font); font-weight:700; font-size:12.5px; letter-spacing:-0.13px;
+    padding:7px 18px; border-radius:999px; border:2px solid transparent; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .btn-primary{ background:var(--primary); color:var(--on-primary); border-color:var(--primary); }
+  .btn-primary:hover{ background:var(--primary-deep); border-color:var(--primary-deep); }
+  .btn-ghost{ background:transparent; color:var(--ink-deep); border:2px solid rgba(10,19,23,.14); }
+  .btn-ghost:hover{ background:var(--surface-soft); }
+  .btn-danger{ background:transparent; color:var(--critical); border:2px solid var(--critical); }
+  .btn-danger:hover{ background:#FDE8EC; }
+  .btn-sm{ padding:7px 16px; font-size:12px; }
+
+  /* ---- table ---- */
+  .table-wrap{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); overflow:hidden; }
+  .table-scroll-top{ overflow-x:auto; overflow-y:hidden; height:14px; border-bottom:1px solid var(--hairline-soft); }
+  .table-scroll-top-inner{ height:1px; }
+  .table-scroll{ overflow:auto; max-height:66vh; }
+  .toggle-btn{
+    width:22px; height:22px; border-radius:50%; border:none; padding:0;
+    background:rgba(0,100,224,.10); color:var(--primary);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:10px; cursor:pointer; line-height:1;
+  }
+  .toggle-btn:hover{ background:rgba(0,100,224,.2); }
+  .component-panel table.table{ width:100%; }
+  .component-panel table.table td{ text-align:center; }
+  .component-panel .progress-wrap{ justify-content:center; margin:0 auto; }
+  table.table{ width:100%; border-collapse:collapse; font-size:13px; min-width:1400px; }
+  table.table th{
+    text-align:center; font-weight:700; color:var(--steel); font-size:11px;
+    text-transform:uppercase; letter-spacing:.4px; padding:12px 14px; border-bottom:1px solid var(--hairline-soft);
+    background:var(--canvas); white-space:nowrap; position:sticky; top:0;
+  }
+  table.table td{ padding:12px 14px; border-bottom:1px solid var(--hairline-soft); vertical-align:middle; white-space:nowrap; }
+  table.table tbody tr:hover{ background:var(--surface-soft); }
+  .empty-note{ font-size:13px; color:var(--steel); padding:30px; text-align:center; }
+
+  .badge{
+    display:inline-flex; align-items:center; padding:4px 12px; border-radius:var(--r-full);
+    font-size:11px; font-weight:700; letter-spacing:.2px; white-space:nowrap;
+  }
+  .badge-machined{ background:var(--primary); color:#fff; }
+  .badge-services{ background:var(--success); color:#fff; }
+  .badge-commercials{ background:var(--warning); color:var(--ink-deep); }
+  .badge-green{ background:var(--success); color:#fff; }
+  .badge-amber{ background:var(--attention); color:var(--ink-deep); }
+  .badge-red{ background:var(--critical); color:#fff; }
+  .badge-gray{ background:var(--stone); color:#fff; }
+  .badge-ink{ background:var(--ink-deep); color:#fff; }
+
+  .progress-wrap{ display:flex; align-items:center; gap:8px; min-width:110px; }
+  .progress-track{ width:64px; height:6px; background:var(--surface-soft); border-radius:var(--r-full); overflow:hidden; }
+  .progress-fill{ height:100%; background:var(--primary); border-radius:var(--r-full); }
+  .progress-text{ font-size:11.5px; color:var(--steel); }
+
+  .completed-input{
+    width:64px; padding:5px 7px; border-radius:var(--r-md); border:1px solid var(--hairline);
+    font-family:var(--font); font-size:12.5px; text-align:right;
+  }
+  .completed-input:focus{ outline:2px solid var(--fb-blue); outline-offset:1px; }
+
+  /* ---- modal ---- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(10,19,23,.5); display:flex;
+    align-items:flex-start; justify-content:center; padding:40px 20px; overflow-y:auto; z-index:60;
+  }
+  .modal-card{
+    background:var(--canvas); border-radius:var(--r-xxl); width:100%; max-width:760px; padding:28px 30px 26px;
+    box-shadow:0 20px 60px rgba(10,19,23,.3);
+  }
+  .modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .modal-head h2{ font-family:var(--font); font-size:18px; font-weight:600; margin:0; color:var(--ink-deep); }
+  .modal-close{ background:none; border:none; font-size:18px; color:var(--steel); cursor:pointer; line-height:1; padding:4px; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; }
+  .form-field{ display:flex; flex-direction:column; gap:6px; }
+  .form-field.span-2{ grid-column:1 / -1; }
+  .form-field label{ font-size:12px; color:var(--slate); font-weight:700; }
+  .form-field .req{ color:var(--critical); }
+  .form-hint{ font-size:11.5px; color:var(--steel); margin-top:10px; }
+  .modal-foot{ display:flex; justify-content:flex-end; gap:10px; margin-top:22px; padding-top:16px; border-top:1px solid var(--hairline-soft); }
+  .field-error{ font-size:12.5px; color:var(--critical-strong); margin-bottom:10px; display:none; }
+  .field-error.show{ display:block; }
+
+  /* ---- login ---- */
+  .login-wrap{ min-height:70vh; display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+  .login-card{ width:100%; max-width:380px; background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xxl); padding:36px 32px; text-align:center; box-shadow:0 4px 24px rgba(10,19,23,.05); }
+  .login-logo{ height:60px; width:auto; margin:0 auto 20px; display:block; }
+  .login-title{ font-family:var(--font); font-size:18px; font-weight:600; color:var(--ink-deep); margin-bottom:20px; }
+  .login-card .form-field{ text-align:left; margin-bottom:12px; }
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+    background:var(--ink-deep); color:#fff; padding:13px 22px; border-radius:var(--r-full);
+    font-size:13px; font-weight:500; box-shadow:0 10px 30px rgba(10,19,23,.3); z-index:70;
+  }
+
+  /* ================================================================
+     BCT Clay theme (same design system as index.html / repair_service_hub.html)
+     Overrides the older Meta-derived tokens above. Keep this block last.
+     ================================================================ */
+  @font-face{ font-family:'KIMM'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2212@1.0/KIMM_Light.woff2') format('woff2'); font-weight:300; font-display:swap; }
+  @font-face{ font-family:'KIMM'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2212@1.0/KIMM_Bold.woff2') format('woff2'); font-weight:700; font-display:swap; }
+  :root{
+    /* clay cream surfaces */
+    --canvas:#FFFDF8; --surface-soft:#FAF5E8; --surface-card:#F5F0E0; --surface-strong:#EBE6D6; --page-bg:#FFFAF0;
+    --ink-deep:#0A0A0A; --ink:#1F1F1F; --charcoal:#3A3A3A; --slate:#3A3A3A;
+    --steel:#6A6A6A; --stone:#9A968A;
+    --hairline:#DDD6C3; --hairline-soft:#EBE6D6; --disabled-text:#BDB7A8;
+    /* primary = clay teal, focus = ink */
+    --primary:#1A3A3A; --primary-deep:#0A0A0A; --primary-soft:#3F8484; --on-primary:#FFFFFF;
+    --fb-blue:#0A0A0A;
+    /* clay accents */
+    --clay-pink:#FF4D8B; --clay-lavender:#B8A4ED; --clay-peach:#FFB084; --clay-ochre:#E8B94A; --clay-mint:#A4D4C5; --clay-teal:#1A3A3A;
+    --success:#2E8A5E; --success-bg:#E3F2EA; --attention:#D9A12E; --warning:#E8B94A;
+    --critical:#E0355C; --critical-strong:#E0355C; --critical-bg:#FDE6EC; --pink:#FF4D8B;
+    --r-md:10px; --r-lg:12px; --r-xl:20px; --r-xxl:24px; --r-full:9999px;
+    --font:'Google Sans','Gowun Batang',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --font-head:'KIMM','Google Sans','Gowun Batang',sans-serif;
+    --font-mono:'JetBrains Mono','Gowun Batang',ui-monospace,monospace;
+  }
+  body{ background:var(--page-bg); color:var(--charcoal); -webkit-font-smoothing:antialiased; letter-spacing:0; }
+  ::selection{ background:var(--clay-lavender); color:#0A0A0A; }
+
+  /* topbar */
+  .topbar{ background:var(--page-bg); border-bottom:1px solid var(--hairline-soft); padding:22px 32px 18px; }
+  .brand img{ height:48px; }
+  .brand-text-kr, .brand-text-en{
+    font-family:var(--font-head) !important; font-weight:700; font-size:30px; letter-spacing:-.02em; color:var(--ink-deep);
+  }
+  .brand-text-sub{ font-family:var(--font-mono); font-size:11px; letter-spacing:.06em; color:var(--steel); margin-top:4px; }
+  .conn-dot{ box-shadow:0 0 0 3px var(--page-bg); }
+  .ruler{ display:none; }
+  .ops-hub-btn{
+    background:var(--ink-deep); color:var(--on-ink); box-shadow:none; font-weight:600;
+  }
+  .ops-hub-btn:hover{ background:var(--ink-hover); box-shadow:none; transform:translateY(-1px); }
+  .ops-hub-btn-icon{ background:var(--clay-peach); color:#0A0A0A; }
+  .user-email{ font-family:var(--font-mono); font-size:11px; color:var(--steel); }
+
+  /* section tabs: pill group like the hub language toggle */
+  .section-nav{ background:var(--page-bg); border-bottom:1px solid var(--hairline-soft); }
+  .section-tabs{ display:inline-flex; gap:2px; padding:4px; background:var(--surface-card); border:none; border-radius:var(--r-full); }
+  .section-tab{ border:none; background:transparent; color:var(--steel); font-weight:600; }
+  .section-tab:hover, .section-tab-link:hover{ color:var(--ink-deep); background:transparent; }
+  .section-tab.active{ background:var(--ink-deep); color:var(--on-ink); border-color:var(--ink-deep); box-shadow:none; }
+
+  /* headings: KIMM */
+  .page-head h1{ font-family:var(--font-head); font-weight:700; font-size:clamp(26px,2.4vw,32px); letter-spacing:-.02em; color:var(--ink-deep); margin-bottom:8px; }
+  .page-head p{ color:var(--steel); }
+  .panel h2, .modal-head h2, .login-title, .alert-section-head h3{ font-family:var(--font-head); font-weight:700; letter-spacing:-.01em; color:var(--ink-deep); }
+  .panel h2{ font-size:18px; }
+  .modal-head h2, .login-title{ font-size:20px; }
+
+  /* stat cards: saturated clay cards */
+  .stat-card{ border:none; border-radius:var(--r-xxl); padding:22px 24px; background:var(--clay-mint); color:#0A0A0A; }
+  .card-grid > .stat-card:nth-child(5n+1){ background:var(--clay-teal); color:#FFFFFF; }
+  .card-grid > .stat-card:nth-child(5n+2){ background:var(--clay-lavender); }
+  .card-grid > .stat-card:nth-child(5n+3){ background:var(--clay-peach); }
+  .card-grid > .stat-card:nth-child(5n+4){ background:var(--clay-mint); }
+  .card-grid > .stat-card:nth-child(5n+5){ background:var(--clay-ochre); }
+  .stat-card .stat-label{ color:inherit; opacity:.78; font-family:var(--font-mono); font-size:11px; letter-spacing:.06em; }
+  .stat-card .stat-value{ color:inherit; font-family:var(--font-head); font-weight:700; font-size:28px; letter-spacing:-.01em; }
+  .stat-card .stat-value.good, .stat-card .stat-value.warn, .stat-card .stat-value.bad{ color:inherit; }
+  .stat-card .stat-value.good::before, .stat-card .stat-value.warn::before, .stat-card .stat-value.bad::before{
+    content:''; display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle;
+    box-shadow:0 0 0 2px rgba(255,255,255,.7);
+  }
+  .stat-card .stat-value.good::before{ background:var(--success); }
+  .stat-card .stat-value.warn::before{ background:var(--attention); }
+  .stat-card .stat-value.bad::before{ background:var(--critical); }
+
+  /* panels, tables, banners */
+  .panel, .table-wrap{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xxl); }
+  .procedure-banner, .procedure-link-compact{ background:var(--surface-card); border-color:transparent; }
+  .procedure-banner-link:hover, .procedure-link-compact:hover{ background:var(--canvas); border-color:var(--ink-deep); }
+  .procedure-banner-link .procedure-title, .procedure-link-compact .procedure-title{ color:var(--ink-deep); }
+  table.table th{ background:var(--surface-soft); color:var(--steel); font-family:var(--font-mono); font-weight:600; font-size:10.5px; letter-spacing:.06em; }
+  table.table tbody tr:hover, .alert-row:hover{ background:var(--surface-soft); }
+  .unit-tag{ background:var(--surface-card); }
+
+  /* pills: filter bar + range pills */
+  .cat-btn{ border:none; background:var(--surface-card); color:var(--charcoal); font-weight:600; }
+  .cat-btn:hover{ background:var(--surface-strong); }
+  .cat-btn .count{ background:rgba(255,255,255,.7); color:var(--steel); }
+  .cat-btn.active{ background:var(--ink-deep); color:var(--on-ink); }
+  .range-pills{ background:var(--surface-card); border:none; }
+  .range-pill.active{ background:var(--ink-deep); color:var(--on-ink); box-shadow:none; }
+
+  /* buttons */
+  .btn{ font-weight:600; }
+  .btn-primary{ background:var(--ink-deep); border-color:var(--ink-deep); color:var(--on-ink); }
+  .btn-primary:hover{ background:var(--ink-hover); border-color:var(--ink-hover); }
+  .btn-ghost{ background:var(--surface-card); border-color:transparent; color:var(--ink-deep); }
+  .btn-ghost:hover{ background:var(--surface-strong); }
+  .btn-danger{ background:transparent; color:var(--critical); border-color:rgba(224,53,92,.35); }
+  .btn-danger:hover{ background:var(--critical-bg); border-color:var(--critical); }
+  .toggle-btn{ background:var(--surface-card); color:var(--ink-deep); }
+  .toggle-btn:hover{ background:var(--surface-strong); }
+  .stepper-btn{ background:var(--surface-card); border-color:var(--hairline); }
+  .stepper-btn:hover:not(:disabled){ border-color:var(--ink-deep); color:var(--ink-deep); }
+
+  /* inputs */
+  .input, .select, .completed-input{ background:var(--input-bg); color:var(--ink); border-color:var(--hairline); }
+  .input:focus, .select:focus{ border:2px solid var(--ink-deep); }
+  .completed-input:focus{ outline-color:var(--ink-deep); }
+
+  /* badges in clay colors */
+  .badge-machined{ background:var(--clay-teal); color:#FFFFFF; }
+  .badge-services{ background:var(--clay-lavender); color:#0A0A0A; }
+  .badge-commercials{ background:var(--clay-ochre); color:#0A0A0A; }
+  .badge-green{ background:var(--clay-mint); color:#0A0A0A; }
+  .badge-amber{ background:var(--clay-peach); color:#0A0A0A; }
+  .badge-red{ background:var(--clay-pink); color:#FFFFFF; }
+  .badge-gray{ background:var(--surface-strong); color:var(--charcoal); }
+  .badge-ink{ background:var(--ink-deep); color:var(--on-ink); }
+  .progress-track{ background:var(--surface-strong); }
+  .progress-fill{ background:var(--clay-teal); }
+
+  /* modal, login, toast, footer */
+  .modal-overlay{ background:rgba(10,10,10,.45); }
+  .modal-card{ border-radius:var(--r-xxl); background:var(--page-bg); box-shadow:0 24px 60px rgba(42,29,8,.28); }
+  .login-card{ border:none; background:var(--surface-soft); border-radius:var(--r-xxl); box-shadow:none; }
+  .toast{ background:var(--ink-deep); color:var(--on-ink); }
+  .security-footer{ border-top:1px solid var(--hairline-soft); color:var(--steel); }
+
+  /* ---- Dark theme (clay teal night, same palette as index.html) ---- */
+  :root{ --on-ink:#FFFFFF; --ink-hover:#2A2A2A; --input-bg:#FFFFFF; }
+  :root[data-theme="dark"]{
+    --page-bg:#0E1717; --canvas:#152221; --surface-soft:#1A2928; --surface-card:#1D2E2D; --surface-strong:#274040;
+    --ink-deep:#FFFAF0; --ink:#F0EBDD; --charcoal:#D8D3C6; --slate:#D8D3C6; --steel:#A3A89F; --stone:#7E857C;
+    --hairline:#35504E; --hairline-soft:#2B3D3C; --disabled-text:#5E6B69;
+    --on-ink:#0A0A0A; --ink-hover:#E6E0D0; --input-bg:#0E1717;
+    --clay-teal:#2A5C5C; --primary:#3F8484; --primary-soft:#A4D4C5;
+    --success:#5CC28F; --success-bg:#173A2A; --critical:#FF6B8B; --critical-strong:#FF6B8B; --critical-bg:#3A1A22; --attention:#E8B94A;
+    color-scheme:dark;
+  }
+  :root[data-theme="dark"] .brand img, :root[data-theme="dark"] .login-logo{ filter:brightness(0) invert(1); }
+  :root[data-theme="dark"] .modal-card{ box-shadow:0 24px 60px rgba(0,0,0,.55); }
+  :root[data-theme="dark"] .cat-btn .count{ background:rgba(255,255,255,.08); color:var(--steel); }
+  :root[data-theme="dark"] .cat-btn.active .count{ background:rgba(0,0,0,.12); color:var(--on-ink); }
+  body{ transition:background .2s, color .2s; }
+  .theme-fab{
+    position:absolute; top:22px; right:24px; z-index:55; width:38px; height:38px; border-radius:50%; border:none; padding:0;
+    background:var(--surface-card); color:var(--ink-deep); display:grid; place-items:center; cursor:pointer;
+  }
+  .theme-fab:hover{ background:var(--surface-strong); }
+  .theme-fab svg{ width:18px; height:18px; }
+  .theme-fab .i-sun{ display:none; }
+  :root[data-theme="dark"] .theme-fab .i-sun{ display:block; }
+  :root[data-theme="dark"] .theme-fab .i-moon{ display:none; }
+  @media (max-width:700px){ .theme-fab{ top:12px; right:12px; } }
+
+  /* login: ID + fixed company domain */
+  .login-id-row{ display:flex; align-items:stretch; }
+  .login-id-row .input{ border-radius:var(--r-lg) 0 0 var(--r-lg); min-width:0; flex:1; }
+  .login-domain{
+    display:flex; align-items:center; padding:0 14px; white-space:nowrap; font-size:13.5px; color:var(--steel);
+    background:var(--surface-card); border:1px solid var(--hairline); border-left:none; border-radius:0 var(--r-lg) var(--r-lg) 0;
+  }
+</style>
+<style>
+  .card-grid.five{ grid-template-columns:repeat(5,1fr); }
+  @media (max-width:1100px){ .card-grid.five{ grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:640px){ .card-grid.five{ grid-template-columns:repeat(2,1fr); } .content{ padding:20px 14px 48px; } .topbar{ padding:16px; } }
+  .mono{ font-family:'JetBrains Mono',ui-monospace,monospace; font-weight:600; }
+  .muted{ color:var(--steel); font-size:12.5px; }
+  table.table td.wrap{ white-space:normal; min-width:200px; }
+  table.table tbody tr.click{ cursor:pointer; }
+  .panel-box{ background:var(--canvas); border:1px solid var(--hairline-soft); border-radius:var(--r-xl); padding:16px 18px; margin-bottom:18px; }
+  .panel-box h2{ margin:0 0 4px; font-size:16px; }
+  .panel-box > p{ margin:0 0 12px; }
+  .cand{ display:grid; grid-template-columns:1fr auto; gap:4px 12px; align-items:center; padding:10px 0; border-top:1px solid var(--hairline-soft); font-size:13.5px; }
+  .cand:first-of-type{ border-top:0; }
+  .steps{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 14px; }
+  .step{ font-size:11.5px; font-weight:700; padding:5px 11px; border-radius:999px; background:var(--surface-soft); color:var(--steel); }
+  .step.done{ background:var(--clay-mint, #A4D4C5); color:#0A0A0A; }
+  .step.now{ background:var(--ink-deep); color:var(--canvas); }
+  .sec{ margin-top:20px; }
+  .sec-h{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; }
+  .sec-h h3{ margin:0; font-size:14px; font-weight:700; color:var(--ink-deep); }
+  .sec-h h3 i{ font-style:normal; font-family:'JetBrains Mono',monospace; color:var(--steel); margin-right:6px; }
+  .kv{ display:grid; grid-template-columns:120px 1fr; border:1px solid var(--hairline-soft); border-radius:var(--r-xl); overflow:hidden; }
+  .kv div{ padding:9px 12px; border-bottom:1px solid var(--hairline-soft); font-size:13.5px; }
+  .kv div:nth-child(odd){ background:var(--surface-soft); color:var(--steel); font-weight:600; font-size:12.5px; }
+  .kv div:nth-last-child(-n+2){ border-bottom:0; }
+  .textarea{ font-family:var(--font); font-size:14px; color:var(--ink); background:var(--canvas); border:1px solid var(--hairline); border-radius:var(--r-lg); padding:10px 14px; width:100%; min-height:70px; resize:vertical; }
+  .tl{ display:flex; flex-direction:column; gap:6px; max-height:300px; overflow:auto; }
+  .tl .it{ display:grid; grid-template-columns:96px auto 1fr; gap:10px; align-items:baseline; font-size:13px; padding:7px 10px; border-radius:10px; background:var(--surface-soft); }
+  .tl .it.auto{ background:transparent; border:1px dashed var(--hairline); }
+  .tl .d{ font-family:'JetBrains Mono',monospace; font-size:12px; }
+  .chart svg{ width:100%; height:auto; display:block; }
+  .chart text{ font-family:'JetBrains Mono',monospace; font-size:10.5px; fill:var(--steel); }
+  .modal-card.wide{ max-width:1040px; }
+  .ncm-pick{ max-height:300px; overflow:auto; border:1px solid var(--hairline-soft); border-radius:var(--r-lg); margin-top:8px; }
+  .ncm-pick label{ display:grid; grid-template-columns:auto 70px 80px 1fr 60px; gap:8px; padding:7px 10px; border-bottom:1px solid var(--hairline-soft); font-size:12.5px; cursor:pointer; align-items:center; }
+  @media (max-width:640px){ .kv{ grid-template-columns:96px 1fr; } .form-grid{ grid-template-columns:1fr; } .tl .it{ grid-template-columns:80px 1fr; } }
+  .print-only{ display:none; }
+  @media print{
+    @page{ size:A4 portrait; margin:12mm; }
+    body{ background:#fff !important; }
+    #app, .theme-fab, .toast, #mdl{ display:none !important; }
+    .print-only{ display:block; color:#000; font-family:'Noto Sans KR',sans-serif; font-size:9.5pt; }
+    .print-only table{ width:100%; border-collapse:collapse; margin-bottom:6px; }
+    .print-only th, .print-only td{ border:1px solid #333; padding:4px 6px; vertical-align:top; }
+    .print-only th{ background:#eee; width:110px; text-align:left; }
+    .print-only .ttl{ font-size:16pt; font-weight:700; letter-spacing:.2em; text-align:center; }
+    .print-only .pre{ white-space:pre-wrap; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="printDoc" class="print-only"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ============================================================
+   ASENDIA 시정조치 (CAR) — Supabase CM_ASENDIA
+   테이블: qa_car · qa_car_ncm · qa_car_log (BCT 내부 전용) + ncm_list (부적합 대장, 읽기)
+============================================================ */
+const SB = supabase.createClient('https://okiamzritzrrxhouzolm.supabase.co', 'sb_publishable_nmVTVGoaQqIMKvit5YHL5g_S7uahQlr',
+  { auth:{ persistSession:true, autoRefreshToken:true, storageKey:'bct-asendia-dwg-auth' } });
+const LOGIN_DOMAIN = '@bct1.co.kr';
+const TYPE = { supplier:'고객 지급품·공급처', internal:'BCT 내부', customer_claim:'고객 클레임' };
+const STATUS = { open:'발행', containment:'임시 조치', analysis:'원인 분석', action:'대책 실행', verification:'유효성 확인', closed:'종결' };
+const STATUS_ORDER = ['open','containment','analysis','action','verification','closed'];
+const RCA = { requested:'고객에 원인 규명 요청 중', received:'원인 회신 받음', not_defined:'고객 원인 미정의 (교체만 진행)', not_required:'해당 없음' };
+const EFFECT = { pending:'평가 중', effective:'유효', not_effective:'유효하지 않음' };
+const LOGKIND = ['고객 요청','고객 회신','BCT 조치','검증','기타'];
+const st = { authView:'checking', authError:'', busy:false, session:null, role:null, cars:[], links:[], ncm:[], detail:null };
+const $ = id => document.getElementById(id);
+const esc = v => v == null ? '' : String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = () => new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Seoul' }).format(new Date());
+const isAdmin = () => st.role === 'admin';
+const norm = s => String(s || '').toUpperCase().replace(/[^0-9A-Z가-힣]/g, '');
+const check = r => { if(r.error) throw new Error(r.error.message); return r.data; };
+let toastT;
+function toast(m){ let t = document.querySelector('.toast'); if(!t){ t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = m; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', 2800); }
+
+/* ---------- 인증 ---------- */
+async function boot(){ const { data } = await SB.auth.getSession(); if(data.session) await afterLogin(data.session); else { st.authView = 'login'; render(); } }
+async function afterLogin(session){
+  st.session = session;
+  const { data:p } = await SB.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
+  st.role = p && p.role;
+  st.authView = (st.role === 'admin' || st.role === 'engineer') ? 'app' : 'forbidden';
+  render(); if(st.authView === 'app') await load();
+}
+async function login(){
+  let email = ($('auth_email').value || '').trim(); const pw = $('auth_password').value;
+  if(email && email.indexOf('@') === -1) email += LOGIN_DOMAIN;
+  st.authError = ''; st.busy = true; render();
+  const { data, error } = await SB.auth.signInWithPassword({ email, password: pw });
+  st.busy = false;
+  if(error){ st.authError = /invalid/i.test(error.message) ? '아이디 또는 비밀번호가 올바르지 않습니다' : error.message; render(); return; }
+  await afterLogin(data.session);
+}
+async function logout(){ try{ await SB.auth.signOut({ scope:'local' }); }catch(e){} try{ localStorage.removeItem('bct-asendia-dwg-auth'); }catch(e){} location.reload(); }
+
+/* ---------- 데이터 ---------- */
+async function load(){
+  const [c, l, n] = await Promise.all([
+    SB.from('qa_car').select('*').order('issued_on', { ascending:false }).order('car_no', { ascending:false }),
+    SB.from('qa_car_ncm').select('car_id,ncm_id'),
+    SB.from('ncm_list').select('id,model,component,issued_date,quantity,failure_mode,noti_date_to_asendia,asendia_engineer,progress,replacement_received_date').order('issued_date', { ascending:false }),
+  ]);
+  st.cars = check(c); st.links = check(l); st.ncm = check(n);
+  render();
+}
+const linkedIds = carId => st.links.filter(x => x.car_id === carId).map(x => x.ncm_id);
+const ncmById = id => st.ncm.find(x => x.id === id);
+const linkedSet = () => new Set(st.links.map(x => x.ncm_id));
+
+/* CAR 발행 후보: 최근 90일, 같은 부품 + 같은 불량(정규화) 3회 이상 또는 1건 10개 이상, 아직 CAR에 연결되지 않은 건 */
+function candidates(){
+  const since = new Date(Date.now() - 90 * 864e5).toISOString().slice(0,10), used = linkedSet(), g = {};
+  st.ncm.filter(n => n.issued_date >= since && !used.has(n.id)).forEach(n => {
+    const k = n.component + '|' + norm(n.failure_mode); (g[k] ||= { component:n.component, failure:n.failure_mode, rows:[] }).rows.push(n);
+  });
+  return Object.values(g).map(x => ({ ...x, count:x.rows.length, qty:x.rows.reduce((s, r) => s + Number(r.quantity || 0), 0), big:x.rows.some(r => Number(r.quantity) >= 10) }))
+    .filter(x => x.count >= 3 || x.big).sort((a, b) => b.qty - a.qty);
+}
+
+/* ---------- 화면 ---------- */
+function header(){
+  return `<div class="topbar"><div class="brand"><img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT 로고">
+    <div><div class="brand-text-kr">시정조치</div><div class="brand-text-sub">ASENDIA 부적합 시정조치 (CAR) · 원인 규명 요청 · 유효성 확인 (BCT 내부용)</div></div></div>
+    <div class="topbar-actions"><a class="ops-hub-btn" href="index.html" aria-label="OPS Hub로 돌아가기"><span>OPS Hub</span><span class="ops-hub-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></span></a>
+    ${st.authView === 'app' ? `<span class="user-email">${esc(st.session.user.email)}${isAdmin() ? ' · admin' : ''}</span>
+      <a class="btn btn-ghost" href="bct_asendia_po_status.html" style="text-decoration:none">부적합 대장 ↗</a>
+      <button class="btn btn-ghost" onclick="load().then(()=>toast('새로 불러왔습니다'))">↻ 새로고침</button>
+      <button class="btn btn-primary" onclick="openCarForm()">+ CAR 발행</button>
+      <button class="btn btn-ghost" onclick="logout()">로그아웃</button>` : st.authView === 'forbidden' ? '<button class="btn btn-ghost" onclick="logout()">로그아웃</button>' : ''}
+    </div></div><div class="ruler"></div>`;
+}
+function render(){
+  const app = $('app');
+  if(st.authView === 'checking'){ app.innerHTML = header() + '<div class="login-wrap"><div class="muted">확인 중…</div></div>'; return; }
+  if(st.authView === 'login'){
+    app.innerHTML = header() + `<div class="login-wrap"><div class="login-card">
+      <img class="login-logo" src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT 로고">
+      ${st.authError ? `<div class="field-error show">${esc(st.authError)}</div>` : ''}
+      <div class="form-field"><label>아이디</label><div class="login-id-row"><input class="input" type="text" id="auth_email" placeholder="아이디" autocomplete="username" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter') login()"><span class="login-domain">@bct1.co.kr</span></div></div>
+      <div class="form-field"><label>비밀번호</label><input class="input" type="password" id="auth_password" placeholder="********" onkeydown="if(event.key==='Enter') login()"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:6px;justify-content:center" onclick="login()" ${st.busy ? 'disabled' : ''}>${st.busy ? '로그인 중…' : '로그인'}</button>
+      <div class="form-hint" style="margin-top:14px">ASENDIA OPS Hub 계정으로 로그인합니다.</div></div></div>`;
+    setTimeout(() => $('auth_email') && $('auth_email').focus(), 30); return;
+  }
+  if(st.authView === 'forbidden'){ app.innerHTML = header() + '<div class="login-wrap"><div class="login-card"><div class="login-title">접근 권한이 없습니다</div><p class="form-hint">시정조치는 BCT 내부 직원 전용입니다.</p></div></div>'; return; }
+
+  const cs = st.cars, open = cs.filter(c => c.status !== 'closed');
+  const cand = candidates();
+  app.innerHTML = header() + `<div class="content">
+    <div class="page-head"><h1>시정조치 (CAR)</h1><p>반복·대량 부적합은 CAR로 묶어 임시 조치 → 원인 → 대책 → 유효성 → 횡전개 · 표준서 반영까지 기록합니다. 고객 지급품은 ASENDIA에 원인 규명을 요청한 이력을 남깁니다.</p></div>
+    <div class="card-grid five">
+      <div class="stat-card"><div class="stat-label">CAR 전체</div><div class="stat-value num">${cs.length}건</div></div>
+      <div class="stat-card"><div class="stat-label">진행 중</div><div class="stat-value num">${open.length}건</div></div>
+      <div class="stat-card"><div class="stat-label">고객 원인 미회신</div><div class="stat-value num">${open.filter(c => ['requested','not_defined'].includes(c.rca_status)).length}건</div></div>
+      <div class="stat-card"><div class="stat-label">유효성 평가 대기</div><div class="stat-value num">${open.filter(c => c.action_done_on && c.effect_result !== 'effective').length}건</div></div>
+      <div class="stat-card"><div class="stat-label">발행 후보</div><div class="stat-value num">${cand.length}건</div></div>
+    </div>
+    ${cand.length ? `<div class="panel-box"><h2>CAR 발행 후보</h2><p class="muted">최근 90일 · 같은 부품의 같은 불량이 3회 이상이거나 한 번에 10개 이상 · 아직 CAR가 없는 건</p>
+      ${cand.map((x, i) => `<div class="cand"><span><b>${esc(x.component)}</b> · ${esc(x.failure)} <span class="muted">— ${x.count}건 / ${x.qty}개 (${esc(x.rows[x.rows.length - 1].issued_date)} ~ ${esc(x.rows[0].issued_date)})</span></span>
+        <button class="btn btn-ghost btn-sm" onclick="openCarForm(${i})">CAR 발행</button></div>`).join('')}</div>` : ''}
+    <div class="table-wrap"><div class="table-scroll">${cs.length ? `<table class="table"><thead><tr><th>CAR No</th><th>제목</th><th>구분</th><th>부품</th><th>연결 NCR</th><th>원인</th><th>유효성</th><th>상태</th><th>발행일</th></tr></thead><tbody>
+      ${cs.map(c => { const ids = linkedIds(c.id), q = ids.reduce((s, id) => s + Number((ncmById(id) || {}).quantity || 0), 0);
+        return `<tr class="click" onclick="openDetail('${c.id}')"><td class="mono">${esc(c.car_no)}</td><td class="wrap">${esc(c.title)}</td><td>${TYPE[c.car_type]}</td><td>${esc(c.component || '')}</td>
+          <td class="num">${ids.length}건 · ${q}개</td><td>${badgeRca(c)}</td><td>${badgeEff(c)}</td><td>${badgeStatus(c)}</td><td class="num">${esc(c.issued_on)}</td></tr>`; }).join('')}
+      </tbody></table>` : '<div class="empty-note">발행된 CAR가 없습니다</div>'}</div></div>
+  </div>`;
+}
+const badgeStatus = c => `<span class="badge ${c.status === 'closed' ? 'badge-gray' : c.status === 'verification' ? 'badge-green' : 'badge-amber'}">${STATUS[c.status]}</span>`;
+const badgeRca = c => `<span class="badge ${c.rca_status === 'received' ? 'badge-green' : c.rca_status === 'not_required' ? 'badge-gray' : 'badge-red'}">${RCA[c.rca_status]}</span>`;
+const badgeEff = c => c.effect_result ? `<span class="badge ${c.effect_result === 'effective' ? 'badge-green' : c.effect_result === 'not_effective' ? 'badge-red' : 'badge-amber'}">${EFFECT[c.effect_result]}</span>` : '<span class="muted">—</span>';
+
+/* ---------- 모달 ---------- */
+function modal(title, body, foot, wide){
+  const old = $('mdl'); if(old) old.remove();
+  const o = document.createElement('div'); o.className = 'modal-overlay'; o.id = 'mdl';
+  o.onclick = e => { if(e.target === o) closeModal(); };
+  o.innerHTML = `<div class="modal-card ${wide ? 'wide' : ''}"><div class="modal-head"><h2>${title}</h2><button class="modal-close" onclick="closeModal()" aria-label="닫기">✕</button></div>
+    <div class="field-error" id="mErr"></div><div id="mBody">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ''}</div>`;
+  document.body.appendChild(o);
+}
+function closeModal(){ const m = $('mdl'); if(m) m.remove(); st.detail = null; }
+function mErr(t){ const e = $('mErr'); if(e){ e.textContent = t || ''; e.classList.toggle('show', !!t); if(t) e.scrollIntoView({ block:'center' }); } }
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+const fv = id => { const e = $(id); return e ? e.value.trim() : ''; };
+const nz = v => v === '' ? null : v;
+const opt = (o, v) => Object.entries(o).map(([k, t]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${t}</option>`).join('');
+
+/* ---------- CAR 발행 ---------- */
+async function nextCarNo(){
+  const ym = today().slice(2,7).replace('-', '');
+  const n = Math.max(0, ...st.cars.filter(c => c.car_no.startsWith(`CAR-${ym}-`)).map(c => parseInt(c.car_no.split('-')[2], 10) || 0)) + 1;
+  return `CAR-${ym}-${String(n).padStart(3, '0')}`;
+}
+let draftLinks = [];
+function openCarForm(ci){
+  const c = ci != null ? candidates()[ci] : null;
+  draftLinks = c ? c.rows.map(r => r.id) : [];
+  modal('CAR 발행', `<div class="form-grid">
+    <div class="form-field span-2"><label>제목 <span class="req">*</span></label><input class="input" id="cf_title" value="${c ? esc(`${c.component} ${c.failure} 반복 발생`) : ''}"></div>
+    <div class="form-field"><label>구분</label><select class="select" id="cf_type">${opt(TYPE, 'supplier')}</select></div>
+    <div class="form-field"><label>발견 단계</label><select class="select" id="cf_stage"><option>공정</option><option>수입</option><option>출하</option></select></div>
+    <div class="form-field"><label>부품</label><input class="input" id="cf_comp" value="${c ? esc(c.component) : ''}"></div>
+    <div class="form-field"><label>대표 불량 (추이 집계 키워드)</label><input class="input" id="cf_fail" value="${c ? esc(c.failure) : ''}"></div>
+    <div class="form-field"><label>발행 사유</label><select class="select" id="cf_trig"><option>반복</option><option>대량</option><option>고객 클레임</option><option>안전·중대</option><option>기타</option></select></div>
+    <div class="form-field"><label>요청 대상</label><input class="input" id="cf_to" placeholder="예) ASENDIA 품질 담당"></div>
+  </div><div class="form-hint">연결할 NCR ${draftLinks.length}건 — 발행 후 상세 화면에서 더 추가할 수 있습니다.</div>`,
+  `<button class="btn btn-ghost" onclick="closeModal()">취소</button><button class="btn btn-primary" onclick="saveNewCar()">발행</button>`);
+}
+async function saveNewCar(){
+  const title = fv('cf_title'); if(!title) return mErr('제목을 입력하세요');
+  try{
+    const car_no = await nextCarNo();
+    const c = check(await SB.from('qa_car').insert({ car_no, title, car_type: $('cf_type').value, stage: $('cf_stage').value, component: nz(fv('cf_comp')),
+      failure: nz(fv('cf_fail')), trigger_reason: $('cf_trig').value, to_party: nz(fv('cf_to')), rca_status: $('cf_type').value === 'internal' ? 'not_required' : 'requested' }).select().single());
+    if(draftLinks.length) check(await SB.from('qa_car_ncm').insert(draftLinks.map(id => ({ car_id: c.id, ncm_id: id }))));
+    toast(`${car_no} 발행`); await load(); openDetail(c.id);
+  }catch(e){ mErr(e.message); }
+}
+
+/* ---------- CAR 상세 ---------- */
+function trendSvg(c){
+  const key = norm(c.failure), comp = c.component;
+  const rows = st.ncm.filter(n => (!comp || n.component === comp) && key && norm(n.failure_mode).includes(key));
+  const months = []; const d = new Date(today() + 'T12:00:00+09:00'); d.setUTCDate(1);
+  for(let k = 11; k >= 0; k--){ const x = new Date(d); x.setUTCMonth(x.getUTCMonth() - k); months.push(x.toISOString().slice(0,7)); }
+  const v = months.map(m => rows.filter(r => r.issued_date.startsWith(m)).reduce((s, r) => s + Number(r.quantity || 0), 0));
+  const cnt = months.map(m => rows.filter(r => r.issued_date.startsWith(m)).length);
+  const W = 760, H = 180, L = 36, R = 10, T = 12, B = 24, pw = W - L - R, ph = H - T - B, mx = Math.max(5, ...v);
+  const x = i => L + i * pw / 12, bw = pw / 12 * .62, y = q => T + ph - q / mx * ph;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="월별 불량 수량">`;
+  [0, .5, 1].forEach(f => { const yy = T + ph - f * ph; s += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="currentColor" opacity=".12"/><text x="${L - 6}" y="${yy + 3.5}" text-anchor="end">${Math.round(mx * f)}</text>`; });
+  const mark = dd => dd ? months.indexOf(dd.slice(0,7)) : -1;
+  [[c.issued_on, '발행'], [c.action_done_on, '대책']].forEach(([dd, t]) => { const i = mark(dd); if(i >= 0){ const xx = x(i) + pw / 24; s += `<line x1="${xx}" x2="${xx}" y1="${T}" y2="${T + ph}" stroke="#E4573D" stroke-dasharray="4 3"/><text x="${xx + 4}" y="${T + 10}" style="fill:#E4573D">${t}</text>`; } });
+  v.forEach((q, i) => { s += `<rect x="${x(i) + (pw / 12 - bw) / 2}" y="${y(q)}" width="${bw}" height="${T + ph - y(q)}" rx="3" fill="currentColor" opacity=".55"><title>${months[i]} · ${cnt[i]}건 ${q}개</title></rect>`;
+    if(q) s += `<text x="${x(i) + pw / 24}" y="${y(q) - 4}" text-anchor="middle">${q}</text>`;
+    s += `<text x="${x(i) + pw / 24}" y="${H - 6}" text-anchor="middle">${months[i].slice(2).replace('-', '.')}</text>`; });
+  return { svg: s + '</svg>', total: rows.length, qty: v.reduce((a, b) => a + b, 0) };
+}
+async function openDetail(id){
+  const c = st.cars.find(x => x.id === id); if(!c) return;
+  const logs = check(await SB.from('qa_car_log').select('*').eq('car_id', id).order('logged_on', { ascending:false }).order('created_at', { ascending:false }));
+  const ids = linkedIds(id), ncms = ids.map(ncmById).filter(Boolean).sort((a, b) => b.issued_date.localeCompare(a.issued_date));
+  const qty = ncms.reduce((s, n) => s + Number(n.quantity || 0), 0);
+  const tr = trendSvg(c);
+  const auto = ncms.filter(n => n.noti_date_to_asendia).map(n => ({ d: n.noti_date_to_asendia, kind: '고객 통보', note: `NCR #${n.id} ${n.component} ${n.failure_mode} ${n.quantity}개 → ${n.asendia_engineer || 'ASENDIA'} (${n.progress})`, auto: true }));
+  const tl = [...logs.map(l => ({ d: l.logged_on, kind: l.kind, note: l.note })), ...auto].sort((a, b) => b.d.localeCompare(a.d));
+  const si = STATUS_ORDER.indexOf(c.status);
+  st.detail = { c, ncms };
+  modal(`<span class="mono">${esc(c.car_no)}</span> ${esc(c.title)}`, `
+    <div class="steps">${STATUS_ORDER.map((k, i) => `<span class="step ${i < si ? 'done' : i === si ? 'now' : ''}">${STATUS[k]}</span>`).join('')}</div>
+    <div class="kv">
+      <div>구분</div><div>${TYPE[c.car_type]} · 발견 단계 ${esc(c.stage || '—')} · 사유 ${esc(c.trigger_reason || '—')}</div>
+      <div>부품 · 불량</div><div>${esc(c.component || '—')} · ${esc(c.failure || '—')}</div>
+      <div>연결 NCR</div><div>${ncms.length}건 · ${qty}개 ${ncms.length ? `(${esc(ncms[ncms.length - 1].issued_date)} ~ ${esc(ncms[0].issued_date)})` : ''}</div>
+      <div>요청 대상</div><div>${esc(c.to_party || '—')}</div>
+      <div>발행</div><div>${esc(c.issued_on)}${c.closed_on ? ` · 종결 ${esc(c.closed_on)}` : ''}</div>
+    </div>
+
+    <div class="sec"><div class="sec-h"><h3>불량 추이 (최근 12개월 · "${esc(c.failure || '')}" ${esc(c.component || '')}, 전체 ${tr.total}건 ${tr.qty}개)</h3></div><div class="chart">${tr.svg}</div>
+      <div class="muted">대책 후 이 막대가 줄어드는지를 유효성 판단 근거로 씁니다.</div></div>
+
+    <div class="sec"><div class="sec-h"><h3><i>1</i>임시 조치 (BCT)</h3></div>
+      <textarea class="textarea" id="d_cont" placeholder="예) 해당 부품 입고 시 Return Loss 선측정 후 투입, 불량품 격리 구역 보관">${esc(c.containment || '')}</textarea>
+      <div class="form-grid" style="margin-top:8px"><div class="form-field"><label>임시 조치일</label><input class="input" type="date" id="d_conton" value="${esc(c.containment_on || '')}"></div></div></div>
+
+    <div class="sec"><div class="sec-h"><h3><i>2</i>원인</h3></div>
+      <div class="form-grid"><div class="form-field"><label>원인 규명 주체</label><select class="select" id="d_rown"><option value="">—</option>${opt({ ASENDIA:'ASENDIA', BCT:'BCT', '공동':'공동' }, c.rca_owner)}</select></div>
+        <div class="form-field"><label>원인 규명 상태</label><select class="select" id="d_rst">${opt(RCA, c.rca_status)}</select></div></div>
+      <textarea class="textarea" id="d_root" style="margin-top:8px" placeholder="참원인 (4M · 5Why). 고객이 정의하지 않았다면 그 사실과 BCT 분석 내용을 적습니다.">${esc(c.root_cause || '')}</textarea></div>
+
+    <div class="sec"><div class="sec-h"><h3><i>3</i>대책</h3></div>
+      <textarea class="textarea" id="d_act" placeholder="영구 대책 (고객 측 PCBA 개선, BCT 수입검사 강화 등)">${esc(c.corrective_action || '')}</textarea>
+      <div class="form-grid" style="margin-top:8px"><div class="form-field"><label>완료 예정일</label><input class="input" type="date" id="d_due" value="${esc(c.action_due || '')}"></div>
+        <div class="form-field"><label>대책 완료일</label><input class="input" type="date" id="d_done" value="${esc(c.action_done_on || '')}"></div></div></div>
+
+    <div class="sec"><div class="sec-h"><h3><i>4</i>유효성 평가</h3></div>
+      <div class="form-grid"><div class="form-field span-2"><label>평가 방법</label><input class="input" id="d_em" value="${esc(c.effect_method || '')}" placeholder="예) 대책 후 3개월간 동일 불량 발생 수량 비교 (월 평균 n개 → 0)"></div>
+        <div class="form-field"><label>평가 기간 시작</label><input class="input" type="date" id="d_ef" value="${esc(c.effect_from || '')}"></div>
+        <div class="form-field"><label>평가 기간 끝</label><input class="input" type="date" id="d_et" value="${esc(c.effect_to || '')}"></div>
+        <div class="form-field"><label>결과</label><select class="select" id="d_er"><option value="">—</option>${opt(EFFECT, c.effect_result)}</select></div>
+        <div class="form-field"><label>평가 메모</label><input class="input" id="d_en" value="${esc(c.effect_note || '')}"></div></div>
+      ${c.effect_approved_at ? `<div class="muted" style="margin-top:6px">결과 확정 ${esc(String(c.effect_approved_at).slice(0,10))}</div>` : ''}</div>
+
+    <div class="sec"><div class="sec-h"><h3><i>5</i>횡전개 · 표준서 반영 · 교육</h3></div>
+      <div class="form-grid"><div class="form-field span-2"><label>횡전개 (같은 모델·부품·공정 확인)</label><input class="input" id="d_hz" value="${esc(c.horizontal || '')}"></div>
+        <div class="form-field span-2"><label>표준서 반영 (SOP · 검사기준서 · 성적서 · 도면 — 문서번호와 Rev)</label><input class="input" id="d_doc" value="${esc(c.doc_updates || '')}"></div>
+        <div class="form-field span-2"><label>작업자 교육 (작업자 인증 교육 기록과 연결)</label><input class="input" id="d_tr" value="${esc(c.training || '')}"></div></div></div>
+
+    <div class="sec"><div class="sec-h"><h3>진행 기록 (${tl.length})</h3><button class="btn btn-ghost btn-sm" onclick="$('logForm').hidden=!$('logForm').hidden">+ 기록 추가</button></div>
+      <div id="logForm" hidden style="margin-bottom:8px"><div class="form-grid"><div class="form-field"><label>날짜</label><input class="input" type="date" id="lg_d" value="${today()}"></div>
+        <div class="form-field"><label>구분</label><select class="select" id="lg_k">${LOGKIND.map(k => `<option>${k}</option>`).join('')}</select></div>
+        <div class="form-field span-2"><label>내용</label><input class="input" id="lg_n" placeholder="예) ASENDIA 품질팀에 PCBA Root cause 분석 재요청 (메일)"></div></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn btn-primary btn-sm" onclick="addLog('${c.id}')">기록 저장</button></div></div>
+      <div class="tl">${tl.map(t => `<div class="it ${t.auto ? 'auto' : ''}"><span class="d">${esc(t.d)}</span><span class="badge ${t.kind === '고객 회신' ? 'badge-green' : t.kind === '고객 요청' || t.kind === '고객 통보' ? 'badge-amber' : 'badge-gray'}">${esc(t.kind)}</span><span>${esc(t.note)}</span></div>`).join('') || '<div class="muted">기록이 없습니다</div>'}</div>
+      <div class="muted" style="margin-top:6px">점선 항목은 연결된 NCR의 ASENDIA 통보일에서 자동으로 가져온 기록입니다.</div></div>
+
+    <div class="sec"><div class="sec-h"><h3>연결된 NCR (${ncms.length})</h3><button class="btn btn-ghost btn-sm" onclick="openLinkPicker('${c.id}')">+ NCR 연결</button></div>
+      <div class="table-wrap"><div class="table-scroll" style="max-height:260px"><table class="table"><thead><tr><th>#</th><th>발행일</th><th>모델</th><th>부품</th><th>불량</th><th>수량</th><th>통보일</th><th>진행</th><th></th></tr></thead><tbody>
+        ${ncms.map(n => `<tr><td class="num">${n.id}</td><td class="num">${esc(n.issued_date)}</td><td>${esc(n.model)}</td><td>${esc(n.component)}</td><td class="wrap">${esc(n.failure_mode)}</td><td class="num">${n.quantity}</td><td class="num">${esc(n.noti_date_to_asendia || '')}</td><td>${esc(n.progress)}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="unlink('${c.id}', ${n.id})">해제</button></td></tr>`).join('')}</tbody></table></div></div></div>
+
+    <div class="sec"><div class="form-grid"><div class="form-field"><label>진행 상태</label><select class="select" id="d_status">${opt(STATUS, c.status)}</select></div>
+      <div class="form-field"><label>비고</label><input class="input" id="d_note" value="${esc(c.note || '')}"></div></div>
+      <div class="form-hint">종결은 유효성 결과가 "유효"일 때만 할 수 있습니다.</div></div>`,
+    `${isAdmin() ? `<button class="btn btn-danger btn-sm" onclick="deleteCar('${c.id}')">삭제</button>` : ''}<button class="btn btn-ghost" onclick="printCar()">🖶 CAR 보고서</button><button class="btn btn-ghost" onclick="closeModal()">닫기</button><button class="btn btn-primary" onclick="saveCar('${c.id}')">저장</button>`, true);
+}
+async function saveCar(id){
+  const rec = { containment: nz(fv('d_cont')), containment_on: nz(fv('d_conton')), rca_owner: nz($('d_rown').value), rca_status: $('d_rst').value, root_cause: nz(fv('d_root')),
+    corrective_action: nz(fv('d_act')), action_due: nz(fv('d_due')), action_done_on: nz(fv('d_done')), effect_method: nz(fv('d_em')), effect_from: nz(fv('d_ef')), effect_to: nz(fv('d_et')),
+    effect_result: nz($('d_er').value), effect_note: nz(fv('d_en')), horizontal: nz(fv('d_hz')), doc_updates: nz(fv('d_doc')), training: nz(fv('d_tr')), status: $('d_status').value, note: nz(fv('d_note')) };
+  if(rec.status === 'closed' && rec.effect_result !== 'effective') return mErr('종결하려면 유효성 평가 결과가 "유효"여야 합니다');
+  try{ check(await SB.from('qa_car').update(rec).eq('id', id)); toast('저장했습니다'); await load(); openDetail(id); }catch(e){ mErr(e.message); }
+}
+async function addLog(id){
+  const note = fv('lg_n'); if(!note) return mErr('내용을 입력하세요');
+  try{ check(await SB.from('qa_car_log').insert({ car_id: id, logged_on: fv('lg_d') || today(), kind: $('lg_k').value, note })); toast('기록을 추가했습니다'); await load(); openDetail(id); }catch(e){ mErr(e.message); }
+}
+function openLinkPicker(id){
+  const c = st.cars.find(x => x.id === id), used = new Set(linkedIds(id)), key = norm(c.failure);
+  const list = st.ncm.filter(n => !used.has(n.id)).sort((a, b) => (norm(b.failure_mode).includes(key) && b.component === c.component) - (norm(a.failure_mode).includes(key) && a.component === c.component) || b.issued_date.localeCompare(a.issued_date));
+  modal(`${esc(c.car_no)} — NCR 연결`, `<input class="input" placeholder="불량·부품·모델 검색" oninput="filterPick(this.value)">
+    <div class="ncm-pick" id="pick">${list.map(n => `<label data-s="${esc(norm(n.failure_mode + n.component + n.model))}"><input type="checkbox" value="${n.id}" ${key && norm(n.failure_mode).includes(key) && n.component === c.component ? 'checked' : ''}><span class="num">#${n.id}</span><span class="num">${esc(n.issued_date)}</span><span>${esc(n.component)} · ${esc(n.failure_mode)}</span><span class="num">${n.quantity}개</span></label>`).join('')}</div>
+    <div class="form-hint">같은 부품·같은 불량 건은 미리 선택되어 있습니다.</div>`,
+    `<button class="btn btn-ghost" onclick="openDetail('${id}')">취소</button><button class="btn btn-primary" onclick="saveLinks('${id}')">연결</button>`, true);
+}
+function filterPick(q){ q = norm(q); document.querySelectorAll('#pick label').forEach(l => l.style.display = !q || l.dataset.s.includes(q) ? '' : 'none'); }
+async function saveLinks(id){
+  const ids = [...document.querySelectorAll('#pick input:checked')].map(i => Number(i.value));
+  try{ if(ids.length) check(await SB.from('qa_car_ncm').insert(ids.map(n => ({ car_id: id, ncm_id: n })))); toast(`NCR ${ids.length}건 연결`); await load(); openDetail(id); }catch(e){ mErr(e.message); }
+}
+async function unlink(id, ncmId){
+  if(!confirm(`NCR #${ncmId} 연결을 해제할까요?`)) return;
+  try{ check(await SB.from('qa_car_ncm').delete().eq('car_id', id).eq('ncm_id', ncmId)); await load(); openDetail(id); }catch(e){ toast(e.message); }
+}
+async function deleteCar(id){
+  const c = st.cars.find(x => x.id === id);
+  if(!confirm(`${c.car_no} 를 삭제합니다. 연결·진행 기록도 함께 지워지고 되돌릴 수 없습니다. 삭제할까요?`)) return;
+  try{ check(await SB.from('qa_car').delete().eq('id', id)); toast('삭제했습니다'); closeModal(); load(); }catch(e){ toast(e.message); }
+}
+
+/* ---------- CAR 보고서 인쇄 ---------- */
+function printCar(){
+  const { c, ncms } = st.detail; const tr = trendSvg(c); const qty = ncms.reduce((s, n) => s + Number(n.quantity || 0), 0);
+  const row = (k, v) => `<tr><th>${k}</th><td class="pre">${esc(v || '')}</td></tr>`;
+  $('printDoc').innerHTML = `
+    <table><tr><td rowspan="2" class="ttl">시정조치 보고서 (CAR)</td><th style="width:70px">CAR No</th><td>${esc(c.car_no)}</td><td rowspan="2" style="padding:0;width:190px"><table style="margin:0"><tr><th style="width:auto;text-align:center">작성</th><th style="width:auto;text-align:center">검토</th><th style="width:auto;text-align:center">승인</th></tr><tr><td style="height:38px"></td><td></td><td></td></tr></table></td></tr>
+      <tr><th>발행일</th><td>${esc(c.issued_on)}${c.closed_on ? ' / 종결 ' + esc(c.closed_on) : ''}</td></tr></table>
+    <table>${row('제목', c.title)}${row('구분', `${TYPE[c.car_type]} · 발견 단계 ${c.stage || ''} · 사유 ${c.trigger_reason || ''}`)}${row('부품 · 불량', `${c.component || ''} · ${c.failure || ''}`)}
+      ${row('연결 NCR', `${ncms.length}건 · ${qty}개 — ` + ncms.map(n => `#${n.id}(${n.issued_date}, ${n.quantity}개)`).join(', '))}${row('요청 대상', c.to_party)}
+      ${row('1. 임시 조치', (c.containment || '') + (c.containment_on ? `\n(${c.containment_on})` : ''))}
+      ${row('2. 원인', `[${RCA[c.rca_status]}${c.rca_owner ? ' · 규명 주체 ' + c.rca_owner : ''}]\n` + (c.root_cause || ''))}
+      ${row('3. 대책', (c.corrective_action || '') + (c.action_due ? `\n완료 예정 ${c.action_due}` : '') + (c.action_done_on ? ` · 완료 ${c.action_done_on}` : ''))}
+      ${row('4. 유효성', `${c.effect_method || ''}\n기간 ${c.effect_from || ''} ~ ${c.effect_to || ''} · 결과 ${c.effect_result ? EFFECT[c.effect_result] : ''}\n${c.effect_note || ''}`)}
+      ${row('5. 횡전개', c.horizontal)}${row('표준서 반영', c.doc_updates)}${row('작업자 교육', c.training)}${row('비고', c.note)}</table>
+    <div style="margin-top:4px"><b>불량 추이 (최근 12개월, 수량)</b></div><div style="color:#333">${tr.svg}</div>`;
+  window.print();
+}
+
+SB.auth.onAuthStateChange(ev => { if(ev === 'SIGNED_OUT' && st.authView === 'app') location.reload(); });
+render(); boot();
+</script>
+
+<script>
+/* Light / dark toggle button (lives outside #app so re-renders keep it) */
+(function(){
+  var b = document.createElement('button');
+  b.type = 'button'; b.className = 'theme-fab';
+  b.innerHTML = '<svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>' +
+                '<svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  function label(){
+    var d = isDarkTheme(), ko = (document.documentElement.lang || '').indexOf('ko') === 0;
+    var t = d ? (ko ? '라이트 모드로 전환' : 'Switch to light mode') : (ko ? '다크 모드로 전환' : 'Switch to dark mode');
+    b.setAttribute('aria-label', t); b.title = t; b.setAttribute('aria-pressed', d ? 'true' : 'false');
+  }
+  function chartDefaults(){
+    if(window.Chart && Chart.defaults){ Chart.defaults.color = clayChart('text'); Chart.defaults.borderColor = clayChart('grid'); }
+  }
+  b.onclick = function(){
+    var next = isDarkTheme() ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem('bct_hub_theme', next); }catch(e){}
+    label(); chartDefaults();
+    if(typeof render === 'function'){ try{ render(); }catch(e){} }   /* redraw charts in the new colours */
+  };
+  document.body.appendChild(b); label();
+  chartDefaults(); window.addEventListener('load', chartDefaults);
+})();
+</script>
+</body>
+</html>

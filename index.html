@@ -201,6 +201,7 @@
 <g id="ic-gear" filter="url(#clay)"><path d="M-9.6 -42.9L-7.5 -55.5L7.5 -55.5L9.6 -42.9A44 44 0 0 1 23.6 -37.2L34 -44.5L44.5 -34L37.2 -23.6A44 44 0 0 1 42.9 -9.6L55.5 -7.5L55.5 7.5L42.9 9.6A44 44 0 0 1 37.2 23.6L44.5 34L34 44.5L23.6 37.2A44 44 0 0 1 9.6 42.9L7.5 55.5L-7.5 55.5L-9.6 42.9A44 44 0 0 1 -23.6 37.2L-34 44.5L-44.5 34L-37.2 23.6A44 44 0 0 1 -42.9 9.6L-55.5 7.5L-55.5 -7.5L-42.9 -9.6A44 44 0 0 1 -37.2 -23.6L-44.5 -34L-34 -44.5L-23.6 -37.2A44 44 0 0 1 -9.6 -42.9 ZM-16 0A16 16 0 1 0 16 0A16 16 0 1 0 -16 0Z" fill="currentColor" stroke="currentColor" stroke-width="6" stroke-linejoin="round" fill-rule="evenodd"/></g>
 <g id="ic-nut" filter="url(#clay)"><path d="M46.8 27L0 54L-46.8 27L-46.8 -27L-0 -54L46.8 -27ZM-22 0A22 22 0 1 0 22 0A22 22 0 1 0 -22 0Z" fill="currentColor" stroke="currentColor" stroke-width="10" stroke-linejoin="round" fill-rule="evenodd"/></g>
 <g id="ic-sheet" filter="url(#clay)"><path d="M-42 -56H18L44 -30V56H-42ZM18 -56V-30H44M-26 -20H26V-10H-26ZM-26 4H26V14H-26ZM-26 28H8V38H-26Z" fill="currentColor" stroke="currentColor" stroke-width="6" stroke-linejoin="round" fill-rule="evenodd"/></g>
+<g id="ic-check" filter="url(#clay)"><path d="M-54 0A54 54 0 1 1 54 0A54 54 0 1 1 -54 0ZM-28 2L-8 22L30 -18" fill="currentColor" stroke="currentColor" stroke-width="0" fill-rule="evenodd"/><path d="M-26 0L-8 18L28 -18" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></g>
 </defs>
 </svg>
 
@@ -230,7 +231,7 @@
       <p class="sub" data-i18n="hero.sub">Sales, production, and quality control — connected in a single view.</p>
       <div class="chips">
         <div class="chip"><span class="num">8</span><span class="lbl" data-i18n="hero.stat1">components tracked</span></div>
-        <div class="chip"><span class="num">6</span><span class="lbl" data-i18n="hero.stat2">connected systems</span></div>
+        <div class="chip"><span class="num">7</span><span class="lbl" data-i18n="hero.stat2">connected systems</span></div>
         <div class="chip"><span class="num">2</span><span class="lbl" data-i18n="hero.stat3">internal + customer views</span></div>
       </div>
     </div>
@@ -317,6 +318,15 @@
         <p data-i18n="card.dwgDesc">Customer drawing register — revisions, review, issue and recall.</p>
         <span class="btn"><span class="file">bct_asendia_drawings.html</span><span class="arr">↗</span></span>
       </a>
+
+      <a class="card mint" href="bct_asendia_car.html">
+        <svg class="card-ic" viewBox="-90 -90 180 180" style="color:#1A3A3A" aria-hidden="true"><use href="#ic-check"/></svg>
+        <span class="idx">07</span>
+        <div class="tags"><span class="tag" data-i18n="badge.production">Production team</span></div>
+        <h3 data-i18n="card.carTitle">Corrective action</h3>
+        <p data-i18n="card.carDesc">CAR for repeated nonconformances — root cause, action and effectiveness.</p>
+        <span class="btn"><span class="file">bct_asendia_car.html</span><span class="arr">↗</span></span>
+      </a>
     </div>
 
     <div class="group-label" data-i18n="group.customer">Customer view · read-only</div>
@@ -374,6 +384,8 @@ var translations = {
     'card.progDesc': 'Read-only production visibility for ASENDIA.',
     'card.qcTitle': 'Quality control',
     'card.qcDesc': 'Measurement entry and SPC monitoring.',
+    'card.carTitle': 'Corrective action',
+    'card.carDesc': 'CAR for repeated nonconformances — root cause, action and effectiveness.',
     'card.dwgTitle': 'Drawing control',
     'card.dwgDesc': 'Customer drawing register — revisions, review, issue and recall.',
     'card.spcTitle': 'SPC chart',
@@ -402,6 +414,8 @@ var translations = {
     'card.progDesc': 'ASENDIA 제공용 읽기 전용 생산현황입니다.',
     'card.qcTitle': '품질관리',
     'card.qcDesc': '측정 데이터 입력과 SPC 관리입니다.',
+    'card.carTitle': '시정조치',
+    'card.carDesc': '반복 부적합 시정조치(CAR) — 원인 · 대책 · 유효성을 기록합니다.',
     'card.dwgTitle': '도면 관리',
     'card.dwgDesc': '고객 도면 관리대장 — 개정 · 검토 · 배포 · 회수를 기록합니다.',
     'card.spcTitle': 'SPC 차트',

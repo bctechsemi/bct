@@ -1187,7 +1187,10 @@ const NCM_SORT_ACCESSORS = {
   noti_date_to_asendia: r=>r.noti_date_to_asendia,
   asendia_engineer: r=>r.asendia_engineer,
   progress: r=>r.progress,
-  replacement_received_date: r=>r.replacement_received_date
+  replacement_received_date: r=>r.replacement_received_date,
+  cause_type: r=>NCM_CAUSE[ncmQc(r.id).cause_type],
+  found_stage: r=>NCM_STAGE[ncmQc(r.id).found_stage],
+  disposition: r=>NCM_DISP[ncmQc(r.id).disposition]
 };
 
 function filteredRecords(){
@@ -1302,6 +1305,12 @@ function renderModal(){
 ============================================================ */
 const NCM_COMPONENTS = ['Combiner','Driver','Exciter','Main_Amp','RF Sensor','Splitter','Saw_Filter'];
 const NCM_PROGRESS_STEPS = ['접수','통보완료','교환대기','교환완료','종결'];
+/* BCT 내부 판정 (ncm_qc 표 — 내부 계정만 조회, BCT-QP-09) */
+const NCM_CAUSE = { customer_supplied:'고객 지급품', supplier:'협력사', bct_process:'BCT 공정', undetermined:'조사 중' };
+const NCM_STAGE = { incoming:'수입', process:'공정', final:'출하', customer:'고객' };
+const NCM_DISP = { pending:'처리 대기', replace:'교체', return:'반송', rework:'재작업', scrap:'폐기', use_as_is:'특채(고객 승인)' };
+const NCM_QC_URL = CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/ncm_qc';
+function ncmQc(id){ return (state.ncmQc && state.ncmQc[id]) || {}; }
 const NCM_SEED_DATA = [
   { model:'APG-2012HD', component:'Splitter', issued_date:'2026-04-01', quantity:2, failure_mode:'CAL 실패', noti_date_to_asendia:null, asendia_engineer:null, progress:'접수', replacement_received_date:null },
   { model:'APG-1013H', component:'Combiner', issued_date:'2026-04-01', quantity:10, failure_mode:'COIL 빠짐, CAL 실패', noti_date_to_asendia:null, asendia_engineer:null, progress:'접수', replacement_received_date:null },
@@ -1327,6 +1336,11 @@ async function loadNcmRecords(){
     try{
       const cr = await fetch(CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/qa_car_ncm?select=ncm_id,qa_car(car_no,status)', { headers: sbHeaders() });
       if(cr.ok) (await cr.json()).forEach(x=>{ if(x.qa_car) (state.ncmCars[x.ncm_id] = state.ncmCars[x.ncm_id] || []).push(x.qa_car); });
+    } catch(e){}
+    state.ncmQc = {};
+    try{
+      const qr = await fetch(NCM_QC_URL + '?select=*', { headers: sbHeaders() });
+      if(qr.ok) (await qr.json()).forEach(x=>{ state.ncmQc[x.ncm_id] = x; });
     } catch(e){}
   } catch(e){
     state.ncmRecords = buildNcmDemoRecords();
@@ -1390,13 +1404,31 @@ async function submitNcmForm(){
     progress: g('n_progress').value || '접수',
     replacement_received_date: g('n_replacement_date').value || null
   };
+  const qcPayload = {
+    cause_type: g('n_cause').value || null,
+    found_stage: g('n_stage').value || null,
+    quarantine_loc: g('n_quarantine').value.trim() || null,
+    disposition: g('n_disp').value || null,
+    disposition_note: g('n_disp_note').value.trim() || null
+  };
+  async function saveQc(ncmId){
+    const res = await fetch(NCM_QC_URL + '?on_conflict=ncm_id', {
+      method:'POST', headers: sbHeaders({ 'Prefer':'resolution=merge-duplicates,return=representation' }),
+      body: JSON.stringify(Object.assign({ ncm_id: ncmId }, qcPayload))
+    });
+    if(!res.ok){ const t = await res.text(); throw new Error('내부 판정 저장 실패 HTTP ' + res.status + ' ' + t.slice(0,160)); }
+    const rows = await res.json(); state.ncmQc = state.ncmQc || {}; state.ncmQc[ncmId] = rows[0];
+  }
 
   if(state.demoMode){
     if(isEdit){
       const rec = state.ncmRecords.find(r=>String(r.id)===String(state.ncmEditingId));
       if(rec) Object.assign(rec, payload);
+      state.ncmQc = state.ncmQc || {}; state.ncmQc[state.ncmEditingId] = Object.assign({}, qcPayload);
     } else {
-      state.ncmRecords.unshift(Object.assign({ id:'ncm-demo-new-' + Date.now() }, payload));
+      const nid = 'ncm-demo-new-' + Date.now();
+      state.ncmRecords.unshift(Object.assign({ id:nid }, payload));
+      state.ncmQc = state.ncmQc || {}; state.ncmQc[nid] = Object.assign({}, qcPayload);
     }
     state.ncmModalOpen = false;
     render();
@@ -1414,6 +1446,7 @@ async function submitNcmForm(){
       const rows = await res.json();
       const idx = state.ncmRecords.findIndex(r=>String(r.id)===String(state.ncmEditingId));
       if(idx>-1) state.ncmRecords[idx] = rows[0];
+      await saveQc(rows[0] ? rows[0].id : state.ncmEditingId);
       state.ncmModalOpen = false;
       render();
       showToast('부적합 항목이 수정되었습니다.');
@@ -1425,6 +1458,8 @@ async function submitNcmForm(){
       if(!res.ok){ const t = await res.text(); throw new Error('HTTP ' + res.status + ' ' + t.slice(0,180)); }
       const rows = await res.json();
       state.ncmRecords.unshift(rows[0]);
+      try{ await saveQc(rows[0].id); }
+      catch(e){ state.ncmModalOpen = false; render(); showToast('NCR은 등록됐지만 ' + e.message + ' — 수정에서 다시 저장해 주세요.'); return; }
       state.ncmModalOpen = false;
       render();
       showToast('신규 부적합이 등록되었습니다.');
@@ -1441,7 +1476,8 @@ function filteredNcmRecords(){
     const matchesStatus = state.ncmStatus==='all' ? true : r.progress===state.ncmStatus;
     if(!matchesStatus) return false;
     if(!q) return true;
-    return [r.model, r.component, r.failure_mode, r.asendia_engineer].some(v=>v && String(v).toLowerCase().includes(q));
+    const qc = ncmQc(r.id);
+    return [r.model, r.component, r.failure_mode, r.asendia_engineer, NCM_CAUSE[qc.cause_type], NCM_STAGE[qc.found_stage], NCM_DISP[qc.disposition], qc.quarantine_loc].some(v=>v && String(v).toLowerCase().includes(q));
   });
   const acc = NCM_SORT_ACCESSORS[state.ncmSortKey] || NCM_SORT_ACCESSORS.issued_date;
   const dir = state.ncmSortDir==='desc' ? -1 : 1;
@@ -1473,16 +1509,20 @@ function renderNcmTable(){
       '<td>' + dash(r.asendia_engineer) + '</td>' +
       '<td><span class="badge ' + ncmBadgeClass(r.progress) + '">' + dash(r.progress) + '</span></td>' +
       '<td>' + dash(r.replacement_received_date) + '</td>' +
+      (function(){ const qc = ncmQc(r.id), c = qc.cause_type;
+        return '<td><span class="badge ' + (c==='bct_process' ? 'badge-amber' : c==='undetermined' || !c ? 'badge-gray' : 'badge-machined') + '">' + dash(NCM_CAUSE[c]) + '</span></td>' +
+          '<td>' + dash(NCM_STAGE[qc.found_stage]) + '</td>' +
+          '<td title="' + escAttr(qc.disposition_note || '') + '">' + dash(NCM_DISP[qc.disposition]) + (qc.quarantine_loc ? '<div class="empty-note" style="padding:0;font-size:11.5px">격리: ' + escAttr(qc.quarantine_loc) + '</div>' : '') + '</td>'; })() +
       '<td>' + ((state.ncmCars && state.ncmCars[r.id]) ? state.ncmCars[r.id].map(c=>'<a class="badge ' + (c.status==='closed' ? 'badge-gray' : 'badge-ink') + '" style="text-decoration:none" href="bct_asendia_car.html#' + c.car_no + '" target="_blank" rel="noopener" title="시정조치 열기">' + c.car_no + '</a>').join(' ') : '-') + '</td>' +
       '<td><div style="display:flex;gap:6px"><button class="btn btn-sm btn-ghost" onclick="openNcmEditModal(\'' + r.id + '\')">수정</button><button class="btn btn-sm btn-danger" onclick="deleteNcmRecord(\'' + r.id + '\',\'' + String(r.model||'').replace(/'/g,"\\'") + '\')">삭제</button></div></td>' +
     '</tr>';
   }).join('');
-  const body = filtered.length ? rows : '<tr><td colspan="11"><div class="empty-note">조건에 맞는 부적합 항목이 없습니다.</div></td></tr>';
+  const body = filtered.length ? rows : '<tr><td colspan="14"><div class="empty-note">조건에 맞는 부적합 항목이 없습니다.</div></td></tr>';
   return '' +
   '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll">' +
   '<table class="table"><thead><tr>' +
     ncmTh('모델','model') + ncmTh('모듈','component') + ncmTh('발생일','issued_date') + ncmTh('수량','quantity') + ncmTh('불량증상','failure_mode') +
-    ncmTh('ASENDIA통보일','noti_date_to_asendia') + ncmTh('ASENDIA담당자','asendia_engineer') + ncmTh('진행상태','progress') + ncmTh('교환품수령일','replacement_received_date') + '<th>시정조치</th><th>관리</th>' +
+    ncmTh('ASENDIA통보일','noti_date_to_asendia') + ncmTh('ASENDIA담당자','asendia_engineer') + ncmTh('진행상태','progress') + ncmTh('교환품수령일','replacement_received_date') + ncmTh('원인 구분','cause_type') + ncmTh('발견 단계','found_stage') + ncmTh('처리','disposition') + '<th>시정조치</th><th>관리</th>' +
   '</tr></thead><tbody>' + body + '</tbody></table>' +
   '</div></div>';
 }
@@ -1510,6 +1550,16 @@ function renderNcmModal(){
         '<div class="form-field"><label>ASENDIA 담당자</label><input class="input" id="n_engineer" value="' + v('asendia_engineer') + '"></div>' +
         '<div class="form-field"><label>진행상태</label><select class="select" id="n_progress">' + NCM_PROGRESS_STEPS.map(progOpt).join('') + '</select></div>' +
         '<div class="form-field"><label>교환품 수령일</label><input class="input" type="date" id="n_replacement_date" value="' + v('replacement_received_date') + '"></div>' +
+        (function(){
+          const qc = rec ? ncmQc(rec.id) : { cause_type:'customer_supplied', found_stage:'process', disposition:'pending' };
+          const sel = (id, map, val, blank) => '<select class="select" id="' + id + '">' + (blank ? '<option value="">' + blank + '</option>' : '') + Object.keys(map).map(k=>'<option value="' + k + '" ' + (val===k ? 'selected' : '') + '>' + map[k] + '</option>').join('') + '</select>';
+          return '<div class="form-field span-2" style="border-top:1px solid var(--border, #e5e7eb);padding-top:12px;margin-top:4px"><label style="font-weight:700">BCT 내부 판정 <span style="font-weight:400">(고객사 비공개 · BCT-QP-09)</span></label></div>' +
+            '<div class="form-field"><label>원인 구분</label>' + sel('n_cause', NCM_CAUSE, qc.cause_type, '판정 전') + '</div>' +
+            '<div class="form-field"><label>발견 단계</label>' + sel('n_stage', NCM_STAGE, qc.found_stage, '미입력') + '</div>' +
+            '<div class="form-field"><label>처리 방법</label>' + sel('n_disp', NCM_DISP, qc.disposition, '미입력') + '</div>' +
+            '<div class="form-field"><label>격리 위치</label><input class="input" id="n_quarantine" value="' + escAttr(qc.quarantine_loc || '') + '" placeholder="예: 부적합품 격리 선반"></div>' +
+            '<div class="form-field span-2"><label>처리 내용 · 비고</label><input class="input" id="n_disp_note" value="' + escAttr(qc.disposition_note || '') + '" placeholder="특채는 고객 서면 승인 필수"></div>';
+        })() +
       '</div>' +
       '<div class="modal-foot">' +
         '<button class="btn btn-ghost" onclick="closeNcmModal()">취소</button>' +

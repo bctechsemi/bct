@@ -1322,6 +1322,12 @@ async function loadNcmRecords(){
   try{
     const res = await fetch(NCM_URL + '?select=*&order=issued_date.desc', { headers: sbHeaders() });
     state.ncmRecords = res.ok ? await res.json() : buildNcmDemoRecords();
+    /* 시정조치(CAR) 연결 — qa_car_ncm (BCT 내부 전용) */
+    state.ncmCars = {};
+    try{
+      const cr = await fetch(CONFIG.SUPABASE_URL.replace(/\/$/,'') + '/rest/v1/qa_car_ncm?select=ncm_id,qa_car(car_no,status)', { headers: sbHeaders() });
+      if(cr.ok) (await cr.json()).forEach(x=>{ if(x.qa_car) (state.ncmCars[x.ncm_id] = state.ncmCars[x.ncm_id] || []).push(x.qa_car); });
+    } catch(e){}
   } catch(e){
     state.ncmRecords = buildNcmDemoRecords();
   }
@@ -1467,15 +1473,16 @@ function renderNcmTable(){
       '<td>' + dash(r.asendia_engineer) + '</td>' +
       '<td><span class="badge ' + ncmBadgeClass(r.progress) + '">' + dash(r.progress) + '</span></td>' +
       '<td>' + dash(r.replacement_received_date) + '</td>' +
+      '<td>' + ((state.ncmCars && state.ncmCars[r.id]) ? state.ncmCars[r.id].map(c=>'<a class="badge ' + (c.status==='closed' ? 'badge-gray' : 'badge-ink') + '" style="text-decoration:none" href="bct_asendia_car.html#' + c.car_no + '" target="_blank" rel="noopener" title="시정조치 열기">' + c.car_no + '</a>').join(' ') : '-') + '</td>' +
       '<td><div style="display:flex;gap:6px"><button class="btn btn-sm btn-ghost" onclick="openNcmEditModal(\'' + r.id + '\')">수정</button><button class="btn btn-sm btn-danger" onclick="deleteNcmRecord(\'' + r.id + '\',\'' + String(r.model||'').replace(/'/g,"\\'") + '\')">삭제</button></div></td>' +
     '</tr>';
   }).join('');
-  const body = filtered.length ? rows : '<tr><td colspan="10"><div class="empty-note">조건에 맞는 부적합 항목이 없습니다.</div></td></tr>';
+  const body = filtered.length ? rows : '<tr><td colspan="11"><div class="empty-note">조건에 맞는 부적합 항목이 없습니다.</div></td></tr>';
   return '' +
   '<div class="table-wrap"><div class="table-scroll-top"><div class="table-scroll-top-inner"></div></div><div class="table-scroll">' +
   '<table class="table"><thead><tr>' +
     ncmTh('모델','model') + ncmTh('모듈','component') + ncmTh('발생일','issued_date') + ncmTh('수량','quantity') + ncmTh('불량증상','failure_mode') +
-    ncmTh('ASENDIA통보일','noti_date_to_asendia') + ncmTh('ASENDIA담당자','asendia_engineer') + ncmTh('진행상태','progress') + ncmTh('교환품수령일','replacement_received_date') + '<th>관리</th>' +
+    ncmTh('ASENDIA통보일','noti_date_to_asendia') + ncmTh('ASENDIA담당자','asendia_engineer') + ncmTh('진행상태','progress') + ncmTh('교환품수령일','replacement_received_date') + '<th>시정조치</th><th>관리</th>' +
   '</tr></thead><tbody>' + body + '</tbody></table>' +
   '</div></div>';
 }
@@ -1549,7 +1556,8 @@ function render(){
            '<div class="toolbar"><input id="po_search_input" class="input search-input" placeholder="발주번호, 품목명, OEM Code, ERP코드 검색" value="' + state.query + '" oninput="setQuery(this.value)"><span class="empty-note" style="padding:0">표 안에서 Shift + 마우스 휠로 좌우 스크롤할 수 있습니다.</span></div>' +
            renderTable())
         : (renderNcmStatusBar() +
-           '<div class="toolbar"><input id="ncm_search_input" class="input search-input" placeholder="모델, 모듈, 불량증상, ASENDIA담당자 검색" value="' + state.ncmQuery + '" oninput="setNcmQuery(this.value)"><span class="empty-note" style="padding:0">표 안에서 Shift + 마우스 휠로 좌우 스크롤할 수 있습니다.</span></div>' +
+           '<div class="toolbar"><input id="ncm_search_input" class="input search-input" placeholder="모델, 모듈, 불량증상, ASENDIA담당자 검색" value="' + state.ncmQuery + '" oninput="setNcmQuery(this.value)"><span class="empty-note" style="padding:0">표 안에서 Shift + 마우스 휠로 좌우 스크롤할 수 있습니다.</span>' +
+           '<a class="btn btn-primary" href="bct_asendia_car.html" target="_blank" rel="noopener" style="text-decoration:none">시정조치 (CAR) 열기 ↗' + (Object.keys(state.ncmCars||{}).length ? ' · 연결 NCR ' + Object.keys(state.ncmCars).length + '건' : '') + '</a></div>' +
            renderNcmTable());
 
     const pageHead = isPo

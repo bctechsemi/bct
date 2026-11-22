@@ -467,8 +467,15 @@ async function afterLogin(session){
   const { data:p } = await SB.from('profiles').select('role').eq('id', session.user.id).maybeSingle();
   st.role = p && p.role;
   st.authView = (st.role === 'admin' || st.role === 'engineer') ? 'app' : 'forbidden';
-  render(); if(st.authView === 'app') await load();
+  render(); if(st.authView === 'app'){ await load(); openFromHash(); }
 }
+/* bct_asendia_car.html#CAR-2611-001 → 해당 CAR 바로 열기 (부적합 대장의 CAR 배지에서 연결) */
+function openFromHash(){
+  const no = decodeURIComponent(location.hash.slice(1)).trim().toUpperCase();
+  const c = no && st.cars.find(x => x.car_no.toUpperCase() === no);
+  if(c) openDetail(c.id);
+}
+addEventListener('hashchange', () => { if(st.authView === 'app') openFromHash(); });
 async function login(){
   let email = ($('auth_email').value || '').trim(); const pw = $('auth_password').value;
   if(email && email.indexOf('@') === -1) email += LOGIN_DOMAIN;

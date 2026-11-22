@@ -16,9 +16,9 @@
   <div class="no-print">
     <div class="ph">
       <div>
-        <div class="eyebrow"><i></i>Quality Control · Instruments</div>
-        <h1>계측기 관리</h1>
-        <p>교정 일정과 이력을 한 곳에서 관리합니다. <span class="doc">기-관리-001 · 계측기관리대장(기술)</span></p>
+        <div class="eyebrow"><i></i>Quality Control · Instruments &amp; Equipment</div>
+        <h1 id="pTitle">계측기 관리</h1>
+        <p id="pDesc"></p>
       </div>
       <div class="actions">
         <button class="btn" id="bCsv" type="button"></button>
@@ -27,10 +27,13 @@
       </div>
     </div>
 
+    <div class="seg kindseg" id="kindSeg" style="margin-bottom:14px">
+      <button type="button" data-v="instrument" class="on">계측기</button><button type="button" data-v="equip">설비 · 치공구</button>
+    </div>
     <div class="kpis" id="kpis"></div>
 
     <div class="toolbar">
-      <div class="search" id="srch"><input id="q" type="search" placeholder="관리번호, 측정기명, 모델, S/N, 제조사 검색"></div>
+      <div class="search" id="srch"><input id="q" type="search" placeholder="관리번호, 이름, 모델, S/N, 제조사 검색"></div>
       <div class="seg" id="ownerSeg">
         <button type="button" data-v="" class="on">전체</button><button type="button" data-v="BCT">BCT</button><button type="button" data-v="아센디아">아센디아</button>
       </div>
@@ -40,8 +43,8 @@
     <div class="tbl-wrap">
       <table class="tbl">
         <thead><tr>
-          <th>관리번호</th><th></th><th>측정기명 / 규격</th><th>MODEL · S/N</th><th>제조사</th><th>자산주체</th>
-          <th>교정구분</th><th>최근 교정일</th><th>차기 교정일</th><th>교정 상태</th><th>사용상태</th>
+          <th>관리번호</th><th></th><th id="thName">측정기명 / 규격</th><th>MODEL · S/N</th><th>제조사</th><th>자산주체</th>
+          <th id="thType">교정구분</th><th id="thLast">최근 교정일</th><th id="thNext">차기 교정일</th><th id="thState">교정 상태</th><th>사용상태</th>
         </tr></thead>
         <tbody id="tbody"><tr><td colspan="11" class="empty">불러오는 중…</td></tr></tbody>
       </table>
@@ -75,17 +78,25 @@
 const { sb, esc, icon, toast, fmtDate } = QC;
 
 const CAL_TYPE = { external:'외부교정', internal:'사내관리', none:'교정불필요' };
+const CAL_TYPE_EQ = { internal:'정기 점검·교체', external:'외부 교정', none:'사용 전 점검만' };
+const KIND = { instrument:'계측기', equipment:'설비', tool:'치공구' };
+const isInst = r => (r.kind || 'instrument') === 'instrument';
+/* 탭별 문구: 계측기는 "교정", 설비·치공구는 "점검" */
+const T = () => st.kind === 'instrument'
+  ? { title:'계측기 관리', unit:'대', what:'계측기', name:'측정기명', act:'교정', doc:'BCT-QF-01 · 계측기 관리대장 (구 기-관리-001)', desc:'교정 일정과 이력을 한 곳에서 관리합니다.' }
+  : { title:'설비 · 치공구 관리', unit:'대', what:'설비·치공구', name:'설비명', act:'점검', doc:'BCT-QF-13 · 설비 대장 (BCT-QP-12)', desc:'품질에 영향을 주는 설비와 치공구의 정기 점검·교체 주기와 이력을 관리합니다.' };
+const typesOf = r => isInst(r) ? CAL_TYPE : CAL_TYPE_EQ;
 const STATUS   = { active:'사용', standby:'비상용', repair:'수리중', disposed:'폐기' };
 const RESULT   = { pass:'합격', conditional:'조건부', fail:'불합격' };
-const STATE_FILTERS = [
-  { key:'',          label:'전체 장비',  cls:'blu' },
-  { key:'overdue',   label:'교정 기한 초과', cls:'red' },
+const STATE_FILTERS = () => [
+  { key:'',          label:'전체 ' + T().what,  cls:'blu' },
+  { key:'overdue',   label:T().act + ' 기한 초과', cls:'red' },
   { key:'due_soon',  label:'30일 이내 도래', cls:'amb' },
-  { key:'no_record', label:'교정기록 없음', cls:'' },
-  { key:'exempt',    label:'교정 제외',   cls:'grn' },
+  { key:'no_record', label:T().act + '기록 없음', cls:'' },
+  { key:'exempt',    label:T().act + ' 주기 없음',   cls:'grn' },
 ];
 
-const st = { rows:[], q:'', owner:'', state:'', showDisposed:false, openId:null, cals:[] };
+const st = { rows:[], all:[], kind:'instrument', q:'', owner:'', state:'', showDisposed:false, openId:null, cals:[] };
 
 /* ---------- 상태 배지 ---------- */
 function calBadge(r){
@@ -94,19 +105,20 @@ function calBadge(r){
     case 'due_soon':  return `<span class="badge amb">D-${r.days_left}</span>`;
     case 'ok':        return `<span class="badge grn">D-${r.days_left}</span>`;
     case 'no_record': return `<span class="badge gry ko">기록 없음</span>`;
-    case 'exempt':    return `<span class="badge gry ko">${CAL_TYPE[r.cal_type]}</span>`;
+    case 'exempt':    return `<span class="badge gry ko">${typesOf(r)[r.cal_type]}</span>`;
     case 'disposed':  return `<span class="badge gry ko">폐기</span>`;
   }
   return '';
 }
 const statusBadge = s => `<span class="badge ${s==='active'?'blu':s==='repair'?'amb':'gry'} ko">${STATUS[s]||s}</span>`;
-const calTypeTxt = r => r.cal_type === 'external' ? `외부 · ${r.cal_cycle_months||'-'}개월` : CAL_TYPE[r.cal_type];
+const calTypeTxt = r => r.cal_cycle_months && r.cal_type !== 'none' ? `${r.cal_type === 'external' ? '외부' : (isInst(r) ? '사내' : '점검')} · ${r.cal_cycle_months}개월` : typesOf(r)[r.cal_type];
 
 /* ---------- 데이터 ---------- */
 async function load(){
   const { data, error } = await sb.from('qc_instrument_status').select('*').order('seq', { ascending:true, nullsFirst:false }).order('mgmt_no');
   if(error){ toast('불러오기 실패: ' + error.message, true); return; }
-  st.rows = data;
+  st.all = data;
+  st.rows = data.filter(r => st.kind === 'instrument' ? isInst(r) : !isInst(r));
   render();
   if(st.openId) openDrawer(st.openId, true);
 }
@@ -117,17 +129,26 @@ function filtered(){
     (st.showDisposed || r.status !== 'disposed') &&
     (!st.owner || r.owner === st.owner) &&
     (!st.state || r.cal_state === st.state) &&
-    (!q || [r.mgmt_no,r.name,r.spec,r.model,r.serial_no,r.maker,r.note].some(v => v && String(v).toLowerCase().includes(q)))
+    (!q || [r.mgmt_no,r.name,r.spec,r.model,r.serial_no,r.maker,r.note,r.check_basis].some(v => v && String(v).toLowerCase().includes(q)))
   );
 }
 
 /* ---------- 렌더 ---------- */
 function render(){
+  const t = T();
+  document.getElementById('pTitle').textContent = t.title;
+  document.getElementById('pDesc').innerHTML = `${t.desc} <span class="doc">${t.doc}</span>`;
+  document.getElementById('thName').textContent = t.name + ' / 규격';
+  document.getElementById('thType').textContent = t.act + '구분';
+  document.getElementById('thLast').textContent = '최근 ' + t.act + '일';
+  document.getElementById('thNext').textContent = '차기 ' + t.act + '일';
+  document.getElementById('thState').textContent = t.act + ' 상태';
+  document.getElementById('bAdd').innerHTML = icon.plus + t.what + ' 등록';
   const base = st.rows.filter(r => (st.showDisposed || r.status !== 'disposed') && (!st.owner || r.owner === st.owner));
   const cnt = k => k ? base.filter(r => r.cal_state === k).length : base.length;
-  document.getElementById('kpis').innerHTML = STATE_FILTERS.map(f =>
+  document.getElementById('kpis').innerHTML = STATE_FILTERS().map(f =>
     `<button type="button" class="kpi ${f.cls} ${st.state===f.key?'on':''}" data-k="${f.key}">
-       <div class="k"><i></i>${f.label}</div><div class="v">${cnt(f.key)}<small>대</small></div></button>`).join('');
+       <div class="k"><i></i>${f.label}</div><div class="v">${cnt(f.key)}<small>${t.unit}</small></div></button>`).join('');
 
   const rows = filtered();
   const thumbs = [];
@@ -136,7 +157,7 @@ function render(){
     return `<tr data-id="${r.id}">
       <td class="no">${esc(r.mgmt_no)}</td>
       <td><div class="thumb" data-thumb="${r.id}">${r.photo_front?'':icon.cam}</div></td>
-      <td><div class="nm">${esc(r.name)}</div>${r.spec?`<div class="sub">${esc(r.spec)}</div>`:''}</td>
+      <td><div class="nm">${esc(r.name)}</div>${(!isInst(r) || r.spec)?`<div class="sub">${[!isInst(r) ? KIND[r.kind] : '', r.spec ? esc(r.spec) : ''].filter(Boolean).join(' · ')}</div>`:''}</td>
       <td class="mn">${esc(r.model||'-')}<div class="sub">${esc(r.serial_no||'')}</div></td>
       <td style="white-space:nowrap">${esc(r.maker||'')}</td>
       <td style="white-space:nowrap">${esc(r.owner)}</td>
@@ -145,7 +166,7 @@ function render(){
       <td class="dt">${fmtDate(r.next_due)||'—'}</td>
       <td>${calBadge(r)}</td>
       <td>${statusBadge(r.status)}</td>
-    </tr>`;}).join('') : `<tr><td colspan="11" class="empty">조건에 맞는 계측기가 없습니다</td></tr>`;
+    </tr>`;}).join('') : `<tr><td colspan="11" class="empty">${st.rows.length ? '조건에 맞는 ' + t.what + '가 없습니다' : '등록된 ' + t.what + '가 없습니다'}</td></tr>`;
 
   document.getElementById('cards').innerHTML = rows.length ? rows.map(r => `
     <button type="button" class="icard" data-id="${r.id}">
@@ -153,9 +174,9 @@ function render(){
       <div class="body">
         <div class="top"><div class="nm">${esc(r.name)}</div>${calBadge(r)}</div>
         <div class="meta">${esc(r.mgmt_no)} · ${esc(r.model||'-')} · ${esc(r.maker||'')}</div>
-        <div class="meta">차기 교정 ${fmtDate(r.next_due)||'—'} · ${STATUS[r.status]}</div>
+        <div class="meta">차기 ${t.act} ${fmtDate(r.next_due)||'—'} · ${STATUS[r.status]}</div>
       </div>
-    </button>`).join('') : `<div class="empty">조건에 맞는 계측기가 없습니다</div>`;
+    </button>`).join('') : `<div class="empty">${st.rows.length ? '조건에 맞는 ' + t.what + '가 없습니다' : '등록된 ' + t.what + '가 없습니다'}</div>`;
 
   thumbs.forEach(async r => {
     if(!r.photo_front) return;
@@ -181,7 +202,7 @@ async function openDrawer(id, keepScroll){
   const { data:cals, error } = await sb.from('qc_calibrations').select('*').eq('instrument_id', id).order('cal_date', { ascending:false });
   if(error) toast(error.message, true);
   st.cals = cals || [];
-  const admin = QC.isAdmin();
+  const admin = QC.isAdmin(), A = isInst(r) ? '교정' : '점검';
 
   body.innerHTML = `
     <div class="sec">
@@ -192,15 +213,16 @@ async function openDrawer(id, keepScroll){
       </div>
     </div>
     <div class="sec">
-      <div class="sec-h"><h3>교정 현황</h3>${calBadge(r)}</div>
+      <div class="sec-h"><h3>${A} 현황</h3>${calBadge(r)}</div>
       <dl class="kv">
-        <dt>교정구분</dt><dd>${calTypeTxt(r)}</dd>
-        <dt>최근 교정일</dt><dd class="mono">${fmtDate(r.last_cal_date)||'—'}${r.last_agency?' · '+esc(r.last_agency):''}</dd>
-        <dt>차기 교정일</dt><dd class="mono">${fmtDate(r.next_due)||'—'}</dd>
+        <dt>${A}구분</dt><dd>${calTypeTxt(r)}</dd>
+        ${isInst(r) ? '' : `<dt>점검·수명 기준</dt><dd>${esc(r.check_basis)||'—'}</dd>`}
+        <dt>최근 ${A}일</dt><dd class="mono">${fmtDate(r.last_cal_date)||'—'}${r.last_agency?' · '+esc(r.last_agency):''}</dd>
+        <dt>차기 ${A}일</dt><dd class="mono">${fmtDate(r.next_due)||'—'}</dd>
       </dl>
     </div>
     <div class="sec">
-      <div class="sec-h"><h3>교정 이력 (${st.cals.length})</h3>${r.cal_type!=='none'?`<button class="btn sm pri" type="button" id="bCal">${icon.plus}교정 기록</button>`:''}</div>
+      <div class="sec-h"><h3>${A} 이력 (${st.cals.length})</h3>${r.cal_type!=='none' || !isInst(r)?`<button class="btn sm pri" type="button" id="bCal">${icon.plus}${isInst(r) ? '교정 기록' : '점검·교체 기록'}</button>`:''}</div>
       <div class="hist">${st.cals.length ? st.cals.map(c => `
         <div class="hrow">
           <div class="d">${fmtDate(c.cal_date)} <span style="color:var(--ink3);font-weight:400">→ 차기 ${fmtDate(c.next_due)||'—'}</span></div>
@@ -209,16 +231,17 @@ async function openDrawer(id, keepScroll){
             ${admin?`<button class="x" type="button" data-delcal="${c.id}" title="삭제">${icon.trash}</button>`:''}</div>
           <div class="m">${[c.agency&&esc(c.agency), c.cert_no&&('성적서 '+esc(c.cert_no)), c.cost!=null&&(Number(c.cost).toLocaleString('ko-KR')+'원')].filter(Boolean).join(' · ')||'&nbsp;'}
             ${c.cert_path?` · <a href="#" data-cert="${esc(c.cert_path)}">성적서 보기</a>`:''}${c.note?`<br>${esc(c.note)}`:''}</div>
-        </div>`).join('') : `<div class="empty" style="padding:22px;border:1px dashed var(--line);border-radius:12px">아직 교정 기록이 없습니다</div>`}
+        </div>`).join('') : `<div class="empty" style="padding:22px;border:1px dashed var(--line);border-radius:12px">아직 ${A} 기록이 없습니다</div>`}
       </div>
     </div>
     <div class="sec">
-      <div class="sec-h"><h3>장비 정보</h3><div style="display:flex;gap:6px">
+      <div class="sec-h"><h3>${isInst(r) ? '장비' : KIND[r.kind]} 정보</h3><div style="display:flex;gap:6px">
         <button class="btn sm" type="button" id="bEdit">${icon.edit}수정</button>
         ${admin?`<button class="btn sm danger" type="button" id="bDel">${icon.trash}삭제</button>`:''}</div></div>
       <dl class="kv">
         <dt>관리번호</dt><dd class="mono">${esc(r.mgmt_no)}</dd>
-        <dt>측정기명</dt><dd>${esc(r.name)}</dd>
+        <dt>${isInst(r) ? '측정기명' : '이름'}</dt><dd>${esc(r.name)}</dd>
+        ${isInst(r) ? '' : `<dt>구분</dt><dd>${KIND[r.kind]}</dd>`}
         <dt>규격</dt><dd>${esc(r.spec)||'—'}</dd>
         <dt>MODEL</dt><dd class="mono">${esc(r.model)||'—'}</dd>
         <dt>S/N</dt><dd class="mono">${esc(r.serial_no)||'—'}</dd>
@@ -248,7 +271,7 @@ document.getElementById('dBody').addEventListener('click', async e => {
   if(t.closest('#bCal')) return calForm(r);
   if(t.closest('#bEdit')) return instForm(r);
   if(t.closest('#bDel')){
-    if(!confirm(`${r.mgmt_no} ${r.name}\n\n이 계측기와 교정 이력 전체를 삭제합니다. 되돌릴 수 없습니다.\n사용하지 않는 장비는 삭제 대신 사용상태를 '폐기'로 바꾸는 것을 권장합니다.\n\n삭제할까요?`)) return;
+    if(!confirm(`${r.mgmt_no} ${r.name}\n\n이 장비와 ${isInst(r) ? '교정' : '점검'} 이력 전체를 삭제합니다. 되돌릴 수 없습니다.\n사용하지 않는 장비는 삭제 대신 사용상태를 '폐기'로 바꾸는 것을 권장합니다.\n\n삭제할까요?`)) return;
     const { error } = await sb.from('qc_instruments').delete().eq('id', r.id);
     if(error) return toast('삭제 실패: ' + error.message, true);
     toast('삭제했습니다'); closeDrawer(); load(); return;
@@ -307,20 +330,26 @@ const fld = (name, label, val, opt={}) => `<div class="f ${opt.full?'full':''}">
 const nz = v => { v = (v ?? '').toString().trim(); return v === '' ? null : v; };
 
 function instForm(r){
-  const isNew = !r; r = r || { owner:'BCT', dept:'기술부', cal_type:'external', cal_cycle_months:12, status:'active' };
-  const nextNo = isNew ? '기술-' + (Math.max(0, ...st.rows.map(x => +(/(\d+)$/.exec(x.mgmt_no)||[])[1] || 0)) + 1) : r.mgmt_no;
-  openModal(isNew ? '계측기 등록' : `${r.mgmt_no} 정보 수정`, `<div class="grid2">
+  const isNew = !r, inst = isNew ? st.kind === 'instrument' : isInst(r);
+  r = r || (inst ? { kind:'instrument', owner:'BCT', dept:'기술부', cal_type:'external', cal_cycle_months:12, status:'active' }
+                 : { kind:'equipment', owner:'BCT', dept:'생산부', cal_type:'internal', cal_cycle_months:6, status:'active' });
+  const pre = { instrument:'기술-', equipment:'설비-', tool:'공구-' };
+  const numOf = k => pre[k] + (Math.max(0, ...st.all.filter(x => (x.mgmt_no||'').startsWith(pre[k])).map(x => +(/(\d+)$/.exec(x.mgmt_no)||[])[1] || 0)) + 1);
+  const nextNo = isNew ? numOf(r.kind) : r.mgmt_no;
+  openModal(isNew ? (inst ? '계측기 등록' : '설비 · 치공구 등록') : `${r.mgmt_no} 정보 수정`, `<div class="grid2">
+    ${inst ? '' : fld('kind','구분', r.kind, {options:{ equipment:'설비', tool:'치공구' }})}
     ${fld('mgmt_no','관리번호', nextNo, {req:true})}
     ${fld('status','사용상태', r.status, {options:STATUS})}
-    ${fld('name','측정기명', r.name, {req:true, full:true})}
+    ${fld('name', inst ? '측정기명' : '이름', r.name, {req:true, full:true})}
     ${fld('spec','규격', r.spec)}
     ${fld('maker','제조사', r.maker)}
     ${fld('model','MODEL', r.model)}
     ${fld('serial_no','S/N', r.serial_no)}
     ${fld('owner','자산주체', r.owner, {attr:'list="ownerList"'})}
     ${fld('dept','사용부서', r.dept)}
-    ${fld('cal_type','교정구분', r.cal_type, {options:CAL_TYPE})}
-    ${fld('cal_cycle_months','교정주기 (개월)', r.cal_cycle_months, {type:'number', attr:'min="1" max="120"', hint:'외부교정일 때 차기교정일 자동 계산에 사용'})}
+    ${fld('cal_type', inst ? '교정구분' : '관리 방법', r.cal_type, {options: inst ? CAL_TYPE : CAL_TYPE_EQ})}
+    ${fld('cal_cycle_months', inst ? '교정주기 (개월)' : '점검·교체 주기 (개월)', r.cal_cycle_months, {type:'number', attr:'min="1" max="120"', hint: inst ? '외부교정일 때 차기교정일 자동 계산에 사용' : '주기를 넣으면 차기 점검일을 자동 계산하고 기한을 알려 줍니다'})}
+    ${inst ? '' : fld('check_basis','점검 · 수명 기준', r.check_basis, {full:true, hint:'예) 사용 전 작동 확인 / 토크 1.2 N·m ±10% 월 1회 측정 / 비트 5,000회 사용 후 교체'})}
     ${fld('location','보관위치', r.location, {full:true})}
     ${fld('note','비고', r.note, {area:true, full:true})}
     <datalist id="ownerList"><option value="BCT"><option value="아센디아"></datalist>
@@ -328,28 +357,30 @@ function instForm(r){
     const rec = {
       mgmt_no: nz(fd.get('mgmt_no')), name: nz(fd.get('name')), spec: nz(fd.get('spec')), maker: nz(fd.get('maker')),
       model: nz(fd.get('model')), serial_no: nz(fd.get('serial_no')), owner: nz(fd.get('owner')) || 'BCT', dept: nz(fd.get('dept')) || '기술부',
-      cal_type: fd.get('cal_type'), cal_cycle_months: fd.get('cal_type')==='external' ? (+fd.get('cal_cycle_months') || 12) : (nz(fd.get('cal_cycle_months')) ? +fd.get('cal_cycle_months') : null),
+      cal_type: fd.get('cal_type'), cal_cycle_months: (inst && fd.get('cal_type')==='external') ? (+fd.get('cal_cycle_months') || 12) : (fd.get('cal_type')!=='none' && nz(fd.get('cal_cycle_months')) ? +fd.get('cal_cycle_months') : null),
+      kind: inst ? 'instrument' : (fd.get('kind') || 'equipment'), check_basis: inst ? null : nz(fd.get('check_basis')),
       status: fd.get('status'), location: nz(fd.get('location')), note: nz(fd.get('note')),
     };
-    if(isNew) rec.seq = Math.max(0, ...st.rows.map(x => x.seq || 0)) + 1;
+    if(isNew) rec.seq = Math.max(0, ...st.all.map(x => x.seq || 0)) + 1;
+    if(isNew && !inst && rec.mgmt_no === nextNo) rec.mgmt_no = numOf(rec.kind);
     const q = isNew ? sb.from('qc_instruments').insert(rec).select('id').single() : sb.from('qc_instruments').update(rec).eq('id', r.id).select('id').single();
     const { data, error } = await q;
     if(error) throw new Error(/duplicate|unique/i.test(error.message) ? '이미 있는 관리번호입니다' : error.message);
-    toast(isNew ? '계측기를 등록했습니다' : '수정했습니다');
+    toast(isNew ? (inst ? '계측기를' : KIND[rec.kind] + '를') + ' 등록했습니다' : '수정했습니다');
     st.openId = data.id; await load();
   });
 }
 
 function calForm(r, c){
-  const isNew = !c; c = c || { cal_date: QC.todayKST(), result:'pass' };
-  openModal(`${r.mgmt_no} 교정 ${isNew?'기록 추가':'기록 수정'}`, `<div class="grid2">
-    ${fld('cal_date','교정일', c.cal_date, {type:'date', req:true})}
-    ${fld('next_due','차기 교정일', isNew ? '' : c.next_due, {type:'date', hint: r.cal_cycle_months ? `비워두면 교정일 + ${r.cal_cycle_months}개월로 자동 계산` : ''})}
-    ${fld('agency','교정기관', c.agency, {attr:'list="agencyList"'})}
-    ${fld('cert_no','성적서 번호', c.cert_no)}
+  const isNew = !c, A = isInst(r) ? '교정' : '점검'; c = c || { cal_date: QC.todayKST(), result:'pass' };
+  openModal(`${r.mgmt_no} ${isInst(r) ? '교정' : '점검·교체'} ${isNew?'기록 추가':'기록 수정'}`, `<div class="grid2">
+    ${fld('cal_date', A + '일', c.cal_date, {type:'date', req:true})}
+    ${fld('next_due','차기 ' + A + '일', isNew ? '' : c.next_due, {type:'date', hint: r.cal_cycle_months ? `비워두면 ${A}일 + ${r.cal_cycle_months}개월로 자동 계산` : ''})}
+    ${fld('agency', isInst(r) ? '교정기관' : '점검자 · 업체', c.agency, {attr:'list="agencyList"'})}
+    ${fld('cert_no', isInst(r) ? '성적서 번호' : '내용 (교체 부품 등)', c.cert_no)}
     ${fld('result','판정', c.result, {options:RESULT})}
     ${fld('cost','비용 (원)', c.cost, {type:'number', attr:'min="0" step="1000"'})}
-    <div class="f full"><label>성적서 파일 (PDF / 사진)</label><input type="file" name="cert" accept="application/pdf,image/*">
+    <div class="f full"><label>${isInst(r) ? '성적서 파일' : '점검 기록 · 사진'} (PDF / 사진)</label><input type="file" name="cert" accept="application/pdf,image/*">
       ${c.cert_path?'<div class="hint">이미 등록된 파일이 있습니다. 새 파일을 고르면 교체됩니다.</div>':''}</div>
     ${fld('note','비고', c.note, {area:true, full:true})}
     <datalist id="agencyList">${[...new Set(st.cals.map(x=>x.agency).filter(Boolean))].map(a=>`<option value="${esc(a)}">`).join('')}</datalist>
@@ -366,18 +397,20 @@ function calForm(r, c){
     }
     const { error } = isNew ? await sb.from('qc_calibrations').insert(rec) : await sb.from('qc_calibrations').update(rec).eq('id', c.id);
     if(error) throw new Error(error.message);
-    toast('교정 기록을 저장했습니다'); await load();
+    toast(A + ' 기록을 저장했습니다'); await load();
   });
 }
 
 /* ---------- 출력 ---------- */
 function exportCsv(){
-  const head = ['번호','관리번호','측정기명','규격','MODEL','S/N','제조사','자산주체','사용부서','교정구분','교정주기(개월)','최근교정일','차기교정일','교정상태','사용상태','비고'];
+  const t = T();
+  const head = ['번호','관리번호',t.name,'구분','규격','MODEL','S/N','제조사','자산주체','사용부서',t.act+'구분',t.act+'주기(개월)','최근'+t.act+'일','차기'+t.act+'일',t.act+'상태','사용상태','점검·수명 기준','비고'];
   const label = { overdue:'기한초과', due_soon:'30일이내', ok:'정상', no_record:'기록없음', exempt:'교정제외', disposed:'폐기' };
-  const rows = filtered().map((r,i) => [i+1, r.mgmt_no, r.name, r.spec, r.model, r.serial_no, r.maker, r.owner, r.dept, CAL_TYPE[r.cal_type], r.cal_cycle_months, fmtDate(r.last_cal_date), fmtDate(r.next_due), label[r.cal_state], STATUS[r.status], r.note]);
-  QC.csv([head, ...rows], `BCT_계측기관리대장_${QC.todayKST()}.csv`);
+  const rows = filtered().map((r,i) => [i+1, r.mgmt_no, r.name, KIND[r.kind||'instrument'], r.spec, r.model, r.serial_no, r.maker, r.owner, r.dept, typesOf(r)[r.cal_type], r.cal_cycle_months, fmtDate(r.last_cal_date), fmtDate(r.next_due), label[r.cal_state], STATUS[r.status], r.check_basis, r.note]);
+  QC.csv([head, ...rows], `BCT_${st.kind === 'instrument' ? '계측기관리대장' : '설비대장'}_${QC.todayKST()}.csv`);
 }
 function printLedger(){
+  if(st.kind !== 'instrument') return printEquip();
   const rows = st.rows.filter(r => r.status !== 'disposed');
   const who = (QC.S.profile && QC.S.profile.name) || '';
   document.getElementById('printDoc').innerHTML = `
@@ -392,8 +425,27 @@ function printLedger(){
   window.print();
 }
 
+function printEquip(){
+  const rows = st.rows.filter(r => r.status !== 'disposed');
+  document.getElementById('printDoc').innerHTML = `
+    <table class="hd" style="margin-bottom:8px"><tr><td rowspan="2" class="ttl" style="font-size:16pt;letter-spacing:.2em">설비 · 치공구 대장</td>
+      <td class="lbl">양식번호</td><td>BCT-QF-13</td><td class="lbl">출력일</td><td>${QC.todayKST()} · ${rows.length}대</td></tr>
+      <tr><td class="lbl">관련 절차</td><td>BCT-QP-12</td><td class="lbl">관리부서</td><td>생산부</td></tr></table>
+    <table class="list"><thead><tr><th>번호</th><th>관리번호</th><th>구분</th><th>이름</th><th>MODEL</th><th>S/N</th><th>위치</th><th>관리 방법</th><th>주기</th><th>최근 점검</th><th>차기 점검</th><th>점검 · 수명 기준</th></tr></thead>
+    <tbody>${rows.map((r,i) => `<tr><td>${i+1}</td><td>${esc(r.mgmt_no)}</td><td>${KIND[r.kind]}</td><td class="l">${esc(r.name)}</td><td>${esc(r.model)}</td><td>${esc(r.serial_no)}</td><td>${esc(r.location)}</td>
+      <td>${CAL_TYPE_EQ[r.cal_type]}</td><td>${r.cal_cycle_months ? r.cal_cycle_months + '개월' : '-'}</td><td>${fmtDate(r.last_cal_date)||'-'}</td><td>${fmtDate(r.next_due)||'-'}</td><td class="l">${esc(r.check_basis)}</td></tr>`).join('') || '<tr><td colspan="12">등록된 설비·치공구가 없습니다</td></tr>'}</tbody></table>`;
+  window.print();
+}
+
 /* ---------- 이벤트 ---------- */
-document.getElementById('bAdd').innerHTML = icon.plus + '계측기 등록';
+document.getElementById('kindSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b || b.dataset.v === st.kind) return;
+  st.kind = b.dataset.v; st.state = '';
+  document.querySelectorAll('#kindSeg button').forEach(x => x.classList.toggle('on', x === b));
+  st.rows = st.all.filter(r => st.kind === 'instrument' ? isInst(r) : !isInst(r));
+  if(st.openId) closeDrawer();
+  render();
+});
 document.getElementById('bCsv').innerHTML = icon.dl + 'Excel(CSV)';
 document.getElementById('bPrint').innerHTML = icon.print + '관리대장 인쇄';
 document.getElementById('srch').insertAdjacentHTML('afterbegin', icon.search);
@@ -421,7 +473,9 @@ document.getElementById('cards').addEventListener('click', rowClick);
 QC.init('instruments', async () => {
   await load();
   const h = decodeURIComponent(location.hash.slice(1));               // instruments.html#기술-3 → 바로 열기
-  const hit = h && st.rows.find(r => r.mgmt_no === h);
+  if(h === 'equipment') document.querySelector('#kindSeg [data-v="equip"]').click();
+  const hit = h && st.all.find(r => r.mgmt_no === h);
+  if(hit && !isInst(hit) && st.kind === 'instrument') document.querySelector('#kindSeg [data-v="equip"]').click();
   if(hit) openDrawer(hit.id);
 });
 </script>

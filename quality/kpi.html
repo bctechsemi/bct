@@ -111,7 +111,7 @@ async function load(){
     sb.from('kpi_defs').select('*').eq('active', true).order('sort'),
     sb.from('kpi_monthly').select('*').gte('ym', addM(st.ym, -5)).lte('ym', st.ym),
     sb.from('kpi_meetings').select('*').gte('ym', addM(st.ym, -5)).lte('ym', st.ym),
-    sb.from('qc_instrument_status').select('id,mgmt_no,name,status,cal_state,created_at'),
+    sb.from('qc_instrument_status').select('id,mgmt_no,name,status,cal_state,created_at,kind').eq('kind', 'instrument'),
     sb.from('qc_calibrations').select('instrument_id,cal_date,next_due'),
     sb.from('qc_5s_audits').select('area_id,audit_date,score_pct').gte('audit_date', from).lte('audit_date', endOf(st.ym)),
     sb.from('qc_5s_areas').select('id,name,sort,active').order('sort'),

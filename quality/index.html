@@ -11,8 +11,7 @@
 <link rel="stylesheet" href="./assets/qc.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
-.mods{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
-@media (max-width:1400px){.mods{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.mods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 @media (max-width:900px){.mods{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){.mods{grid-template-columns:1fr}}
 .mod{position:relative;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;text-decoration:none;color:inherit;transition:.2s;min-height:250px}
@@ -50,7 +49,7 @@ a.mod:hover{border-color:var(--primary);box-shadow:0 14px 34px -20px rgba(31,78,
     <div>
       <div class="eyebrow"><i></i>BCT Co., Ltd. · Quality Control</div>
       <h1>품질관리 시스템</h1>
-      <p>계측기 교정, 생산현장 온습도, 3정5S 점검, 작업자 인증, 품질 문서를 한 곳에서 기록하고 추적합니다.</p>
+      <p>계측기 교정, 생산현장 온습도, 3정5S 점검, 작업자 인증, 품질 지표, 품질 문서를 한 곳에서 기록하고 추적합니다.</p>
     </div>
   </div>
 
@@ -85,6 +84,12 @@ a.mod:hover{border-color:var(--primary);box-shadow:0 14px 34px -20px rgba(31,78,
       <h2>문서 관리</h2></div><p>문서 체계 · 문서관리대장 · 개정 이력</p>
       <div class="foot"><div class="stats3" id="docStats"><div><b>–</b><span>관리 문서</span></div><div><b>–</b><span>시행</span></div><div class="a"><b>–</b><span>제정 예정</span></div></div></div>
     </a>
+    <a class="mod" href="./kpi.html">
+      <span class="n">06</span>
+      <div class="hd"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
+      <h2>품질 지표</h2></div><p>품질 목표 7개 월간 실적 · 검토 회의록</p>
+      <div class="foot"><div class="stats3" id="kpiStats"><div><b>–</b><span>지표</span></div><div><b>–</b><span>자동 집계</span></div><div class="a"><b>–</b><span>이달 입력 필요</span></div></div></div>
+    </a>
   </div>
 
   <div class="due hidden" id="due">
@@ -107,6 +112,13 @@ QC.init('home', async () => {
     b[0].textContent = w.count ?? '–';
     b[1].textContent = rows.filter(r => r.status === 'pending').length;
     b[2].textContent = rows.filter(r => r.status === 'approved' && r.level > 0 && r.valid_until && r.valid_until <= lim).length;
+  })();
+  // 품질 지표 요약
+  (async () => {
+    const ym = QC.todayKST().slice(0,7);
+    const [d, m] = await Promise.all([QC.sb.from('kpi_defs').select('code,auto').eq('active', true), QC.sb.from('kpi_monthly').select('code').eq('ym', ym).not('numerator','is',null)]);
+    const defs = d.data || [], done = new Set((m.data || []).map(x => x.code)), b = document.querySelectorAll('#kpiStats b');
+    b[0].textContent = defs.length; b[1].textContent = defs.filter(x => x.auto).length; b[2].textContent = defs.filter(x => !x.auto && !done.has(x.code)).length;
   })();
   // 문서 관리 요약
   (async () => {

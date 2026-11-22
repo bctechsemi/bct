@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>품질 지표 — BCT Quality</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+.mnav{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:3px}
+.mnav button{border:0;background:transparent;width:34px;height:34px;border-radius:8px;cursor:pointer;color:var(--ink2);font-size:16px}
+.mnav button:hover{background:var(--pale2)}
+.mnav b{font-family:var(--mono);font-size:15px;min-width:92px;text-align:center;color:var(--deep)}
+.sumrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;font-size:13.5px;color:var(--ink2)}
+.sumrow .badge{font-size:12.5px}
+.sumrow .live{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink3)}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin-bottom:22px}
+.kc{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:8px;transition:border-color .15s}
+.kc:hover{border-color:var(--mist2)}
+.kc.bad{border-left:4px solid var(--red)}
+.kc.ok{border-left:4px solid var(--good)}
+.kc.input,.kc.miss{border-left:4px solid var(--amber)}
+.kc.trend{border-left:4px solid var(--primary)}
+.kc .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.kc h3{margin:0;font-size:15px;line-height:1.3}
+.kc .src{font-size:11.5px;color:var(--ink3);margin-top:2px}
+.kc .val{display:flex;align-items:baseline;gap:6px}
+.kc .val b{font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.kc .val small{font-size:13px;color:var(--ink3)}
+.kc .val i{font-style:normal;font-size:12.5px;color:var(--ink2);margin-left:auto;font-family:var(--mono)}
+.kc .sub{font-size:12.5px;color:var(--ink2);min-height:18px}
+.spark{width:100%;height:46px;display:block}
+.sec-card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin-bottom:16px}
+.sec-card .sh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.sec-card h3{margin:0;font-size:15px}
+.mt{width:100%;border-collapse:collapse;font-size:13px;min-width:760px}
+.mt th,.mt td{padding:9px 10px;border-bottom:1px solid var(--line2);text-align:center;white-space:nowrap}
+.mt th{background:var(--pale2);color:var(--ink2);font-size:12px;font-weight:700}
+.mt td.l,.mt th.l{text-align:left}
+.mt td.cur{background:var(--pale2);font-weight:700}
+.c-ok{color:#1E8A5D}.c-bad{color:var(--red-ink)}.c-na{color:var(--ink3)}
+.tw{overflow-x:auto}
+.mtg{font-size:13.5px;line-height:1.7;white-space:pre-wrap;color:var(--ink)}
+.mtg-meta{font-size:12.5px;color:var(--ink2);margin-bottom:6px}
+.dl{display:flex;flex-direction:column;gap:6px}
+.dl div{display:flex;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px}
+.dl div span{color:var(--ink2)}
+@media print{
+  .pr{font-size:9.5pt}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="no-print">
+    <div class="ph">
+      <div>
+        <div class="eyebrow"><i></i>Quality Control · Quality KPI</div>
+        <h1>품질 지표</h1>
+        <p>품질 목표 7개를 매월 확인합니다. 계측기·3정5S·온습도·작업자 인증은 시스템 데이터로 자동 집계하고, NCR·CAR 지표는 입력합니다 (BCT-QP-02).</p>
+      </div>
+      <div class="actions">
+        <div class="mnav"><button type="button" id="mPrev" aria-label="이전 달">‹</button><b id="mLabel"></b><button type="button" id="mNext" aria-label="다음 달">›</button></div>
+        <button class="btn" id="bPrint" type="button"></button>
+      </div>
+    </div>
+    <div class="sumrow" id="sum"></div>
+    <div class="kgrid" id="grid"><div class="boot">불러오는 중…</div></div>
+
+    <div class="sec-card">
+      <div class="sh"><h3>최근 6개월 추세</h3></div>
+      <div class="tw"><table class="mt" id="trend"></table></div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sh"><h3 id="mtgTitle">월간 지표 검토 회의록</h3><button class="btn sm hidden" id="bMtg" type="button"></button></div>
+      <div id="mtg"></div>
+    </div>
+  </div>
+  <div class="print-only pdoc pr" id="printDoc"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="dh"><div class="t"><div class="no" id="dNo"></div><h2 id="dName"></h2></div><button class="x" type="button" id="dClose" aria-label="닫기"></button></div>
+  <div class="db" id="dBody"></div>
+</aside>
+
+<script src="./assets/qc.js"></script>
+<script>
+const { sb, esc, icon, toast, fld, nz } = QC;
+const st = { ym:null, defs:[], monthly:{}, mtg:{}, inst:[], cals:[], audits:[], areas:[], envOut:[], quals:[], workers:[], skills:[], cur:null };
+const TODAY = QC.todayKST();
+const pad = n => String(n).padStart(2, '0');
+const ymOf = d => d.slice(0, 7);
+const addM = (ym, k) => { let [y, m] = ym.split('-').map(Number); m += k; while(m < 1){ m += 12; y--; } while(m > 12){ m -= 12; y++; } return `${y}-${pad(m)}`; };
+const endOf = ym => { const [y, m] = ym.split('-').map(Number); return `${ym}-${pad(new Date(y, m, 0).getDate())}`; };
+const asOf = ym => { const e = endOf(ym); return e > TODAY ? TODAY : e; };
+const months = ym => Array.from({length:6}, (_, i) => addM(ym, i - 5));
+const fmtV = (v, u) => v == null ? '—' : (u === '건' ? String(v) : (Math.round(v * 10) / 10).toFixed(u === '점' ? 1 : 1).replace(/\.0$/, ''));
+
+async function load(){
+  const from = addM(st.ym, -5) + '-01';
+  const fromTs = new Date(from + 'T00:00:00+09:00').toISOString();
+  const toTs = new Date(endOf(st.ym) + 'T23:59:59+09:00').toISOString();
+  const r = await Promise.all([
+    sb.from('kpi_defs').select('*').eq('active', true).order('sort'),
+    sb.from('kpi_monthly').select('*').gte('ym', addM(st.ym, -5)).lte('ym', st.ym),
+    sb.from('kpi_meetings').select('*').gte('ym', addM(st.ym, -5)).lte('ym', st.ym),
+    sb.from('qc_instrument_status').select('id,mgmt_no,name,status,cal_state,created_at'),
+    sb.from('qc_calibrations').select('instrument_id,cal_date,next_due'),
+    sb.from('qc_5s_audits').select('area_id,audit_date,score_pct').gte('audit_date', from).lte('audit_date', endOf(st.ym)),
+    sb.from('qc_5s_areas').select('id,name,sort,active').order('sort'),
+    sb.from('qc_env_readings').select('id,zone_id,measured_at,temp,humidity,temp_out,hum_out,action_taken').or('temp_out.eq.true,hum_out.eq.true').gte('measured_at', fromTs).lte('measured_at', toTs),
+    sb.from('qc_qualifications').select('worker_id,skill_id,level,status,approved_at,valid_until').eq('status', 'approved'),
+    sb.from('qc_workers').select('id,name,title,active'),
+    sb.from('qc_skills').select('id,code,name'),
+  ]);
+  const bad = r.find(x => x.error); if(bad) return toast(bad.error.message, true);
+  [st.defs] = [r[0].data];
+  st.monthly = {}; r[1].data.forEach(m => st.monthly[m.ym + ':' + m.code] = m);
+  st.mtg = {}; r[2].data.forEach(m => st.mtg[m.ym] = m);
+  st.inst = r[3].data; st.cals = r[4].data; st.audits = r[5].data; st.areas = r[6].data;
+  st.envOut = r[7].data; st.quals = r[8].data; st.workers = r[9].data; st.skills = r[10].data;
+  render();
+  if(st.cur) openKpi(st.cur);
+}
+
+/* ---------- 지표 계산 ---------- */
+function calc(code, ym){
+  const E = asOf(ym), m = st.monthly[ym + ':' + code] || null;
+  const base = { ym, m, num:null, den:null, v:null, detail:[] , text:null };
+  if(ym > ymOf(TODAY)) return base;
+  if(code === 'CAL'){
+    const tgt = st.inst.filter(i => i.cal_state !== 'exempt' && i.status !== 'disposed' && (i.created_at || '').slice(0, 10) <= E);
+    let ok = 0;
+    tgt.forEach(i => {
+      const cs = st.cals.filter(c => c.instrument_id === i.id && c.cal_date <= E);
+      const valid = cs.some(c => c.next_due >= E);
+      if(valid) ok++;
+      else base.detail.push([`${i.mgmt_no} ${i.name}`, cs.length ? '교정 기한 초과' : '교정 기록 없음']);
+    });
+    return Object.assign(base, { num:ok, den:tgt.length, v: tgt.length ? ok / tgt.length * 100 : null });
+  }
+  if(code === 'FIVE_S'){
+    const a = st.audits.filter(x => ymOf(x.audit_date) === ym && x.score_pct != null);
+    st.areas.filter(z => z.active !== false).forEach(z => {
+      const zs = a.filter(x => x.area_id === z.id);
+      base.detail.push([z.name, zs.length ? `${zs.length}회 · 평균 ${fmtV(zs.reduce((t, x) => t + Number(x.score_pct), 0) / zs.length, '점')}점` : '미점검']);
+    });
+    return Object.assign(base, { num:a.length, v: a.length ? a.reduce((t, x) => t + Number(x.score_pct), 0) / a.length : null, text: a.length ? null : '점검 없음' });
+  }
+  if(code === 'ENV'){
+    const o = st.envOut.filter(x => ymOf(QC.dateKST(x.measured_at)) === ym);
+    const ok = o.filter(x => x.action_taken).length;
+    o.filter(x => !x.action_taken).forEach(x => base.detail.push([QC.fmtDT(x.measured_at), `${x.temp ?? '—'}℃ / ${x.humidity ?? '—'}% · 조치 없음`]));
+    return Object.assign(base, { num:ok, den:o.length, v: o.length ? ok / o.length * 100 : null, text: o.length ? null : '이탈 없음' });
+  }
+  if(code === 'QUAL'){
+    const endTs = new Date(E + 'T23:59:59+09:00').toISOString(), act = new Set(st.workers.filter(w => w.active).map(w => w.id));
+    const latest = {};
+    st.quals.filter(q => q.approved_at && q.approved_at <= endTs && act.has(q.worker_id)).forEach(q => {
+      const k = q.worker_id + ':' + q.skill_id; if(!latest[k] || latest[k].approved_at < q.approved_at) latest[k] = q;
+    });
+    const all = Object.values(latest).filter(q => q.level >= 1);
+    const ok = all.filter(q => !q.valid_until || q.valid_until >= E);
+    all.filter(q => q.valid_until && q.valid_until < E).forEach(q => {
+      const w = st.workers.find(x => x.id === q.worker_id) || {}, s = st.skills.find(x => x.id === q.skill_id) || {};
+      base.detail.push([`${w.name || ''} · ${s.code || ''} ${s.name || ''}`, `L${q.level} · ${q.valid_until} 만료`]);
+    });
+    return Object.assign(base, { num:ok.length, den:all.length, v: all.length ? ok.length / all.length * 100 : null });
+  }
+  // 입력 지표
+  if(!m || m.numerator == null) return base;
+  if(code === 'CLAIM') return Object.assign(base, { num:Number(m.numerator), v:Number(m.numerator) });
+  const den = m.denominator == null ? null : Number(m.denominator);
+  if(code === 'CAR' && den === 0) return Object.assign(base, { num:Number(m.numerator), den:0, text:'해당 없음' });
+  return Object.assign(base, { num:Number(m.numerator), den, v: den ? Number(m.numerator) / den * 100 : null });
+}
+function judge(d, c){
+  if(c.ym > ymOf(TODAY)) return ['na', ''];
+  if(c.v == null){
+    if(c.text === '이탈 없음' || c.text === '해당 없음') return ['ok', '달성'];
+    if(c.text === '점검 없음') return ['miss', '미점검'];
+    return d.auto ? ['na', '데이터 없음'] : ['input', '입력 필요'];
+  }
+  if(d.target_value == null) return ['trend', '추세 확인'];
+  const ok = d.target_dir === 'lte' ? c.v <= Number(d.target_value) : c.v >= Number(d.target_value);
+  return ok ? ['ok', '달성'] : ['bad', '미달'];
+}
+const BADGE = { ok:'grn', bad:'red', input:'amb', miss:'amb', trend:'blu', na:'gry' };
+
+function spark(d){
+  const ms = months(st.ym), cs = ms.map(ym => calc(d.code, ym));
+  const max = d.unit === '건' ? Math.max(1, ...cs.map(c => c.v || 0)) : 100;
+  const W = 240, H = 46, bw = 26, gap = (W - bw * 6) / 5;
+  const ty = d.target_value != null ? H - 4 - Math.min(1, Number(d.target_value) / max) * (H - 10) : null;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    ${cs.map((c, i) => { const [s] = judge(d, c), h = c.v == null ? 3 : Math.max(3, Math.min(1, c.v / max) * (H - 10));
+      const col = s === 'ok' ? 'var(--good)' : s === 'bad' ? 'var(--red)' : s === 'trend' ? 'var(--primary)' : 'var(--line)';
+      return `<rect x="${i * (bw + gap)}" y="${H - 4 - h}" width="${bw}" height="${h}" rx="3" fill="${col}" opacity="${i === 5 ? 1 : .55}"/>`; }).join('')}
+    ${ty != null ? `<line x1="0" x2="${W}" y1="${ty}" y2="${ty}" stroke="var(--ink3)" stroke-dasharray="3 3" stroke-width="1"/>` : ''}
+  </svg>`;
+}
+
+/* ---------- 화면 ---------- */
+function render(){
+  const ym = st.ym, live = ym === ymOf(TODAY);
+  document.getElementById('mLabel').textContent = ym;
+  document.getElementById('mNext').disabled = ym >= ymOf(TODAY);
+  const rows = st.defs.map(d => { const c = calc(d.code, ym); return { d, c, j: judge(d, c) }; });
+  const cnt = k => rows.filter(r => r.j[0] === k).length;
+  document.getElementById('sum').innerHTML = `<span class="badge ko grn">달성 ${cnt('ok')}</span><span class="badge ko red">미달 ${cnt('bad')}</span>
+    <span class="badge ko amb">입력 필요·미점검 ${cnt('input') + cnt('miss')}</span><span class="badge ko blu">추세 확인 ${cnt('trend')}</span>
+    <span class="live">${live ? `${TODAY} 기준 · 이번 달 집계 중` : `${endOf(ym)} 기준`}</span>`;
+
+  document.getElementById('grid').innerHTML = rows.map(({ d, c, j }) => `<button type="button" class="kc ${j[0]}" data-code="${d.code}">
+      <div class="top"><div><h3>${esc(d.name)}</h3><div class="src">${d.auto ? '자동 집계' : '입력'} · ${esc(d.owner || '')}</div></div><span class="badge ko ${BADGE[j[0]]}">${j[1] || '—'}</span></div>
+      <div class="val"><b>${c.v != null ? fmtV(c.v, d.unit) : (c.text || '—')}</b>${c.v != null ? `<small>${esc(d.unit)}</small>` : ''}<i>목표 ${esc(d.target_text || '')}</i></div>
+      <div class="sub">${c.den != null && d.needs_den ? `${esc(d.num_label || '')} ${c.num} / ${esc(d.den_label || '')} ${c.den}` : ''}${(st.monthly[ym + ':' + d.code] || {}).action ? ' · 조치 기록 있음' : ''}</div>
+      ${spark(d)}
+    </button>`).join('');
+
+  const ms = months(ym);
+  document.getElementById('trend').innerHTML = `<thead><tr><th class="l">지표</th><th>목표</th>${ms.map(m => `<th>${m}</th>`).join('')}</tr></thead><tbody>${
+    st.defs.map(d => `<tr><td class="l">${esc(d.name)}</td><td>${esc(d.target_text || '')}</td>${ms.map(m => { const c = calc(d.code, m), [s] = judge(d, c);
+      return `<td class="${m === ym ? 'cur' : ''} ${s === 'ok' ? 'c-ok' : s === 'bad' ? 'c-bad' : 'c-na'}">${c.v != null ? fmtV(c.v, d.unit) + (d.unit === '%' ? '%' : '') : (c.text || '—')}</td>`; }).join('')}</tr>`).join('')}</tbody>`;
+
+  const mt = st.mtg[ym], admin = QC.isAdmin();
+  document.getElementById('mtgTitle').textContent = `${ym} 월간 지표 검토 회의록`;
+  const bM = document.getElementById('bMtg'); bM.classList.toggle('hidden', !admin); bM.innerHTML = icon.edit + (mt ? '회의록 수정' : '회의록 작성');
+  document.getElementById('mtg').innerHTML = mt ? `<div class="mtg-meta">회의일 ${esc(mt.held_on || '—')} · 참석 ${esc(mt.attendees || '—')}</div><div class="mtg">${esc(mt.decisions || '')}</div>`
+    : '<div class="empty" style="padding:14px">이 달의 회의록이 없습니다</div>';
+}
+
+/* ---------- 상세 ---------- */
+const drawer = document.getElementById('drawer'), scrim = document.getElementById('scrim');
+function closeDrawer(){ drawer.classList.remove('show'); scrim.classList.remove('show'); drawer.setAttribute('aria-hidden', 'true'); st.cur = null; }
+function openKpi(code){
+  const d = st.defs.find(x => x.code === code); if(!d) return;
+  st.cur = code;
+  const ym = st.ym, c = calc(code, ym), j = judge(d, c), m = c.m || {}, admin = QC.isAdmin();
+  document.getElementById('dNo').textContent = `${d.code} · ${ym}`;
+  document.getElementById('dName').textContent = d.name;
+  const hist = months(ym).slice().reverse().map(x => { const cc = calc(code, x), [s, t] = judge(d, cc), mm = cc.m || {};
+    return `<tr><td>${x}</td><td class="${s === 'ok' ? 'c-ok' : s === 'bad' ? 'c-bad' : 'c-na'}">${cc.v != null ? fmtV(cc.v, d.unit) + (d.unit === '%' ? '%' : '') : (cc.text || '—')}</td><td>${cc.den != null && d.needs_den ? cc.num + ' / ' + cc.den : (d.code === 'CLAIM' && cc.num != null ? cc.num : '')}</td><td>${t || ''}</td><td class="l">${esc(mm.action || '')}</td></tr>`; }).join('');
+  document.getElementById('dBody').innerHTML = `
+    <div class="sec"><dl class="kv">
+      <dt>계산</dt><dd>${esc(d.formula || '')}</dd><dt>목표</dt><dd>${esc(d.target_text || '')}</dd>
+      <dt>데이터</dt><dd>${esc(d.source || '')}</dd><dt>담당</dt><dd>${esc(d.owner || '')}</dd>
+      <dt>${ym}</dt><dd><b>${c.v != null ? fmtV(c.v, d.unit) + ' ' + esc(d.unit) : (c.text || '—')}</b> <span class="badge ko ${BADGE[j[0]]}">${j[1] || '—'}</span></dd>
+    </dl></div>
+    ${c.detail.length ? `<div class="sec"><div class="sec-h"><h3>${code === 'FIVE_S' ? '구역별' : '확인할 항목'} (${c.detail.length})</h3></div><div class="dl">${c.detail.map(([a, b]) => `<div><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('')}</div></div>` : ''}
+    <div class="sec"><div class="sec-h"><h3>원인과 조치</h3>${admin ? `<button class="btn sm" type="button" id="dEdit">${icon.edit}${d.auto ? '원인·조치 입력' : '실적·조치 입력'}</button>` : ''}</div>
+      ${m.cause || m.action || m.note ? `<dl class="kv"><dt>원인</dt><dd>${esc(m.cause || '')}</dd><dt>조치</dt><dd>${esc(m.action || '')}</dd><dt>담당·기한</dt><dd>${esc(m.action_owner || '')} ${esc(m.action_due || '')}</dd><dt>비고</dt><dd>${esc(m.note || '')}</dd></dl>` : `<div class="empty" style="padding:14px">${j[0] === 'bad' ? '미달 지표입니다. 원인과 조치를 적어 주세요' : '기록이 없습니다'}</div>`}
+    </div>
+    <div class="sec"><div class="sec-h"><h3>최근 6개월</h3></div><div class="tw"><table class="mt" style="min-width:0"><thead><tr><th>월</th><th>실적</th><th>${d.needs_den ? '분자 / 분모' : '건수'}</th><th>판정</th><th class="l">조치</th></tr></thead><tbody>${hist}</tbody></table></div></div>`;
+  const e = document.getElementById('dEdit'); if(e) e.onclick = () => editKpi(d);
+  drawer.classList.add('show'); scrim.classList.add('show'); drawer.setAttribute('aria-hidden', 'false');
+}
+function editKpi(d){
+  const ym = st.ym, m = st.monthly[ym + ':' + d.code] || {};
+  QC.openModal(`${ym} ${d.name}`, `<div class="grid2">
+    ${d.auto ? '' : fld('numerator', d.num_label || '실적', m.numerator ?? '', { type:'number', attr:'min="0" step="any"', req:true })}
+    ${!d.auto && d.needs_den ? fld('denominator', d.den_label || '분모', m.denominator ?? '', { type:'number', attr:'min="0" step="any"', req:true, hint: d.code === 'CAR' ? '기한 도래 CAR가 없으면 0' : '' }) : (d.auto ? '' : '<div></div>')}
+    ${fld('cause', '원인', m.cause, { area:true, full:true })}
+    ${fld('action', '조치', m.action, { area:true, full:true })}
+    ${fld('action_owner', '조치 담당', m.action_owner)}${fld('action_due', '조치 기한', m.action_due, { type:'date' })}
+    ${fld('note', '비고', m.note, { full:true })}
+  </div>`, async fd => {
+    const rec = { ym, code: d.code, cause: nz(fd.get('cause')), action: nz(fd.get('action')), action_owner: nz(fd.get('action_owner')), action_due: nz(fd.get('action_due')), note: nz(fd.get('note')), updated_by: QC.S.user.id };
+    if(!d.auto){ rec.numerator = Number(fd.get('numerator')); if(d.needs_den) rec.denominator = Number(fd.get('denominator')); }
+    const { error } = await sb.from('kpi_monthly').upsert(rec, { onConflict:'ym,code' });
+    if(error) throw new Error(error.message);
+    toast('저장했습니다'); await load();
+  }, { ok:'저장' });
+}
+function editMtg(){
+  const ym = st.ym, m = st.mtg[ym] || {};
+  const draft = m.decisions || st.defs.map(d => { const c = calc(d.code, ym), [, t] = judge(d, c); return `- ${d.name}: ${c.v != null ? fmtV(c.v, d.unit) + d.unit : (c.text || '—')} (${t || '—'})`; }).join('\n') + '\n\n결정 사항:\n- ';
+  QC.openModal(`${ym} 월간 지표 검토 회의록`, `<div class="grid2">
+    ${fld('held_on', '회의일', m.held_on || TODAY, { type:'date', req:true })}${fld('attendees', '참석자', m.attendees || '홍승락 부장, 박세준 부장, 김희재 차장, 고홍철 차장')}
+    ${fld('decisions', '실적 요약과 결정 사항', draft, { area:true, full:true, attr:'style="min-height:260px"', hint:'처음 열면 이 달 실적이 자동으로 채워집니다. 결정 사항과 조치 담당·기한을 적어 주세요.' })}
+  </div>`, async fd => {
+    const { error } = await sb.from('kpi_meetings').upsert({ ym, held_on: nz(fd.get('held_on')), attendees: nz(fd.get('attendees')), decisions: nz(fd.get('decisions')), updated_by: QC.S.user.id }, { onConflict:'ym' });
+    if(error) throw new Error(error.message);
+    toast('저장했습니다'); await load();
+  }, { ok:'저장' });
+}
+
+/* ---------- 인쇄 ---------- */
+function printReport(){
+  const ym = st.ym, mt = st.mtg[ym];
+  document.getElementById('printDoc').innerHTML = `
+    <table class="hd" style="margin-bottom:8px"><tr><td rowspan="2" class="ttl" style="font-size:15pt;letter-spacing:.15em">월간 품질 지표 현황</td>
+      <td class="lbl">대상 월</td><td>${ym}</td><td rowspan="2" style="padding:0;width:210px"><table class="sign" style="width:100%"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:40px"></td><td></td><td></td></tr></table></td></tr>
+      <tr><td class="lbl">출력일</td><td>${TODAY} · BCT-QP-02</td></tr></table>
+    <table class="list"><thead><tr><th style="width:150px">지표</th><th style="width:80px">목표</th>${months(ym).map(m => `<th style="width:62px">${m.slice(2)}</th>`).join('')}<th style="width:56px">판정</th><th>원인 · 조치</th></tr></thead><tbody>
+    ${st.defs.map(d => { const c = calc(d.code, ym), [, t] = judge(d, c), m = c.m || {};
+      return `<tr><td class="l">${esc(d.name)}</td><td>${esc(d.target_text || '')}</td>${months(ym).map(x => { const cc = calc(d.code, x); return `<td>${cc.v != null ? fmtV(cc.v, d.unit) : (cc.text || '—')}</td>`; }).join('')}<td>${t || ''}</td><td class="l">${esc([m.cause, m.action].filter(Boolean).join(' / '))}</td></tr>`; }).join('')}
+    </tbody></table>
+    <table class="list" style="margin-top:8px"><tr><th style="width:120px">회의</th><td class="l">${mt ? `${esc(mt.held_on || '')} · ${esc(mt.attendees || '')}` : '회의록 없음'}</td></tr>
+      <tr><th>결정 사항</th><td class="l" style="white-space:pre-wrap;height:120px;vertical-align:top">${esc(mt ? mt.decisions || '' : '')}</td></tr></table>`;
+  window.print();
+}
+
+/* ---------- 이벤트 ---------- */
+document.getElementById('bPrint').innerHTML = icon.print + '월간 현황 출력';
+document.getElementById('dClose').innerHTML = icon.x;
+document.getElementById('bPrint').onclick = printReport;
+document.getElementById('bMtg').onclick = editMtg;
+document.getElementById('dClose').onclick = closeDrawer;
+scrim.onclick = closeDrawer;
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && drawer.classList.contains('show') && !document.querySelector('.modal.show')) closeDrawer(); });
+document.getElementById('grid').onclick = e => { const b = e.target.closest('[data-code]'); if(b) openKpi(b.dataset.code); };
+const go = k => { st.ym = addM(st.ym, k); history.replaceState(null, '', '?ym=' + st.ym); load(); };
+document.getElementById('mPrev').onclick = () => go(-1);
+document.getElementById('mNext').onclick = () => go(1);
+
+const q = new URLSearchParams(location.search).get('ym');
+st.ym = /^\d{4}-\d{2}$/.test(q || '') && q <= ymOf(TODAY) ? q : ymOf(TODAY);
+QC.init('kpi', load);
+</script>
+</body>
+</html>

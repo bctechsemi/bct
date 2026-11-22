@@ -26,7 +26,7 @@
 .layout>*{min-width:0}
 @media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.toc{display:none}}
 .toc{position:sticky;top:84px;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 10px}
-.toc h4{margin:0 8px 8px;font-size:11.5px;letter-spacing:.08em;color:var(--ink3);font-family:var(--mono)}
+.toc h2{margin:0 8px 8px;font-size:11.5px;letter-spacing:.08em;color:var(--ink3);font-family:var(--mono)}
 .toc a{display:block;padding:7px 10px;border-radius:9px;font-size:13.5px;color:var(--ink2);text-decoration:none;line-height:1.35}
 .toc a:hover{background:var(--pale2);color:var(--ink)}
 .toc a.on{background:var(--pale);color:var(--deep);font-weight:700}
@@ -98,7 +98,7 @@
   <div class="draft hidden" id="draft"></div>
 
   <div class="layout">
-    <nav class="toc" id="toc" aria-label="목차"><h4>CONTENTS</h4></nav>
+    <nav class="toc" id="toc" aria-label="목차"><h2>CONTENTS</h2></nav>
     <article class="doc" id="doc"><div class="boot">불러오는 중…</div></article>
   </div>
 </main>
@@ -145,7 +145,7 @@ function draw(){
   dr.classList.toggle('hidden', !notYet);
   dr.innerHTML = notYet ? `<b>${stTxt}</b><span>승인 전 문서입니다. 대표이사 승인 후 문서관리대장에서 "제정 등록"을 하면 시행본이 됩니다.</span>` : '';
 
-  document.getElementById('toc').innerHTML = '<h4>CONTENTS</h4>' + st.secs.map(s => `<a href="#s${s.sec_no}" data-s="${s.sec_no}"><i>${s.sec_no}</i>${esc(s.title)}</a>`).join('')
+  document.getElementById('toc').innerHTML = '<h2>CONTENTS</h2>' + st.secs.map(s => `<a href="#s${s.sec_no}" data-s="${s.sec_no}"><i>${s.sec_no}</i>${esc(s.title)}</a>`).join('')
     + (st.revs.length ? '<a href="#rev"><i>—</i>개정 이력</a>' : '');
 
   document.getElementById('doc').innerHTML = st.secs.map(s => `<section class="sec2" id="s${s.sec_no}">

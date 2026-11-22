@@ -83,9 +83,9 @@
 <main class="wrap">
   <div class="ph no-print">
     <div>
-      <div class="eyebrow"><i></i>Quality Control · Quality Manual</div>
-      <h1 id="pTitle">품질 매뉴얼</h1>
-      <p>BCT 품질경영 체계의 최상위 문서입니다. 항상 현행본만 보이며, 개정 이력은 맨 아래에 남습니다.</p>
+      <div class="eyebrow"><i></i><span id="pKind">Quality Control · Document</span></div>
+      <h1 id="pTitle">품질 문서</h1>
+      <p id="pDesc">항상 현행본만 보이며, 개정 이력은 맨 아래에 남습니다.</p>
     </div>
     <div class="actions">
       <a class="btn" href="./documents.html" id="bReg">문서관리대장</a>
@@ -134,6 +134,10 @@ function draw(){
   const d = st.doc, admin = QC.isAdmin(), [stTxt, stCls] = STATUS[d.status];
   document.title = `${d.title.replace(/\s*\(.*\)$/, '')} — BCT Quality`;
   document.getElementById('pTitle').textContent = d.title.replace(/\s*\(.*\)$/, '');
+  const KIND = { QM:['Quality Manual','BCT 품질경영 체계의 최상위 문서입니다.'], QP:['Procedure','부서가 함께 하는 업무의 순서와 기준을 정한 절차서입니다.'],
+    SOP:['Work Procedure','업무 작업 방법을 정한 작업절차서입니다.'], WI:['Work Instruction','제품·장비별 작업 방법을 정한 작업표준입니다.'], QF:['Form','기록 양식입니다.'] }[d.doc_type] || ['Document',''];
+  document.getElementById('pKind').textContent = 'Quality Control · ' + KIND[0];
+  document.getElementById('pDesc').textContent = `${KIND[1]} 항상 현행본만 보이며, 개정 이력은 맨 아래에 남습니다.`.trim();
   document.getElementById('dinfo').innerHTML = [
     ['문서번호', `<b class="mono">${esc(d.doc_no)}</b>`], ['Rev', `<b class="mono">${esc(d.current_rev || '—')}</b>`],
     ['상태', `<span class="badge ko ${stCls}" style="margin:0">${stTxt}</span>`], ['시행일', `<b class="mono">${esc(d.effective_on || '—')}</b>`],
@@ -143,7 +147,7 @@ function draw(){
   const dr = document.getElementById('draft');
   const notYet = d.status === 'draft' || d.status === 'planned';
   dr.classList.toggle('hidden', !notYet);
-  dr.innerHTML = notYet ? `<b>${stTxt}</b><span>승인 전 문서입니다. 대표이사 승인 후 문서관리대장에서 "제정 등록"을 하면 시행본이 됩니다.</span>` : '';
+  dr.innerHTML = notYet ? `<b>${stTxt}</b><span>승인 전 문서입니다. ${esc(d.approver || '승인권자')} 승인 후 문서관리대장에서 "제정 등록"을 하면 시행본이 됩니다.</span>` : '';
 
   document.getElementById('toc').innerHTML = '<h2>CONTENTS</h2>' + st.secs.map(s => `<a href="#s${s.sec_no}" data-s="${s.sec_no}"><i>${s.sec_no}</i>${esc(s.title)}</a>`).join('')
     + (st.revs.length ? '<a href="#rev"><i>—</i>개정 이력</a>' : '');
@@ -156,11 +160,12 @@ function draw(){
     </section>`).join('') + revTable() || '<div class="empty">본문이 없습니다</div>';
 
   document.getElementById('pcover').innerHTML = `<table class="hd"><tr>
-      <td rowspan="3" class="ttl" style="font-size:17pt;letter-spacing:.15em">${esc(d.title.replace(/\s*\(.*\)$/, ''))}</td>
+      <td rowspan="4" class="ttl" style="font-size:17pt;letter-spacing:.15em">${esc(d.title.replace(/\s*\(.*\)$/, ''))}</td>
       <td class="lbl">문서번호</td><td>${esc(d.doc_no)}</td>
-      <td rowspan="3" style="padding:0;width:200px"><table class="sign" style="width:100%"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:46px"></td><td></td><td></td></tr></table></td></tr>
+      <td rowspan="4" style="padding:0;width:200px"><table class="sign" style="width:100%"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:56px"></td><td></td><td></td></tr></table></td></tr>
       <tr><td class="lbl">Rev</td><td>${esc(d.current_rev || '')} ${notYet ? '(' + stTxt + ')' : ''}</td></tr>
-      <tr><td class="lbl">시행일</td><td>${esc(d.effective_on || '')}</td></tr></table>`;
+      <tr><td class="lbl">시행일</td><td>${esc(d.effective_on || '')}</td></tr>
+      <tr><td class="lbl">출력일</td><td>${QC.todayKST()} · 출력본은 비관리 사본</td></tr></table>`;
   spy();
 }
 function revTable(){

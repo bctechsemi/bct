@@ -21,16 +21,15 @@
 .kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin-bottom:22px}
 .kc{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:8px;transition:border-color .15s}
 .kc:hover{border-color:var(--mist2)}
-.kc.bad{border-left:4px solid var(--red)}
-.kc.ok{border-left:4px solid var(--good)}
-.kc.input,.kc.miss{border-left:4px solid var(--amber)}
-.kc.trend{border-left:4px solid var(--primary)}
+/* 상태는 오른쪽 위 배지와 막대 색으로만 보여 줌 (카드 테두리는 모두 같게) */
+.kc.bad .val b{color:var(--red-ink)}
 .kc .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .kc h3{margin:0;font-size:15px;line-height:1.3}
 .kc .src{font-size:11.5px;color:var(--ink3);margin-top:2px}
 .kc .val{display:flex;align-items:baseline;gap:6px}
 .kc .val b{font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1}
 .kc .val small{font-size:13px;color:var(--ink3)}
+.kc .val b.txt{font-size:17px;font-weight:600;letter-spacing:0;color:var(--ink2);line-height:32px}
 .kc .val i{font-style:normal;font-size:12.5px;color:var(--ink2);margin-left:auto;font-family:var(--mono)}
 .kc .sub{font-size:12.5px;color:var(--ink2);min-height:18px}
 .spark{width:100%;height:46px;display:block}
@@ -220,7 +219,7 @@ function render(){
 
   document.getElementById('grid').innerHTML = rows.map(({ d, c, j }) => `<button type="button" class="kc ${j[0]}" data-code="${d.code}">
       <div class="top"><div><h3>${esc(d.name)}</h3><div class="src">${d.auto ? '자동 집계' : '입력'} · ${esc(d.owner || '')}</div></div><span class="badge ko ${BADGE[j[0]]}">${j[1] || '—'}</span></div>
-      <div class="val"><b>${c.v != null ? fmtV(c.v, d.unit) : (c.text || '—')}</b>${c.v != null ? `<small>${esc(d.unit)}</small>` : ''}<i>목표 ${esc(d.target_text || '')}</i></div>
+      <div class="val"><b class="${c.v != null ? '' : 'txt'}">${c.v != null ? fmtV(c.v, d.unit) : (c.text || '—')}</b>${c.v != null ? `<small>${esc(d.unit)}</small>` : ''}<i>목표 ${esc(d.target_text || '')}</i></div>
       <div class="sub">${c.den != null && d.needs_den ? `${esc(d.num_label || '')} ${c.num} / ${esc(d.den_label || '')} ${c.den}` : ''}${(st.monthly[ym + ':' + d.code] || {}).action ? ' · 조치 기록 있음' : ''}</div>
       ${spark(d)}
     </button>`).join('');

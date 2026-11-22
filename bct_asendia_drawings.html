@@ -616,7 +616,6 @@ async function openDetail(id){
       <div>현재 Rev</div><div><b>${esc(r.current_rev || '—')}</b> ${r.rev_date ? `(${d10(r.rev_date)})` : ''} ${r.pdf_path ? `<button class="pdf-link" onclick="openPdf('${esc(r.pdf_path)}')">관리본 PDF ↗</button>` : ''}</div>
       <div>가공 구분</div><div>${esc(r.process || '—')}</div>
       <div>접수</div><div>${r.received_on ? esc(r.received_on) + ' · ' + esc(r.received_via || '') : '<span class="muted">기록 없음</span>'}</div>
-      <div>원본 위치</div><div class="muted" style="word-break:break-all">${esc(r.source_path || '')}\\${esc(r.file_name || '')}</div>
       <div>비고</div><div>${esc(r.note || '—')}</div>
     </div>
     ${/확인 필요/.test(r.note || '') ? '<div class="warn-box">⚠ 이 도면은 확인이 필요한 사항이 있습니다 (비고 참조).</div>' : ''}
@@ -743,14 +742,13 @@ function openDrawingForm(id){
     <div class="form-field"><label>가공 구분</label><input class="input" id="df_proc" value="${esc(r.process || '')}"></div>
     <div class="form-field"><label>고객 접수일</label><input class="input" type="date" id="df_recv" value="${esc(r.received_on || '')}"></div>
     <div class="form-field"><label>접수 경로</label><input class="input" id="df_via" value="${esc(r.received_via || '')}" placeholder="메일 · 고객 포털 · 직접 전달"></div>
-    <div class="form-field span-2"><label>원본 보관 위치</label><input class="input" id="df_src" value="${esc(r.source_path || '')}"></div>
     <div class="form-field span-2"><label>비고</label><textarea class="textarea" id="df_note">${esc(r.note || '')}</textarea></div>
     ${id ? '' : `<div class="form-field"><label>Rev <span class="req">*</span></label><input class="input" id="df_rev" value="1.0"></div><div class="form-field"><label>관리본 PDF</label><input class="input" type="file" id="df_pdf" accept="application/pdf" style="padding-top:10px"></div>`}
   </div>`, `<button class="btn btn-ghost" onclick="closeModal()">취소</button><button class="btn btn-primary" onclick="saveDrawing(${id ? `'${id}'` : 'null'})">저장</button>`);
 }
 async function saveDrawing(id){
   const rec = { dwg_no: fv('df_no'), variant: fv('df_var'), name: fv('df_name'), model: $('df_model').value, origin: $('df_origin').value, status: $('df_status').value,
-    process: nz(fv('df_proc')), received_on: nz(fv('df_recv')), received_via: nz(fv('df_via')), source_path: nz(fv('df_src')), note: nz(fv('df_note')) };
+    process: nz(fv('df_proc')), received_on: nz(fv('df_recv')), received_via: nz(fv('df_via')), note: nz(fv('df_note')) };
   if(!rec.dwg_no || !rec.name) return mErr('도면번호와 품명을 입력하세요');
   try{
     if(id){ check(await SB.from('dwg_drawings').update(rec).eq('id', id)); toast('수정했습니다'); await load(); openDetail(id); return; }
@@ -768,8 +766,8 @@ async function deleteDrawing(id){
 }
 
 /* PDF 일괄 연결: 파일명에 도면번호(+구분)가 들어 있으면 현재 Rev에 연결합니다.
-   예) GP1612362.pdf · APG-2012HD__GP1612362.pdf · AGL-1004HD__GC18030240_FG.pdf */
-const VARIANT_CODE = { '완제품':'FG', '외주 BODY':'OS-BODY', '외주 PIN':'OS-PIN', 'U1':'U1' };
+   예) GP1612362.pdf · APG-2012HD__GP1612362.pdf · AGL-1004HD__GC18030240_BASE.pdf */
+const VARIANT_CODE = { '완제품':'FG', 'Base':'BASE', 'Fin':'FIN', 'U1':'U1' };
 async function bulkAttachPdfs(files){
   files = Array.from(files || []); if(!files.length) return;
   let ok = 0; const miss = [];
@@ -790,9 +788,9 @@ async function bulkAttachPdfs(files){
 
 /* ---------- 출력 ---------- */
 function exportCsv(){
-  const head = ['No','도면번호','구분','품명','모델','출처','가공','현재Rev','도곽일자','개정수','최근검토일','검토결과','검토자','배포중','회수대기','상태','원본위치','비고'];
+  const head = ['No','도면번호','구분','품명','모델','출처','가공','현재Rev','도곽일자','개정수','최근검토일','검토결과','검토자','배포중','회수대기','상태','비고'];
   const rows = filtered().map((r, i) => [i + 1, r.dwg_no, r.variant, r.name, r.model, ORIGIN[r.origin], r.process, r.current_rev, d10(r.rev_date), r.rev_count,
-    r.last_reviewed_on, RESULT[r.last_review_result] || '', r.last_reviewer, r.copies_out, r.recall_pending, STATUS[r.status], (r.source_path || '') + '\\' + (r.file_name || ''), r.note]);
+    r.last_reviewed_on, RESULT[r.last_review_result] || '', r.last_reviewer, r.copies_out, r.recall_pending, STATUS[r.status], r.note]);
   const q = v => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const blob = new Blob(['﻿' + [head, ...rows].map(r => r.map(q).join(',')).join('\r\n')], { type:'text/csv;charset=utf-8' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ASENDIA_도면관리대장_${today()}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 500);

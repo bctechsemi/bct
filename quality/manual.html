@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>품질 매뉴얼 — BCT Quality</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<style>
+.dinfo{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.dinfo div{padding:12px 14px;border-right:1px solid var(--line2);min-width:0}
+.dinfo div:last-child{border-right:0}
+.dinfo span{display:block;font-size:11.5px;color:var(--ink3);font-weight:600;margin-bottom:4px}
+.dinfo b{font-size:14px;font-weight:600;word-break:keep-all}
+.dinfo b.mono{font-family:var(--mono);color:var(--deep)}
+@media (max-width:900px){.dinfo{grid-template-columns:repeat(2,minmax(0,1fr))}.dinfo div{border-bottom:1px solid var(--line2)}}
+.draft{display:flex;gap:10px;align-items:center;background:var(--amb-bg);color:#7A4F10;border-radius:12px;padding:11px 16px;font-size:13.5px;margin-bottom:18px}
+.draft b{font-weight:700;white-space:nowrap}
+.layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;align-items:start}
+.layout>*{min-width:0}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}.toc{display:none}}
+.toc{position:sticky;top:84px;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 10px}
+.toc h4{margin:0 8px 8px;font-size:11.5px;letter-spacing:.08em;color:var(--ink3);font-family:var(--mono)}
+.toc a{display:block;padding:7px 10px;border-radius:9px;font-size:13.5px;color:var(--ink2);text-decoration:none;line-height:1.35}
+.toc a:hover{background:var(--pale2);color:var(--ink)}
+.toc a.on{background:var(--pale);color:var(--deep);font-weight:700}
+.toc a i{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink3);margin-right:6px}
+.doc{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:8px 32px 28px}
+@media (max-width:640px){.doc{padding:4px 16px 20px}}
+.sec2{padding-top:22px;border-top:1px solid var(--line2);scroll-margin-top:80px}
+.sec2:first-child{border-top:0}
+.sec2 .sh{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.sec2 h2{margin:6px 0 12px;font-size:20px;letter-spacing:-.02em}
+.sec2 h2 i{font-style:normal;font-family:var(--mono);color:var(--primary);margin-right:8px}
+.sec2 .upd{font-size:11.5px;color:var(--ink3);font-family:var(--mono)}
+.md{font-size:14.5px;line-height:1.75;color:var(--ink);word-break:keep-all}
+.md p{margin:0 0 12px}
+.md strong{font-weight:700}
+.md a{color:var(--primary);font-weight:600}
+.md blockquote{margin:0 0 14px;padding:14px 18px;background:var(--pale2);border-left:3px solid var(--primary);border-radius:0 10px 10px 0;font-family:'Gowun Batang',serif;font-size:15.5px;line-height:1.8}
+.md blockquote p{margin:0}
+.md ul,.md ol{margin:0 0 14px;padding-left:22px}
+.md li{margin:3px 0}
+.md table{width:100%;border-collapse:collapse;margin:4px 0 16px;font-size:13.5px;line-height:1.5}
+.md th{background:var(--pale2);color:var(--ink2);font-weight:700;font-size:12.5px;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+.md td{padding:9px 10px;border-bottom:1px solid var(--line2);vertical-align:top}
+.md .tw{overflow-x:auto;margin-bottom:4px}
+.md svg.orgsvg{width:100%;height:auto;max-width:760px;display:block;margin:4px auto 14px;font-family:var(--font)}
+.hist-t{margin-top:26px}
+.hist-t h3{font-size:14px;color:var(--ink2);margin:0 0 8px}
+.ed{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ed textarea{min-height:52vh;font-family:var(--mono);font-size:12.5px;line-height:1.55}
+.ed .pv{border:1px solid var(--line);border-radius:10px;padding:10px 14px;max-height:56vh;overflow:auto}
+@media (max-width:860px){.ed{grid-template-columns:1fr}}
+.modal .mbox.wide{width:min(1100px,100%)}
+.pcover{display:none}
+@media print{
+  @page{size:A4 portrait;margin:14mm 12mm}
+  .toc,.draft .btn,.sec2 .btn,.sec2 .upd{display:none!important}
+  .no-print{display:none!important}
+  .layout{display:block}
+  .doc{border:0;padding:0}
+  .pcover{display:block;margin-bottom:10px}
+  .dinfo{display:none}
+  .draft{border:1px solid #C98A2B}
+  .sec2{break-inside:auto;page-break-inside:auto}
+  .sec2 h2{break-after:avoid}
+  .md{font-size:10.5pt;line-height:1.6}
+  .md table{font-size:9pt}
+  .md tr{break-inside:avoid}
+  .md blockquote{font-size:11pt}
+}
+.pdoc .hd td{font-size:10pt}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="ph no-print">
+    <div>
+      <div class="eyebrow"><i></i>Quality Control · Quality Manual</div>
+      <h1 id="pTitle">품질 매뉴얼</h1>
+      <p>BCT 품질경영 체계의 최상위 문서입니다. 항상 현행본만 보이며, 개정 이력은 맨 아래에 남습니다.</p>
+    </div>
+    <div class="actions">
+      <a class="btn" href="./documents.html" id="bReg">문서관리대장</a>
+      <button class="btn" id="bPrint" type="button"></button>
+    </div>
+  </div>
+
+  <div class="pcover pdoc" id="pcover"></div>
+  <div class="dinfo" id="dinfo"></div>
+  <div class="draft hidden" id="draft"></div>
+
+  <div class="layout">
+    <nav class="toc" id="toc" aria-label="목차"><h4>CONTENTS</h4></nav>
+    <article class="doc" id="doc"><div class="boot">불러오는 중…</div></article>
+  </div>
+</main>
+
+<script src="./assets/qc.js"></script>
+<script>
+const { sb, esc, icon, toast, fld, nz } = QC;
+const DOC_NO = new URLSearchParams(location.search).get('doc') || 'BCT-QM-01';
+const STATUS = { planned:['제정 예정','gry'], draft:['초안','amb'], effective:['시행','grn'], obsolete:['폐기','red'] };
+const st = { doc:null, secs:[], revs:[], people:{} };
+
+marked.setOptions({ gfm:true, breaks:false });
+const render = md => {
+  const html = DOMPurify.sanitize(marked.parse(md || ''), { ADD_ATTR:['target'] });
+  return html.replace(/<table>/g, '<div class="tw"><table>').replace(/<\/table>/g, '</table></div>');
+};
+
+async function load(){
+  const { data:doc, error } = await sb.from('doc_register').select('*').eq('doc_no', DOC_NO).maybeSingle();
+  if(error) return toast(error.message, true);
+  if(!doc){ document.getElementById('doc').innerHTML = `<div class="empty">${esc(DOC_NO)} 문서를 찾을 수 없습니다</div>`; return; }
+  const [s, r, p] = await Promise.all([
+    sb.from('doc_sections').select('*').eq('doc_id', doc.id).order('sec_no'),
+    sb.from('doc_revisions').select('*').eq('doc_id', doc.id).order('created_at', { ascending:false }),
+    sb.from('profiles').select('id,name,email'),
+  ]);
+  st.doc = doc; st.secs = s.data || []; st.revs = r.data || [];
+  st.people = Object.fromEntries((p.data || []).map(x => [x.id, x.name || x.email]));
+  draw();
+}
+
+function draw(){
+  const d = st.doc, admin = QC.isAdmin(), [stTxt, stCls] = STATUS[d.status];
+  document.title = `${d.title.replace(/\s*\(.*\)$/, '')} — BCT Quality`;
+  document.getElementById('pTitle').textContent = d.title.replace(/\s*\(.*\)$/, '');
+  document.getElementById('dinfo').innerHTML = [
+    ['문서번호', `<b class="mono">${esc(d.doc_no)}</b>`], ['Rev', `<b class="mono">${esc(d.current_rev || '—')}</b>`],
+    ['상태', `<span class="badge ko ${stCls}" style="margin:0">${stTxt}</span>`], ['시행일', `<b class="mono">${esc(d.effective_on || '—')}</b>`],
+    ['작성', `<b>${esc(d.author || '—')}</b>`], ['검토', `<b>${esc(d.reviewer || '—')}</b>`], ['승인', `<b>${esc(d.approver || '—')}</b>`],
+  ].map(([k, v]) => `<div><span>${k}</span>${v}</div>`).join('');
+
+  const dr = document.getElementById('draft');
+  const notYet = d.status === 'draft' || d.status === 'planned';
+  dr.classList.toggle('hidden', !notYet);
+  dr.innerHTML = notYet ? `<b>${stTxt}</b><span>승인 전 문서입니다. 대표이사 승인 후 문서관리대장에서 "제정 등록"을 하면 시행본이 됩니다.</span>` : '';
+
+  document.getElementById('toc').innerHTML = '<h4>CONTENTS</h4>' + st.secs.map(s => `<a href="#s${s.sec_no}" data-s="${s.sec_no}"><i>${s.sec_no}</i>${esc(s.title)}</a>`).join('')
+    + (st.revs.length ? '<a href="#rev"><i>—</i>개정 이력</a>' : '');
+
+  document.getElementById('doc').innerHTML = st.secs.map(s => `<section class="sec2" id="s${s.sec_no}">
+      <div class="sh"><h2><i>${s.sec_no}.</i>${esc(s.title)}</h2>
+        ${admin ? `<button class="btn sm no-print" type="button" data-edit="${s.id}">${icon.edit}수정</button>` : ''}</div>
+      <div class="md">${render(s.body_md)}</div>
+      <div class="upd">최종 수정 ${QC.fmtDT(s.updated_at)}${s.updated_by && st.people[s.updated_by] ? ' · ' + esc(st.people[s.updated_by]) : ''}</div>
+    </section>`).join('') + revTable() || '<div class="empty">본문이 없습니다</div>';
+
+  document.getElementById('pcover').innerHTML = `<table class="hd"><tr>
+      <td rowspan="3" class="ttl" style="font-size:17pt;letter-spacing:.15em">${esc(d.title.replace(/\s*\(.*\)$/, ''))}</td>
+      <td class="lbl">문서번호</td><td>${esc(d.doc_no)}</td>
+      <td rowspan="3" style="padding:0;width:200px"><table class="sign" style="width:100%"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:46px"></td><td></td><td></td></tr></table></td></tr>
+      <tr><td class="lbl">Rev</td><td>${esc(d.current_rev || '')} ${notYet ? '(' + stTxt + ')' : ''}</td></tr>
+      <tr><td class="lbl">시행일</td><td>${esc(d.effective_on || '')}</td></tr></table>`;
+  spy();
+}
+function revTable(){
+  if(!st.revs.length) return '';
+  return `<section class="sec2 hist-t" id="rev"><h3>개정 이력</h3><div class="md"><div class="tw"><table><thead><tr><th>Rev</th><th>시행일</th><th>내용</th><th>작성</th><th>승인</th></tr></thead><tbody>
+    ${st.revs.map(r => `<tr><td>${esc(r.rev)}</td><td>${esc(r.rev_date || '')}</td><td>${esc(r.change_desc || '')}</td><td>${esc(r.author || '')}</td><td>${esc(r.approver_name || '')}</td></tr>`).join('')}
+  </tbody></table></div></div></section>`;
+}
+
+/* 목차 현재 위치 */
+let obs;
+function spy(){
+  obs && obs.disconnect();
+  const links = [...document.querySelectorAll('.toc a[data-s]')];
+  obs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); } }), { rootMargin:'-80px 0px -70% 0px' });
+  document.querySelectorAll('.sec2[id^="s"]').forEach(s => obs.observe(s));
+}
+
+/* 장 수정 (관리자) */
+function editSection(id){
+  const s = st.secs.find(x => x.id === id), d = st.doc;
+  const f = QC.openModal(`${s.sec_no}장 수정 — ${s.title}`, `<div class="grid2" style="margin-bottom:12px">
+      ${fld('title', '장 제목', s.title, { req:true })}${fld('sec_no', '장 번호', s.sec_no, { type:'number', attr:'min="1"' })}</div>
+    <div class="ed"><div class="f"><label>본문 (Markdown · 표는 | 로 구분)</label><textarea name="body_md">${esc(s.body_md)}</textarea></div>
+    <div class="f"><label>미리보기</label><div class="pv md" id="pv"></div></div></div>
+    ${d.status === 'effective' ? '<div class="hint" style="margin-top:10px;color:#A86F1C">시행 중인 문서입니다. 내용을 바꾸면 문서관리대장에서 개정 등록(Rev 올림)을 해야 합니다.</div>' : ''}`,
+  async fd => {
+    if(d.status === 'effective' && !confirm('시행 중인 문서를 고칩니다. 저장 후 문서관리대장에서 개정 등록을 해 주세요. 계속할까요?')) throw new Error('취소했습니다');
+    const rec = { title: nz(fd.get('title')), sec_no: Number(fd.get('sec_no')) || s.sec_no, body_md: String(fd.get('body_md') || ''), updated_by: QC.S.user.id };
+    const { error } = await sb.from('doc_sections').update(rec).eq('id', s.id);
+    if(error) throw new Error(/unique|duplicate/i.test(error.message) ? '같은 장 번호가 이미 있습니다' : error.message);
+    toast('저장했습니다'); await load();
+  }, { ok:'저장' });
+  f.classList.add('wide');
+  const ta = f.querySelector('[name=body_md]'), pv = f.querySelector('#pv');
+  const upd = () => { pv.innerHTML = render(ta.value); };
+  ta.addEventListener('input', upd); upd();
+  const closeObs = new MutationObserver(() => { if(!f.parentElement.classList.contains('show')){ f.classList.remove('wide'); closeObs.disconnect(); } });
+  closeObs.observe(f.parentElement, { attributes:true, attributeFilter:['class'] });
+}
+
+document.getElementById('bPrint').innerHTML = icon.print + '인쇄 · PDF';
+document.getElementById('bPrint').onclick = () => window.print();
+document.getElementById('doc').addEventListener('click', e => { const b = e.target.closest('[data-edit]'); if(b) editSection(Number(b.dataset.edit)); });
+
+QC.init('docs', load);
+</script>
+</body>
+</html>

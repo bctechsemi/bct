@@ -11,6 +11,7 @@ const QC_NAV = [
   { key:'env',         label:'온습도 관리', href:'./env.html' },
   { key:'5s',          label:'3정5S',     href:'./5s.html' },
   { key:'workers',     label:'작업자 인증', href:'./workers.html' },
+  { key:'docs',        label:'문서 관리',   href:'./documents.html' },
 ];
 
 const QC = (() => {

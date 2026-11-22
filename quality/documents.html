@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>문서 관리 — BCT Quality</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+.scheme{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:16px}
+.scheme div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--ink2);line-height:1.45}
+.scheme b{display:block;font-family:var(--mono);font-size:12.5px;color:var(--deep);margin-bottom:2px}
+@media (max-width:900px){.scheme{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.scheme{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.toolbar .seg{flex-wrap:wrap}
+.tbl td.op{text-align:right;white-space:nowrap}
+.tbl a.open{color:var(--primary);font-weight:600;font-size:13px;text-decoration:none}
+.tbl a.open:hover{text-decoration:underline}
+.tbl tr.obs td{opacity:.55}
+.warn{color:#A86F1C;font-size:12px;margin-top:2px}
+.icard .warn{margin-top:4px}
+.dact{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.rv{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 13px}
+.rv .r{font-family:var(--mono);font-weight:700;color:var(--deep)}
+.rv .d{font-family:var(--mono);font-size:12.5px;color:var(--ink2)}
+.rv .m{grid-column:1/-1;font-size:12.5px;color:var(--ink2)}
+.rv .m a{color:var(--primary);font-weight:600}
+.rvs{display:flex;flex-direction:column;gap:8px}
+@media print{ .pdoc .list td{font-size:8.5pt;padding:3px 4px} }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="no-print">
+    <div class="ph">
+      <div>
+        <div class="eyebrow"><i></i>Quality Control · Document Control</div>
+        <h1>문서 관리</h1>
+        <p>품질 매뉴얼 · 절차서 · 작업표준 · 양식 · 고객 문서의 번호, 최신 Rev, 시행일, 승인권자를 한 대장에서 관리합니다 (ISO 9001 7.5).</p>
+      </div>
+      <div class="actions">
+        <button class="btn" id="bCsv" type="button"></button>
+        <button class="btn" id="bPrint" type="button"></button>
+        <button class="btn pri hidden" id="bAdd" type="button"></button>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+    <div class="scheme" id="scheme"></div>
+
+    <div class="toolbar">
+      <div class="search"><input id="q" type="search" placeholder="문서번호, 문서명, 분야, 승인권자 검색"></div>
+      <div class="seg" id="typeSeg"></div>
+      <div class="seg" id="stSeg"></div>
+      <label class="chk"><input type="checkbox" id="showObs"> 폐기 문서 표시</label>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>문서번호</th><th>문서명 / 분야</th><th>구분</th><th>Rev</th><th>시행일</th><th>상태</th><th>관리부서</th><th>승인권자</th><th></th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="9" class="empty">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="cards" id="cards"></div>
+  </div>
+  <div class="print-only pdoc" id="printDoc"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="dh">
+    <div class="t"><div class="no" id="dNo"></div><h2 id="dName"></h2></div>
+    <button class="x" type="button" id="dClose" aria-label="닫기"></button>
+  </div>
+  <div class="db" id="dBody"></div>
+</aside>
+
+<script src="./assets/qc.js"></script>
+<script>
+const { sb, esc, icon, toast, fld, nz } = QC;
+const TYPES = {
+  QM:  { label:'품질 매뉴얼', desc:'방침 · 조직 · 업무 분장', fmt:'BCT-QM-NN' },
+  QP:  { label:'절차서',     desc:'부서 간 업무 절차 · 규정', fmt:'BCT-QP-NN' },
+  SOP: { label:'작업절차서', desc:'업무 프로세스 절차', fmt:'BCT-SOP-분야-NN' },
+  WI:  { label:'작업표준',   desc:'제품 · 장비별 작업 방법', fmt:'BCT-WI-대상-NNN' },
+  QF:  { label:'양식 · 대장', desc:'기록 양식 · 시스템 대장', fmt:'BCT-QF-NN' },
+  EXT: { label:'외부 문서',  desc:'고객 문서 (원 번호 · Rev 유지)', fmt:'고객 번호 그대로' },
+};
+const STATUS = { planned:['제정 예정','gry'], draft:['작성 중','amb'], effective:['시행','grn'], obsolete:['폐기','red'] };
+const st = { docs:[], type:'', status:'', q:'', obs:false, cur:null };
+const needsCheck = d => /확인 필요/.test(d.note || '');
+
+async function load(){
+  const { data, error } = await sb.from('doc_register').select('*').order('sort').order('doc_no');
+  if(error) return toast(error.message, true);
+  st.docs = data; render();
+  if(st.cur){ const d = st.docs.find(x => x.id === st.cur); d ? openDoc(d.id) : closeDrawer(); }
+}
+
+function filtered(){
+  const q = st.q.toLowerCase();
+  return st.docs.filter(d => (st.obs || d.status !== 'obsolete' || st.status === 'obsolete')
+    && (!st.type || d.doc_type === st.type || (st.type === 'SOP' && d.doc_type === 'WI'))
+    && (!st.status || d.status === st.status)
+    && (!q || [d.doc_no, d.title, d.area, d.approver, d.owner_dept, d.note].some(v => (v || '').toLowerCase().includes(q))));
+}
+const badge = s => `<span class="badge ko ${STATUS[s][1]}">${STATUS[s][0]}</span>`;
+const typeLabel = t => (TYPES[t] || {}).label || t;
+
+/* 링크: http(s)·상대경로는 그대로, 그 외는 Storage 경로 */
+function hrefOf(d){
+  if(d.link) return /^https?:/.test(d.link) ? encodeURI(decodeURI(d.link)) : d.link;
+  return null;
+}
+async function openFile(d){
+  if(d.file_path){ const u = await QC.fileUrl(d.file_path); return u ? window.open(u, '_blank', 'noopener') : toast('파일을 열 수 없습니다', true); }
+  const h = hrefOf(d); h ? window.open(h, '_blank', 'noopener') : toast('연결된 파일이 없습니다', true);
+}
+
+function render(){
+  const all = st.docs.filter(d => d.status !== 'obsolete');
+  const k = [
+    ['blu', '관리 문서', all.length, '건', ''],
+    ['grn', '시행', all.filter(d => d.status === 'effective').length, '건', 'effective'],
+    ['amb', '제정 예정 · 작성 중', all.filter(d => d.status === 'planned' || d.status === 'draft').length, '건', 'planned'],
+    ['amb', 'Rev · 승인자 확인 필요', all.filter(needsCheck).length, '건', 'check'],
+    ['', '폐기', st.docs.length - all.length, '건', 'obsolete'],
+  ];
+  document.getElementById('kpis').innerHTML = k.map(([c, t, v, u, f]) => `<button type="button" class="kpi ${c} ${(st.status || (st.q === '확인 필요' ? 'check' : '')) === f && f ? 'on' : ''}" data-f="${f}"><div class="k"><i></i>${t}</div><div class="v">${v}<small>${u}</small></div></button>`).join('');
+
+  document.getElementById('scheme').innerHTML = Object.entries(TYPES).map(([t, x]) => `<div><b>${x.fmt}</b>${x.label} — ${x.desc}<br><span class="mono" style="font-size:11.5px">${st.docs.filter(d => d.doc_type === t && d.status !== 'obsolete').length}건</span></div>`).join('');
+  document.getElementById('typeSeg').innerHTML = [['', '전체'], ['QM','매뉴얼'], ['QP','절차서'], ['SOP','작업절차·표준'], ['QF','양식'], ['EXT','외부']].map(([v, t]) => `<button type="button" data-v="${v}" class="${st.type === v ? 'on' : ''}">${t}</button>`).join('');
+  document.getElementById('stSeg').innerHTML = [['', '모든 상태'], ['effective','시행'], ['planned','제정 예정'], ['draft','작성 중']].map(([v, t]) => `<button type="button" data-v="${v}" class="${st.status === v ? 'on' : ''}">${t}</button>`).join('');
+  document.getElementById('bAdd').classList.toggle('hidden', !QC.isAdmin());
+
+  const rows = filtered();
+  const open = d => (d.file_path || d.link) ? `<a class="open" href="${esc(hrefOf(d) || '#')}" data-open="${d.id}" target="_blank" rel="noopener">열기</a>` : '';
+  document.getElementById('tbody').innerHTML = rows.map(d => `<tr data-id="${d.id}" class="${d.status === 'obsolete' ? 'obs' : ''}">
+      <td class="no">${esc(d.doc_no)}</td>
+      <td><div class="nm">${esc(d.title)}</div><div class="sub">${esc(d.area || '')}</div>${needsCheck(d) ? `<div class="warn">${esc(d.note)}</div>` : ''}</td>
+      <td>${esc(typeLabel(d.doc_type))}</td><td class="mn">${esc(d.current_rev || '—')}</td><td class="dt">${esc(d.effective_on || '—')}</td>
+      <td>${badge(d.status)}</td><td>${esc(d.owner_dept || '')}</td><td>${esc(d.approver || '—')}</td><td class="op">${open(d)}</td></tr>`).join('')
+    || '<tr><td colspan="9" class="empty">조건에 맞는 문서가 없습니다</td></tr>';
+  document.getElementById('cards').innerHTML = rows.map(d => `<button type="button" class="icard" data-id="${d.id}"><div class="body">
+      <div class="top"><div class="nm">${esc(d.title)}</div>${badge(d.status)}</div>
+      <div class="meta">${[d.doc_no, d.current_rev, d.effective_on].filter(Boolean).map(esc).join(' · ')}</div>${needsCheck(d) ? `<div class="warn">${esc(d.note)}</div>` : ''}</div></button>`).join('')
+    || '<div class="empty">조건에 맞는 문서가 없습니다</div>';
+}
+
+/* ---------- 상세 drawer ---------- */
+const drawer = document.getElementById('drawer'), scrim = document.getElementById('scrim');
+function closeDrawer(){ drawer.classList.remove('show'); scrim.classList.remove('show'); drawer.setAttribute('aria-hidden', 'true'); st.cur = null; }
+async function openDoc(id){
+  const d = st.docs.find(x => x.id === id); if(!d) return;
+  st.cur = id;
+  const { data:revs } = await sb.from('doc_revisions').select('*').eq('doc_id', id).order('created_at', { ascending:false });
+  const admin = QC.isAdmin(), h = hrefOf(d);
+  document.getElementById('dNo').textContent = d.doc_no;
+  document.getElementById('dName').textContent = d.title;
+  const kv = [['구분', typeLabel(d.doc_type)], ['상태', badge(d.status)], ['현재 Rev', esc(d.current_rev || '—')], ['시행일', esc(d.effective_on || '—')],
+    ['분야', esc(d.area || '')], ['관리부서', esc(d.owner_dept || '')], ['작성자', esc(d.author || '—')], ['승인권자', esc(d.approver || '—')],
+    ['보관 위치', esc(d.location || '—')], ['배포처', esc(d.distribution || '—')], ['보존 기간', esc(d.retention || '—')], ['Audit 항목', esc(d.audit_ref || '—')], ['비고', esc(d.note || '')]];
+  document.getElementById('dBody').innerHTML = `
+    <div class="dact">
+      ${(d.file_path || h) ? `<button class="btn sm" type="button" id="dOpen">${icon.dl}문서 열기</button>` : ''}
+      ${admin ? `<button class="btn sm" type="button" id="dEdit">${icon.edit}정보 수정</button><button class="btn sm pri" type="button" id="dRev">${icon.plus}${d.status === 'effective' ? '개정 등록' : '제정 등록'}</button>` : ''}
+    </div>
+    <div class="sec"><dl class="kv">${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></div>
+    <div class="sec"><div class="sec-h"><h3>개정 이력</h3></div><div class="rvs">${(revs || []).map(r => `<div class="rv">
+      <span class="r">${esc(r.rev)}</span><span>${esc(r.change_desc || '')}</span><span class="d">${esc(r.rev_date || '')}</span>
+      <div class="m">${[r.author ? '작성 ' + esc(r.author) : '', r.approver_name ? '승인 ' + esc(r.approver_name) : '', r.file_path ? `<a href="#" data-rfile="${esc(r.file_path)}">해당 Rev 파일</a>` : ''].filter(Boolean).join(' · ') || '&nbsp;'}</div></div>`).join('')
+      || '<div class="empty" style="padding:14px">개정 이력이 없습니다</div>'}</div></div>`;
+  const b = id => document.getElementById(id);
+  b('dOpen') && (b('dOpen').onclick = () => openFile(d));
+  b('dEdit') && (b('dEdit').onclick = () => docForm(d));
+  b('dRev') && (b('dRev').onclick = () => revForm(d));
+  document.querySelectorAll('[data-rfile]').forEach(a => a.onclick = async e => { e.preventDefault(); const u = await QC.fileUrl(a.dataset.rfile); u ? window.open(u, '_blank', 'noopener') : toast('파일을 열 수 없습니다', true); });
+  drawer.classList.add('show'); scrim.classList.add('show'); drawer.setAttribute('aria-hidden', 'false');
+}
+
+/* ---------- 등록 · 수정 ---------- */
+function nextNo(type){
+  const pre = { QM:'BCT-QM-', QP:'BCT-QP-', QF:'BCT-QF-' }[type];
+  if(!pre) return '';
+  const n = Math.max(0, ...st.docs.filter(d => d.doc_no.startsWith(pre)).map(d => parseInt(d.doc_no.slice(pre.length)) || 0));
+  return pre + String(n + 1).padStart(2, '0');
+}
+function docForm(d){
+  const isNew = !d;
+  d = d || { doc_type:'QP', status:'planned', doc_no: nextNo('QP'), sort: Math.max(0, ...st.docs.map(x => x.sort)) + 10 };
+  const f = QC.openModal(isNew ? '문서 등록' : `${d.doc_no} 정보 수정`, `<div class="grid2">
+    ${fld('doc_type', '구분', d.doc_type, { options: Object.entries(TYPES).map(([k, x]) => [k, `${k} · ${x.label}`]) })}
+    ${fld('doc_no', '문서번호', d.doc_no, { req:true, hint:'QM·QP·QF는 다음 번호가 자동으로 들어갑니다' })}
+    ${fld('title', '문서명', d.title, { req:true, full:true })}
+    ${fld('area', '분야', d.area)}${fld('owner_dept', '관리부서', d.owner_dept, { options: ['', '품질', '생산관리', '구매/생산관리', '영업관리', '경영지원'].map(v => [v, v || '(선택)']).concat(d.owner_dept && !['품질','생산관리','구매/생산관리','영업관리','경영지원'].includes(d.owner_dept) ? [[d.owner_dept, d.owner_dept]] : []) })}
+    ${fld('author', '작성자', d.author)}${fld('approver', '승인권자', d.approver, { hint:'QM 대표이사 · QP 품질책임자 · 생산 SOP 생산관리책임자' })}
+    ${fld('status', '상태', d.status, { options: Object.entries(STATUS).map(([k, [t]]) => [k, t]) })}${fld('current_rev', '현재 Rev', d.current_rev, { hint:'개정은 "개정 등록"으로 하면 이력이 남습니다' })}
+    ${fld('effective_on', '시행일', d.effective_on, { type:'date' })}${fld('retention', '보존 기간', d.retention)}
+    ${fld('location', '보관 위치', d.location, { full:true })}
+    ${fld('link', '링크 (화면 · 공개 파일)', d.link, { full:true, hint:'예) instruments.html, https://…/file.pdf' })}
+    ${fld('distribution', '배포처', d.distribution)}${fld('audit_ref', 'Audit 항목', d.audit_ref)}
+    ${fld('note', '비고', d.note, { area:true, full:true })}
+    ${fld('sort', '표시 순서', d.sort, { type:'number' })}
+  </div>`, async fd => {
+    const rec = Object.fromEntries(['doc_type','doc_no','title','area','owner_dept','author','approver','status','current_rev','effective_on','retention','location','link','distribution','audit_ref','note'].map(k => [k, nz(fd.get(k))]));
+    rec.doc_no = String(rec.doc_no).toUpperCase(); rec.sort = Number(fd.get('sort')) || 0;
+    const { error } = isNew ? await sb.from('doc_register').insert(rec) : await sb.from('doc_register').update(rec).eq('id', d.id);
+    if(error) throw new Error(/unique|duplicate/i.test(error.message) ? '이미 있는 문서번호입니다' : error.message);
+    toast('저장했습니다'); await load();
+  }, isNew ? { ok:'등록' } : { ok:'저장', extra: d.status !== 'obsolete' ? { label:'폐기 처리', run: async () => {
+    if(!confirm(`${d.doc_no}을(를) 폐기 문서로 바꿉니다. 대장과 이력은 남습니다. 계속할까요?`)) return false;
+    const { error } = await sb.from('doc_register').update({ status:'obsolete' }).eq('id', d.id);
+    if(error) throw new Error(error.message); toast('폐기 처리했습니다'); await load(); } } : undefined });
+  if(isNew){ const t = f.querySelector('[name=doc_type]'), n = f.querySelector('[name=doc_no]'); t.onchange = () => { n.value = nextNo(t.value); }; }
+}
+function suggestRev(cur){
+  if(!cur) return 'Rev.0';
+  const m = String(cur).match(/^(.*?)(\d+)$/); return m ? m[1] + (Number(m[2]) + 1) : cur;
+}
+function revForm(d){
+  const first = d.status !== 'effective';
+  QC.openModal(`${d.doc_no} ${first ? '제정' : '개정'} 등록`, `<div class="grid2">
+    ${fld('rev', 'Rev', first && !d.current_rev ? 'Rev.0' : suggestRev(d.current_rev), { req:true })}${fld('rev_date', '시행일', QC.todayKST(), { type:'date', req:true })}
+    ${fld('change_desc', first ? '제정 내용' : '개정 내용', first ? '제정' : '', { area:true, full:true, req:true })}
+    ${fld('author', '작성자', d.author)}${fld('approver_name', '승인자', d.approver, { hint:'실제 승인한 사람' })}
+    <div class="f full"><label>문서 파일 (PDF)</label><input type="file" name="file" accept="application/pdf,image/*,.docx,.xlsx,.pptx"><div class="hint">올리면 이 Rev의 관리본이 됩니다. 비우면 기존 링크를 유지합니다.</div></div>
+  </div>`, async fd => {
+    const rec = { doc_id: d.id, rev: nz(fd.get('rev')), rev_date: nz(fd.get('rev_date')), change_desc: nz(fd.get('change_desc')), author: nz(fd.get('author')), approver_name: nz(fd.get('approver_name')) };
+    const file = fd.get('file');
+    if(file && file.size) rec.file_path = await QC.upload(file, `docs/${d.doc_no}`);
+    const { error } = await sb.from('doc_revisions').insert(rec);
+    if(error) throw new Error(/unique|duplicate/i.test(error.message) ? '이미 등록된 Rev입니다' : error.message);
+    const up = { current_rev: rec.rev, effective_on: rec.rev_date, status:'effective' };
+    if(rec.file_path) up.file_path = rec.file_path;
+    if(rec.author) up.author = rec.author;
+    if(needsCheck(d) && rec.approver_name) up.note = (d.note || '').replace(/승인자 기록 확인 필요/, '').trim() || null;
+    const r2 = await sb.from('doc_register').update(up).eq('id', d.id);
+    if(r2.error) throw new Error(r2.error.message);
+    toast(`${rec.rev}을(를) 등록했습니다`); await load();
+  }, { ok:'등록' });
+}
+
+/* ---------- 출력 ---------- */
+function printRegister(){
+  const rows = filtered();
+  document.getElementById('printDoc').innerHTML = `
+    <table class="hd" style="margin-bottom:8px"><tr><td rowspan="2" class="ttl" style="font-size:16pt;letter-spacing:.2em">문서 관리대장</td>
+      <td class="lbl">양식번호</td><td>BCT-QF-05</td><td rowspan="2" style="padding:0;width:210px"><table class="sign"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:40px"></td><td></td><td></td></tr></table></td></tr>
+      <tr><td class="lbl">출력일</td><td>${QC.todayKST()} · ${rows.length}건</td></tr></table>
+    <table class="list"><thead><tr><th style="width:28px">No</th><th style="width:150px">문서번호</th><th>문서명</th><th style="width:70px">구분</th><th style="width:48px">Rev</th><th style="width:72px">시행일</th><th style="width:56px">상태</th><th style="width:70px">관리부서</th><th style="width:130px">승인권자</th><th style="width:150px">보관 위치</th></tr></thead>
+    <tbody>${rows.map((d, i) => `<tr><td>${i + 1}</td><td class="l">${esc(d.doc_no)}</td><td class="l">${esc(d.title)}</td><td>${esc(typeLabel(d.doc_type))}</td><td>${esc(d.current_rev || '')}</td><td>${esc(d.effective_on || '')}</td><td>${STATUS[d.status][0]}</td><td>${esc(d.owner_dept || '')}</td><td class="l">${esc(d.approver || '')}</td><td class="l" style="word-break:break-all">${esc(d.location || '')}</td></tr>`).join('')}</tbody></table>`;
+  window.print();
+}
+function exportCsv(){
+  QC.csv([['문서번호','문서명','구분','분야','Rev','시행일','상태','관리부서','작성자','승인권자','보관 위치','링크','배포처','보존 기간','Audit 항목','비고'],
+    ...filtered().map(d => [d.doc_no, d.title, typeLabel(d.doc_type), d.area, d.current_rev, d.effective_on, STATUS[d.status][0], d.owner_dept, d.author, d.approver, d.location, d.link, d.distribution, d.retention, d.audit_ref, d.note])],
+    `BCT_문서관리대장_${QC.todayKST()}.csv`);
+}
+
+/* ---------- 이벤트 ---------- */
+document.getElementById('bAdd').innerHTML = icon.plus + '문서 등록';
+document.getElementById('bPrint').innerHTML = icon.print + '대장 출력';
+document.getElementById('bCsv').innerHTML = icon.dl + 'CSV';
+document.getElementById('dClose').innerHTML = icon.x;
+document.getElementById('bAdd').onclick = () => docForm();
+document.getElementById('bPrint').onclick = printRegister;
+document.getElementById('bCsv').onclick = exportCsv;
+document.getElementById('dClose').onclick = closeDrawer;
+scrim.onclick = closeDrawer;
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && drawer.classList.contains('show') && !document.querySelector('.modal.show')) closeDrawer(); });
+document.getElementById('q').oninput = e => { st.q = e.target.value.trim(); render(); };
+document.getElementById('showObs').onchange = e => { st.obs = e.target.checked; render(); };
+document.getElementById('typeSeg').onclick = e => { const b = e.target.closest('button'); if(b){ st.type = b.dataset.v; render(); } };
+document.getElementById('stSeg').onclick = e => { const b = e.target.closest('button'); if(b){ st.status = b.dataset.v; render(); } };
+document.getElementById('kpis').onclick = e => {
+  const b = e.target.closest('.kpi'); if(!b) return; const f = b.dataset.f, qi = document.getElementById('q');
+  if(f === 'check'){ st.status = ''; st.q = st.q === '확인 필요' ? '' : '확인 필요'; qi.value = st.q; }
+  else { st.status = st.status === f ? '' : f; if(f === 'obsolete') st.obs = true; if(st.q === '확인 필요'){ st.q = ''; qi.value = ''; } }
+  render();
+};
+const rowClick = e => {
+  const a = e.target.closest('[data-open]');
+  if(a){ const d = st.docs.find(x => x.id === Number(a.dataset.open)); if(d && d.file_path){ e.preventDefault(); openFile(d); } return; }
+  const r = e.target.closest('[data-id]'); if(r) openDoc(Number(r.dataset.id));
+};
+document.getElementById('tbody').onclick = rowClick;
+document.getElementById('cards').onclick = rowClick;
+
+QC.init('docs', load);
+</script>
+</body>
+</html>

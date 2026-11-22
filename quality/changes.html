@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>변경점 관리 — BCT Quality</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cat{font-family:var(--mono);font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--pale);color:var(--deep);white-space:nowrap}
+.tbl tr.done td{opacity:.6}
+.steps{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none}
+.steps li{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:0 0 14px;position:relative}
+.steps li:not(:last-child)::before{content:'';position:absolute;left:12px;top:26px;bottom:0;width:2px;background:var(--line)}
+.steps .dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;background:var(--gry-bg);color:var(--ink3)}
+.steps li.ok .dot{background:var(--grn-bg);color:#1E8A5D}
+.steps li.now .dot{background:var(--amb-bg);color:#A86F1C;box-shadow:0 0 0 3px #F5E3C4}
+.steps li.skip .dot{background:#fff;border:1px dashed var(--line);color:var(--ink3)}
+.steps b{display:block;font-size:13.5px;margin-top:3px}
+.steps span{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px;line-height:1.5}
+.dact{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.fs{border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;margin:0 0 12px}
+.fs legend{font-size:12.5px;font-weight:700;color:var(--ink2);padding:0 6px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="no-print">
+    <div class="ph">
+      <div>
+        <div class="eyebrow"><i></i>Quality Control · Change Control</div>
+        <h1>변경점 관리</h1>
+        <p>사람·설비·자재·방법·환경(4M1E)이 바뀔 때 등록하고, 판정 → 고객 승인 → 초품 확인 → 문서 반영 → 종결까지 추적합니다 (BCT-QP-03).</p>
+      </div>
+      <div class="actions">
+        <button class="btn" id="bPrint" type="button"></button>
+        <button class="btn pri hidden" id="bAdd" type="button"></button>
+      </div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="toolbar">
+      <div class="search"><input id="q" type="search" placeholder="번호, 내용, 모델 검색"></div>
+      <div class="seg" id="stSeg"></div>
+      <div class="seg" id="orSeg"></div>
+    </div>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>번호</th><th>등록일</th><th>구분</th><th>내용 / 모델</th><th>판정</th><th>단계</th><th>적용 시점</th></tr></thead>
+      <tbody id="tbody"><tr><td colspan="7" class="empty">불러오는 중…</td></tr></tbody>
+    </table></div>
+    <div class="cards" id="cards"></div>
+  </div>
+  <div class="print-only pdoc" id="printDoc"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="dh"><div class="t"><div class="no" id="dNo"></div><h2 id="dName"></h2></div><button class="x" type="button" id="dClose" aria-label="닫기"></button></div>
+  <div class="db" id="dBody"></div>
+</aside>
+
+<script src="./assets/qc.js"></script>
+<script>
+const { sb, esc, icon, toast, fld, nz } = QC;
+const CAT = { Man:'사람', Machine:'설비·도구', Material:'자재', Method:'방법', Environment:'환경' };
+const ORIGIN = { internal:'내부 변경', customer:'고객 변경' };
+const st = { rows:[], q:'', status:'open', origin:'', cur:null };
+
+/* 단계: 판정 → (Major) 고객 승인 → 초품 확인 → 문서 반영 → 종결 */
+function stage(r){
+  if(r.cancelled) return ['cancel', '취소', 'gry'];
+  if(r.closed_on) return ['closed', '종결', 'grn'];
+  if(!r.grade) return ['judge', '판정 대기', 'amb'];
+  if(r.grade === 'major' && !r.cust_ok_on) return ['cust', '고객 승인 대기', 'red'];
+  if(!r.first_result) return ['first', '초품 확인 대기', 'amb'];
+  if(r.first_result === 'fail') return ['first', '초품 불합격', 'red'];
+  return ['close', '종결 대기', 'blu'];
+}
+const isOpen = r => !r.cancelled && !r.closed_on;
+
+async function load(){
+  const { data, error } = await sb.from('qc_changes').select('*').order('registered_on', { ascending:false }).order('chg_no', { ascending:false });
+  if(error) return toast(error.message, true);
+  st.rows = data; render();
+  if(st.cur){ st.rows.find(x => x.id === st.cur) ? openChg(st.cur) : closeDrawer(); }
+}
+function filtered(){
+  const q = st.q.toLowerCase();
+  return st.rows.filter(r => (st.status === 'all' || (st.status === 'open' ? isOpen(r) : !isOpen(r)))
+    && (!st.origin || r.origin === st.origin)
+    && (!q || [r.chg_no, r.title, r.reason, r.model, r.apply_from].some(v => (v || '').toLowerCase().includes(q))));
+}
+function render(){
+  const open = st.rows.filter(isOpen), y = QC.todayKST().slice(0, 4);
+  document.getElementById('kpis').innerHTML = [
+    ['blu', '진행 중', open.length], ['red', '고객 승인 대기', open.filter(r => stage(r)[0] === 'cust').length],
+    ['amb', '초품 확인 대기', open.filter(r => stage(r)[0] === 'first').length], ['grn', `${y}년 종결`, st.rows.filter(r => (r.closed_on || '').startsWith(y)).length],
+  ].map(([c, k, v]) => `<div class="kpi ${c}" style="cursor:default"><div class="k"><i></i>${k}</div><div class="v">${v}<small>건</small></div></div>`).join('');
+  document.getElementById('stSeg').innerHTML = [['open','진행 중'],['done','종결·취소'],['all','전체']].map(([v, t]) => `<button type="button" data-v="${v}" class="${st.status === v ? 'on' : ''}">${t}</button>`).join('');
+  document.getElementById('orSeg').innerHTML = [['','모든 변경'],['internal','내부'],['customer','고객']].map(([v, t]) => `<button type="button" data-v="${v}" class="${st.origin === v ? 'on' : ''}">${t}</button>`).join('');
+  document.getElementById('bAdd').classList.toggle('hidden', !QC.isAdmin());
+  const rows = filtered(), grade = g => g ? `<span class="badge ${g === 'major' ? 'red' : 'gry'}">${g === 'major' ? 'MAJOR' : 'MINOR'}</span>` : '—';
+  const empty = st.rows.length ? '조건에 맞는 변경점이 없습니다' : '등록된 변경점이 없습니다';
+  document.getElementById('tbody').innerHTML = rows.map(r => { const s = stage(r);
+    return `<tr data-id="${r.id}" class="${isOpen(r) ? '' : 'done'}"><td class="no">${esc(r.chg_no)}</td><td class="dt">${esc(r.registered_on)}</td>
+      <td><span class="cat">${esc(CAT[r.category] || r.category)}</span></td>
+      <td><div class="nm">${esc(r.title)}</div><div class="sub">${esc(ORIGIN[r.origin])}${r.model ? ' · ' + esc(r.model) : ''}</div></td>
+      <td>${grade(r.grade)}</td><td><span class="badge ko ${s[2]}">${s[1]}</span></td><td class="mn">${esc(r.apply_from || '—')}</td></tr>`; }).join('')
+    || `<tr><td colspan="7" class="empty">${empty}</td></tr>`;
+  document.getElementById('cards').innerHTML = rows.map(r => { const s = stage(r);
+    return `<button type="button" class="icard" data-id="${r.id}"><div class="body"><div class="top"><div class="nm">${esc(r.title)}</div><span class="badge ko ${s[2]}">${s[1]}</span></div>
+      <div class="meta">${esc(r.chg_no)} · ${esc(CAT[r.category])} · ${r.grade ? r.grade.toUpperCase() : '판정 전'}</div></div></button>`; }).join('') || `<div class="empty">${empty}</div>`;
+}
+
+/* ---------- 상세 ---------- */
+const drawer = document.getElementById('drawer'), scrim = document.getElementById('scrim');
+function closeDrawer(){ drawer.classList.remove('show'); scrim.classList.remove('show'); drawer.setAttribute('aria-hidden', 'true'); st.cur = null; }
+function openChg(id){
+  const r = st.rows.find(x => x.id === id); if(!r) return;
+  st.cur = id;
+  const admin = QC.isAdmin(), s = stage(r)[0], major = r.grade === 'major';
+  const cls = (done, now, skip) => skip ? 'skip' : done ? 'ok' : now ? 'now' : '';
+  const steps = [
+    ['판정', r.grade ? `${r.grade === 'major' ? 'Major — 고객 승인 필요' : 'Minor — 내부 승인'}${r.judged_by ? ' · ' + esc(r.judged_by) : ''}` : 'Major / Minor 판정 전', !!r.grade, s === 'judge', false],
+    ['고객 승인', major ? (r.cust_ok_on ? `승인 ${esc(r.cust_ok_on)}${r.cust_req_on ? ' (요청 ' + esc(r.cust_req_on) + ')' : ''}${r.cust_evidence ? ' · <a href="#" id="dEv">승인 메일</a>' : ''}` : (r.cust_req_on ? `요청 ${esc(r.cust_req_on)} · 회신 대기 — 승인 전 적용 금지` : '요청 전 — 승인 전 적용 금지')) : 'Minor — 해당 없음', !!r.cust_ok_on, s === 'cust', r.grade === 'minor'],
+    ['초품 확인', r.first_result ? `${r.first_result === 'pass' ? '합격' : '불합격'} · S/N ${esc(r.first_sn || '—')} · ${esc(r.first_checker || '')} ${esc(r.first_on || '')}` : '변경 후 첫 1대의 변경 부위 확인', r.first_result === 'pass', s === 'first', false],
+    ['문서 반영', r.doc_updates ? esc(r.doc_updates) : '작업표준·도면·검사 기준 개정 (없으면 "해당 없음")', !!r.doc_updates, false, false],
+    ['종결', r.closed_on ? `${esc(r.closed_on)} · ${esc(r.closed_by || '')}` : '품질책임자 확인 후 종결', !!r.closed_on, s === 'close', false],
+  ];
+  document.getElementById('dNo').textContent = `${r.chg_no} · ${ORIGIN[r.origin]}`;
+  document.getElementById('dName').textContent = r.title;
+  document.getElementById('dBody').innerHTML = `
+    ${admin ? `<div class="dact"><button class="btn sm" type="button" id="dEdit">${icon.edit}기록 · 수정</button>
+      ${s === 'close' ? `<button class="btn sm pri" type="button" id="dClose2">종결</button>` : ''}</div>` : ''}
+    ${r.cancelled ? '<div class="empty" style="padding:10px;margin-bottom:12px">취소된 변경점입니다</div>' : ''}
+    <div class="sec"><dl class="kv">
+      <dt>구분</dt><dd>${esc(CAT[r.category])} (${esc(r.category)})</dd><dt>등록일</dt><dd>${esc(r.registered_on)}</dd>
+      <dt>이유</dt><dd>${esc(r.reason || '')}</dd><dt>대상 모델</dt><dd>${esc(r.model || '')}</dd><dt>적용 시점</dt><dd>${esc(r.apply_from || '')}</dd><dt>비고</dt><dd>${esc(r.note || '')}</dd>
+    </dl></div>
+    <div class="sec"><div class="sec-h"><h3>진행 단계</h3></div><ol class="steps">${steps.map(([t, d, done, now, skip], i) => `<li class="${cls(done, now, skip)}"><div class="dot">${done ? '✓' : i + 1}</div><div><b>${t}</b><span>${d}</span></div></li>`).join('')}</ol></div>`;
+  const b = x => document.getElementById(x);
+  b('dEdit') && (b('dEdit').onclick = () => form(r));
+  b('dClose2') && (b('dClose2').onclick = () => closeChg(r));
+  b('dEv') && (b('dEv').onclick = async e => { e.preventDefault(); const u = await QC.fileUrl(r.cust_evidence); u ? window.open(u, '_blank', 'noopener') : toast('파일을 열 수 없습니다', true); });
+  drawer.classList.add('show'); scrim.classList.add('show'); drawer.setAttribute('aria-hidden', 'false');
+}
+
+/* ---------- 등록 · 기록 ---------- */
+function nextNo(){
+  const yymm = QC.todayKST().slice(2, 7).replace('-', ''), pre = `CHG-${yymm}-`;
+  const n = Math.max(0, ...st.rows.filter(r => r.chg_no.startsWith(pre)).map(r => parseInt(r.chg_no.slice(pre.length)) || 0));
+  return pre + String(n + 1).padStart(3, '0');
+}
+function form(r){
+  const isNew = !r; r = r || { chg_no: nextNo(), registered_on: QC.todayKST(), origin:'internal', category:'Method' };
+  const opt = o => Object.entries(o);
+  const f = QC.openModal(isNew ? '변경점 등록' : `${r.chg_no} 기록 · 수정`, `
+    <fieldset class="fs"><legend>변경 내용</legend><div class="grid2">
+      ${fld('chg_no', '번호', r.chg_no, { req:true })}${fld('registered_on', '등록일', r.registered_on, { type:'date', req:true })}
+      ${fld('origin', '출처', r.origin, { options: opt(ORIGIN) })}${fld('category', '구분 (4M1E)', r.category, { options: opt(CAT).map(([k, v]) => [k, `${v} (${k})`]) })}
+      ${fld('title', '무엇을 바꾸나', r.title, { req:true, full:true, hint:'예) 토크 드라이버 교체 (TD-01 → TD-02)' })}
+      ${fld('reason', '이유', r.reason, { area:true, full:true })}
+      ${fld('model', '대상 모델', r.model)}${fld('apply_from', '적용 시점 (날짜 또는 S/N)', r.apply_from)}
+    </div></fieldset>
+    ${isNew ? '' : `<fieldset class="fs"><legend>판정 · 고객 승인</legend><div class="grid2">
+      ${fld('grade', '판정', r.grade || '', { options: [['', '판정 전'], ['minor', 'Minor — 내부 승인'], ['major', 'Major — 고객 승인 필요']] })}${fld('judged_by', '판정자', r.judged_by || '품질책임자 홍승락 부장')}
+      ${fld('cust_req_on', '고객 승인 요청일', r.cust_req_on, { type:'date' })}${fld('cust_ok_on', '고객 승인일', r.cust_ok_on, { type:'date' })}
+      <div class="f full"><label>고객 승인 메일 (PDF·이미지)${r.cust_evidence ? ' — 첨부됨, 새로 올리면 바뀝니다' : ''}</label><input type="file" name="ev" accept="application/pdf,image/*,.msg,.eml"></div>
+    </div></fieldset>
+    <fieldset class="fs"><legend>초품 확인 · 문서 반영</legend><div class="grid2">
+      ${fld('first_sn', '초품 S/N', r.first_sn)}${fld('first_on', '확인일', r.first_on, { type:'date' })}
+      ${fld('first_checker', '확인자 (검사 승인자)', r.first_checker)}${fld('first_result', '결과', r.first_result || '', { options: [['', '확인 전'], ['pass', '합격'], ['fail', '불합격']] })}
+      ${fld('doc_updates', '문서 반영', r.doc_updates, { full:true, hint:'개정한 문서번호·Rev. 없으면 "해당 없음"' })}
+    </div></fieldset>`}
+    <div class="grid2">${fld('note', '비고', r.note, { full:true })}
+      ${isNew ? '' : fld('cancelled', '상태', String(!!r.cancelled), { options: [['false', '진행'], ['true', '취소 (적용하지 않음)']] })}</div>`,
+  async fd => {
+    const rec = { chg_no: String(fd.get('chg_no')).trim().toUpperCase(), registered_on: fd.get('registered_on'), origin: fd.get('origin'), category: fd.get('category'),
+      title: nz(fd.get('title')), reason: nz(fd.get('reason')), model: nz(fd.get('model')), apply_from: nz(fd.get('apply_from')), note: nz(fd.get('note')), updated_by: QC.S.user.id };
+    if(!isNew){
+      Object.assign(rec, { grade: nz(fd.get('grade')), judged_by: nz(fd.get('judged_by')), cust_req_on: nz(fd.get('cust_req_on')), cust_ok_on: nz(fd.get('cust_ok_on')),
+        first_sn: nz(fd.get('first_sn')), first_on: nz(fd.get('first_on')), first_checker: nz(fd.get('first_checker')), first_result: nz(fd.get('first_result')),
+        doc_updates: nz(fd.get('doc_updates')), cancelled: fd.get('cancelled') === 'true' });
+      if(rec.grade === 'major' && rec.first_result && !rec.cust_ok_on && !confirm('Major 변경인데 고객 승인일이 없습니다.\n고객 승인 전에는 적용하지 않습니다 (BCT-QP-03 4장).\n그래도 초품 결과를 저장할까요?')) throw new Error('저장하지 않았습니다');
+      const ev = fd.get('ev'); if(ev && ev.size) rec.cust_evidence = await QC.upload(ev, `changes/${rec.chg_no}`);
+    }
+    const { error } = isNew ? await sb.from('qc_changes').insert(rec) : await sb.from('qc_changes').update(rec).eq('id', r.id);
+    if(error) throw new Error(/unique|duplicate/i.test(error.message) ? '이미 있는 번호입니다' : error.message);
+    toast(isNew ? '등록했습니다' : '저장했습니다'); await load();
+  }, { ok: isNew ? '등록' : '저장' });
+  return f;
+}
+async function closeChg(r){
+  if(!r.doc_updates){ toast('문서 반영 칸을 먼저 적어 주세요 (없으면 "해당 없음")', true); return; }
+  if(!confirm(`${r.chg_no}을(를) 종결합니다.\n초품 확인과 문서 반영을 확인했나요?`)) return;
+  const who = (QC.S.profile && QC.S.profile.name) || '';
+  const { error } = await sb.from('qc_changes').update({ closed_on: QC.todayKST(), closed_by: who, updated_by: QC.S.user.id }).eq('id', r.id);
+  if(error) return toast(error.message, true);
+  toast('종결했습니다'); load();
+}
+
+/* ---------- 출력 ---------- */
+function printReg(){
+  const rows = filtered();
+  document.getElementById('printDoc').innerHTML = `
+    <table class="hd" style="margin-bottom:8px"><tr><td rowspan="2" class="ttl" style="font-size:16pt;letter-spacing:.2em">변경점 관리대장</td>
+      <td class="lbl">양식번호</td><td>BCT-QF-12</td><td rowspan="2" style="padding:0;width:210px"><table class="sign" style="width:100%"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:40px"></td><td></td><td></td></tr></table></td></tr>
+      <tr><td class="lbl">출력일</td><td>${QC.todayKST()} · ${rows.length}건</td></tr></table>
+    <table class="list"><thead><tr><th style="width:96px">번호</th><th style="width:70px">등록일</th><th style="width:60px">구분</th><th>내용</th><th style="width:80px">모델</th><th style="width:48px">판정</th><th style="width:70px">고객 승인</th><th style="width:100px">초품</th><th style="width:110px">문서 반영</th><th style="width:70px">종결</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td>${esc(r.chg_no)}</td><td>${esc(r.registered_on)}</td><td>${esc(CAT[r.category])}</td><td class="l">${esc(r.title)}${r.cancelled ? ' (취소)' : ''}</td><td>${esc(r.model || '')}</td>
+      <td>${r.grade ? r.grade.toUpperCase() : ''}</td><td>${r.grade === 'major' ? esc(r.cust_ok_on || '대기') : (r.grade ? '해당 없음' : '')}</td>
+      <td>${r.first_result ? (r.first_result === 'pass' ? '합격' : '불합격') + ' ' + esc(r.first_sn || '') : ''}</td><td class="l">${esc(r.doc_updates || '')}</td><td>${esc(r.closed_on || '')}</td></tr>`).join('')}</tbody></table>`;
+  window.print();
+}
+
+/* ---------- 이벤트 ---------- */
+document.getElementById('bAdd').innerHTML = icon.plus + '변경점 등록';
+document.getElementById('bPrint').innerHTML = icon.print + '대장 출력';
+document.getElementById('dClose').innerHTML = icon.x;
+document.getElementById('bAdd').onclick = () => form();
+document.getElementById('bPrint').onclick = printReg;
+document.getElementById('dClose').onclick = closeDrawer;
+scrim.onclick = closeDrawer;
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && drawer.classList.contains('show') && !document.querySelector('.modal.show')) closeDrawer(); });
+document.getElementById('q').oninput = e => { st.q = e.target.value.trim(); render(); };
+document.getElementById('stSeg').onclick = e => { const b = e.target.closest('button'); if(b){ st.status = b.dataset.v; render(); } };
+document.getElementById('orSeg').onclick = e => { const b = e.target.closest('button'); if(b){ st.origin = b.dataset.v; render(); } };
+const rowClick = e => { const r = e.target.closest('[data-id]'); if(r) openChg(Number(r.dataset.id)); };
+document.getElementById('tbody').onclick = rowClick;
+document.getElementById('cards').onclick = rowClick;
+
+QC.init('changes', load);
+</script>
+</body>
+</html>

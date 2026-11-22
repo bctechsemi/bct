@@ -7,13 +7,13 @@ const QC_CONFIG = {
 };
 const QC_NAV = [
   { key:'home',        label:'QC Home',   href:'./index.html' },
+  { key:'docs',        label:'문서 관리',   href:'./documents.html' },
+  { key:'kpi',         label:'품질 지표',   href:'./kpi.html' },
+  { key:'changes',     label:'변경점',     href:'./changes.html' },
   { key:'instruments', label:'계측기 관리', href:'./instruments.html' },
+  { key:'workers',     label:'작업자 인증', href:'./workers.html' },
   { key:'env',         label:'온습도 관리', href:'./env.html' },
   { key:'5s',          label:'3정5S',     href:'./5s.html' },
-  { key:'workers',     label:'작업자 인증', href:'./workers.html' },
-  { key:'changes',     label:'변경점',     href:'./changes.html' },
-  { key:'kpi',         label:'품질 지표',   href:'./kpi.html' },
-  { key:'docs',        label:'문서 관리',   href:'./documents.html' },
 ];
 
 const QC = (() => {

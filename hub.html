@@ -118,7 +118,13 @@ h1 .bct{display:block;background:linear-gradient(100deg,#fff 30%,#9FC0F5 50%,#ff
 .prod.next{border-style:dashed;background:transparent;color:var(--mist2);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:0 16px}
 .card.strip .num{top:50%;transform:translateY(-50%)}
 .c-qc .prod .code{background:#fff;color:var(--deep)}
-a.prod.qcmod{color:#fff}
+a.prod.qcmod{color:#fff;position:relative;z-index:1}
+/* QC 카드 전체 클릭 → QC Home (칩은 각 화면으로) */
+.card.c-qc{cursor:pointer}
+.card.c-qc .qc-stretch{position:absolute;inset:0;border-radius:inherit;z-index:0}
+.card.c-qc .qc-stretch:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.card.c-qc .devlist{position:relative;z-index:1;pointer-events:none}
+.card.c-qc .devlist a{pointer-events:auto}
 a.prod.qcmod .tag{margin-left:4px}
 .prod.next span{font-family:var(--font);text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--mist)}
 /* 좁은 카드용: LIVE 글자 없이 점만 표시 */
@@ -357,6 +363,7 @@ body:not(.locked) .gate-card{transform:translateY(-16px) scale(.97);transition:t
 
       <!-- 05 Quality Control -->
       <div class="card strip c-qc in" style="animation-delay:.98s">
+        <a class="qc-stretch" href="./quality/index.html" target="_blank" rel="noopener" aria-label="Quality Control 열기"></a>
         <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
         <div class="strip-t"><h3>Quality Control</h3><p data-i18n="sub_qc">품질관리 시스템</p></div>
         <div class="devlist">

@@ -168,7 +168,7 @@ QC.init('home', async () => {
   (async () => {
     const today = QC.todayKST(), D = s => new Date(s + 'T12:00:00Z'), add = (s, n) => { const d = D(s); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); };
     const ws = add(today, -((D(today).getUTCDay() + 6) % 7));
-    if(ws < '2026-11-30') return;
+    if(ws < '2026-07-27') return;
     const [e, h, c] = await Promise.all([
       QC.sb.from('qc_instruments').select('id,mgmt_no,model,status').eq('weekly_imp_check', true).eq('status','active').order('seq'),
       QC.sb.from('qc_holidays').select('d').gte('d', ws).lte('d', add(ws, 6)),

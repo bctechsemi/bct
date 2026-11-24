@@ -28,6 +28,8 @@
 .val.bad{background:var(--red-bg)} .val.bad .n{color:var(--red-ink)}
 .card .meta{font-size:13px;color:var(--ink2)}
 .card .btn.pri{width:100%;padding:12px}
+.card .done{text-align:center;font-size:14px;color:#1E8A5D;background:var(--grn-bg);border-radius:11px;padding:12px}
+.card .done b{font-family:var(--mono)}
 .card .btn.retest{width:100%;padding:12px;background:var(--amb-bg);border-color:#EBCB95;color:#8A5A12}
 
 /* SPC */
@@ -142,7 +144,7 @@ table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:820px}
 <script>
 const { sb, esc, icon, toast, fld, nz } = QC;
 /* 주간 점검을 시작한 첫 주. 이전 주는 '미실시'로 세지 않습니다. */
-const START_WEEK = '2026-11-30';
+const START_WEEK = '2026-07-27';
 const FREQ = 13.56;
 const SPEC = { real:[48, 52], imag:[-20, 20] };
 const DOW = ['일','월','화','수','목','금','토'];
@@ -210,6 +212,7 @@ function renderCards(){
     let btn = '';
     if(s.k === 'retest') btn = `<button class="btn retest" type="button" data-entry="${eq.id}" data-try="2">${icon.plus}재측정 입력 (1회)</button>`;
     else if(['todo','today','late','pre'].includes(s.k)) btn = `<button class="btn pri" type="button" data-entry="${eq.id}" data-try="1">${icon.plus}측정 입력</button>`;
+    else if(s.k === 'pass' || s.k === 'pass2') btn = `<div class="done">이번 주 점검 완료 · 다음 점검 <b>${md(dueOf(addDays(ws, 7)))}</b></div>`;
     return `<div class="card">
       <div class="ch"><div><div class="cn">${esc(eq.mgmt_no)} · ${esc(eq.model)}</div><div class="cc">${esc(eq.maker||'')} ${esc(eq.spec||'')} · S/N ${esc(eq.serial_no||'-')}</div></div>
         <span class="badge ${s.cls} ko">${s.txt}</span></div>

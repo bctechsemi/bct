@@ -220,6 +220,7 @@ async function openDrawer(id, keepScroll){
         <dt>최근 ${A}일</dt><dd class="mono">${fmtDate(r.last_cal_date)||'—'}${r.last_agency?' · '+esc(r.last_agency):''}</dd>
         <dt>차기 ${A}일</dt><dd class="mono">${fmtDate(r.next_due)||'—'}</dd>
       </dl>
+      ${r.weekly_imp_check ? `<a class="btn pri" style="width:100%;margin-top:12px" href="./equip-check.html#${encodeURIComponent(r.mgmt_no)}">주간 임피던스 점검 · SPC 관리도</a>` : ''}
     </div>
     <div class="sec">
       <div class="sec-h"><h3>${A} 이력 (${st.cals.length})</h3>${r.cal_type!=='none' || !isInst(r)?`<button class="btn sm pri" type="button" id="bCal">${icon.plus}${isInst(r) ? '교정 기록' : '점검·교체 기록'}</button>`:''}</div>

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dummy Load 주간 점검 — BCT Quality</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+/* 이번 주 카드 */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-bottom:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.card .ch{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.card .cn{font-size:18px;font-weight:700;letter-spacing:-.02em}
+.card .cc{font-family:var(--mono);font-size:12px;color:var(--ink3);margin-top:2px}
+.due{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--ink2);background:var(--pale2);border-radius:12px;padding:10px 12px}
+.due b{color:var(--ink);font-family:var(--mono)}
+.vals{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.val{background:var(--pale2);border-radius:13px;padding:12px 14px}
+.val .l{font-size:12.5px;color:var(--ink2);display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 6px}
+.val .l span{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.val .n{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums}
+.val .n small{font-size:14px;font-weight:600;color:var(--ink2);margin-left:3px}
+.val.bad{background:var(--red-bg)} .val.bad .n{color:var(--red-ink)}
+.card .meta{font-size:13px;color:var(--ink2)}
+.card .btn.pri{width:100%;padding:12px}
+.card .btn.retest{width:100%;padding:12px;background:var(--amb-bg);border-color:#EBCB95;color:#8A5A12}
+
+/* SPC */
+.sect{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:18px}
+.sect-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.sect-h h2{margin:0;font-size:16px}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctrls select{padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px;margin-bottom:14px}
+.stat{border:1px solid var(--line2);border-radius:12px;padding:10px 12px}
+.stat .k{font-size:12px;color:var(--ink2)}
+.stat .v{font-family:var(--mono);font-size:15px;font-weight:700;margin-top:3px}
+.stat .v.bad{color:var(--red-ink)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.charts{grid-template-columns:1fr}}
+.chart{border:1px solid var(--line2);border-radius:12px;padding:10px 12px 6px}
+.chart .ct{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:4px}
+.chart .ct span{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--ink3);text-align:right}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{font-family:var(--mono);font-size:10.5px;fill:var(--ink3)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink2);margin-top:10px}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px dashed;vertical-align:middle;margin-right:5px}
+.legend i.dot{width:9px;height:9px;border:0;border-radius:50%;vertical-align:-1px}
+.alarms{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.alarm{font-size:13px;padding:9px 12px;border-radius:10px;background:var(--amb-bg);color:#8A5A12}
+.alarm.red{background:var(--red-bg);color:var(--red-ink)}
+.alarm.ok{background:var(--grn-bg);color:#1E8A5D}
+
+/* 이력 */
+.log-wrap{overflow:auto;border:1px solid var(--line2);border-radius:12px}
+table.log{width:100%;border-collapse:collapse;font-size:13px;min-width:820px}
+.log th{background:var(--pale2);font-size:12px;color:var(--ink2);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+.log td{padding:8px 10px;border-bottom:1px solid var(--line2);text-align:center;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.log td.t{font-family:var(--font);text-align:left;white-space:normal;min-width:160px}
+.log td.x{color:var(--red-ink);font-weight:700}
+.log tr.c{cursor:pointer}
+.log tr.c:hover td{background:var(--pale)}
+.log tr.miss td{color:#8A5A12;background:#FFF8EC}
+.live{font-size:13px;padding:9px 12px;border-radius:10px;background:var(--gry-bg);color:var(--ink2)}
+.live.ok{background:var(--grn-bg);color:#1E8A5D}
+.live.bad{background:var(--red-bg);color:var(--red-ink);font-weight:600}
+.hlist{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}
+.hrow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.hrow b{font-family:var(--mono);font-size:13px;min-width:120px}
+.hrow span{flex:1;font-size:13.5px}
+@media print{
+  @page{size:A4 portrait;margin:10mm}
+  .pdoc .charts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}
+  .pdoc .chart{border:1px solid #999;border-radius:0;padding:4px}
+  .pdoc .chart .ct{font-size:8.5pt;color:#000}
+  .pdoc .chart text{font-size:9px}
+  .pdoc table.list td,.pdoc table.list th{font-size:8.5pt;padding:2px 3px}
+}
+.pdoc .sign td{height:46px;width:70px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="no-print">
+    <div class="ph">
+      <div>
+        <div class="eyebrow"><i></i>Quality Control · Equipment</div>
+        <h1>Dummy Load 주간 점검</h1>
+        <p>매주 월요일(공휴일이면 다음 근무일) 13.56 MHz 임피던스를 측정합니다. 불합격이면 1회 재측정하고, 재측정도 불합격이면 사용을 중지합니다.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="./instruments.html#equipment">설비 대장</a>
+        <button class="btn hidden" id="bHol" type="button">공휴일 관리</button>
+      </div>
+    </div>
+
+    <div class="cards" id="cards"><div class="empty">불러오는 중…</div></div>
+
+    <section class="sect">
+      <div class="sect-h">
+        <h2>SPC · I-MR 관리도</h2>
+        <div class="ctrls">
+          <select id="selEq" aria-label="설비"></select>
+          <select id="selN" aria-label="기간">
+            <option value="26">최근 26주</option><option value="52" selected>최근 52주</option><option value="0">전체</option>
+          </select>
+          <button class="btn sm" id="bCsv" type="button"></button>
+          <button class="btn sm" id="bPrint" type="button"></button>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="charts">
+        <div class="chart"><div class="ct">Real (Ω) · 개별값<span id="rLim"></span></div><div id="cRI"></div></div>
+        <div class="chart"><div class="ct">Imaginary (Ω) · 개별값<span id="iLim"></span></div><div id="cII"></div></div>
+        <div class="chart"><div class="ct">Real · 이동범위 (MR)<span id="rMr"></span></div><div id="cRM"></div></div>
+        <div class="chart"><div class="ct">Imaginary · 이동범위 (MR)<span id="iMr"></span></div><div id="cIM"></div></div>
+      </div>
+      <div class="legend">
+        <span><i style="border-color:#D2453B"></i>규격 (USL/LSL)</span>
+        <span><i style="border-color:#8A97AB"></i>관리한계 (UCL/LCL)</span>
+        <span><i style="border-top-style:solid;border-color:#8A97AB"></i>중심선 (CL)</span>
+        <span><i class="dot" style="background:#D2453B"></i>규격 이탈</span>
+        <span><i class="dot" style="background:#C98A2B"></i>관리 이상 신호</span>
+      </div>
+      <div class="alarms" id="alarms"></div>
+    </section>
+
+    <section class="sect">
+      <div class="sect-h"><h2>점검 이력</h2><span class="badge gry ko" id="logCnt"></span></div>
+      <div class="log-wrap"><table class="log" id="log"></table></div>
+    </section>
+  </div>
+  <div class="print-only pdoc" id="printDoc"></div>
+</main>
+
+<script src="./assets/qc.js"></script>
+<script>
+const { sb, esc, icon, toast, fld, nz } = QC;
+/* 주간 점검을 시작한 첫 주. 이전 주는 '미실시'로 세지 않습니다. */
+const START_WEEK = '2026-11-30';
+const FREQ = 13.56;
+const SPEC = { real:[48, 52], imag:[-20, 20] };
+const DOW = ['일','월','화','수','목','금','토'];
+const st = { eq:[], meters:[], people:{}, hol:new Map(), checks:[], eqId:null, n:52 };
+
+/* ---------- 날짜 ---------- */
+const D = s => new Date(s + 'T12:00:00Z');
+const iso = d => d.toISOString().slice(0,10);
+const addDays = (s, n) => { const d = D(s); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+const dow = s => D(s).getUTCDay();
+const weekStart = s => addDays(s, -((dow(s) + 6) % 7));
+const isOff = s => dow(s) === 0 || dow(s) === 6 || st.hol.has(s);
+/* 점검 예정일: 월요일, 공휴일이면 화요일, 그날도 쉬면 다음 근무일 */
+const dueOf = ws => { let d = ws; while(isOff(d)) d = addDays(d, 1); return d; };
+const md = s => s ? `${s.slice(5,7)}/${s.slice(8)} (${DOW[dow(s)]})` : '';
+const n2 = v => v == null ? '–' : Number(v).toFixed(2);
+const who = id => (id && st.people[id]) || '';
+const meterName = id => { const m = st.meters.find(x => x.id === id); return m ? m.mgmt_no : ''; };
+
+/* ---------- 데이터 ---------- */
+async function loadAll(){
+  const [e, m, p, h, c] = await Promise.all([
+    sb.from('qc_instruments').select('id,mgmt_no,name,model,serial_no,maker,spec,status').eq('weekly_imp_check', true).neq('status','disposed').order('seq'),
+    sb.from('qc_instruments').select('id,mgmt_no,name,model,owner').eq('kind','instrument').ilike('name','%NETWORK%').neq('status','disposed').order('seq'),
+    sb.from('profiles').select('id,name,email'),
+    sb.from('qc_holidays').select('d,name').order('d'),
+    sb.from('qc_equip_checks').select('*').order('check_date').order('attempt'),
+  ]);
+  const err = [e, m, h, c].find(x => x.error);
+  if(err) return toast(err.error.message, true);
+  st.eq = e.data; st.meters = m.data;
+  st.people = Object.fromEntries((p.data||[]).map(x => [x.id, x.name || x.email]));
+  st.hol = new Map(h.data.map(x => [x.d, x.name]));
+  st.checks = c.data;
+  if(!st.eq.some(x => x.id === st.eqId)) st.eqId = st.eq[0] && st.eq[0].id;
+}
+const checksOf = id => st.checks.filter(c => c.instrument_id === id);
+/* 주별 최종값 (재측정이 있으면 재측정값) */
+function weekly(id){
+  const by = new Map();
+  checksOf(id).forEach(c => { const w = by.get(c.week_start); if(!w || c.attempt > w.attempt) by.set(c.week_start, c); });
+  return [...by.values()].sort((a,b) => a.week_start < b.week_start ? -1 : 1);
+}
+function weekState(eq, ws){
+  const today = QC.todayKST(), due = dueOf(ws), cs = checksOf(eq.id).filter(c => c.week_start === ws);
+  const a1 = cs.find(c => c.attempt === 1), a2 = cs.find(c => c.attempt === 2);
+  if(a2) return a2.result === 'pass' ? { k:'pass2', due, last:a2, txt:'합격 (재측정)', cls:'grn' } : { k:'fail', due, last:a2, txt:'불합격 · 사용 중지', cls:'red' };
+  if(a1) return a1.result === 'pass' ? { k:'pass', due, last:a1, txt:'합격', cls:'grn' } : { k:'retest', due, last:a1, txt:'재측정 필요', cls:'amb' };
+  if(eq.status === 'repair') return { k:'repair', due, txt:'수리중 · 점검 중지', cls:'gry' };
+  if(ws < START_WEEK) return { k:'pre', due, txt:'점검 시작 전', cls:'gry' };
+  if(today < due) return { k:'todo', due, txt:'점검 예정', cls:'blu' };
+  if(today === due) return { k:'today', due, txt:'오늘 점검', cls:'blu' };
+  return { k:'late', due, txt:'기한 초과', cls:'red' };
+}
+
+/* ---------- 이번 주 카드 ---------- */
+function renderCards(){
+  const ws = weekStart(QC.todayKST());
+  document.getElementById('cards').innerHTML = st.eq.length ? st.eq.map(eq => {
+    const s = weekState(eq, ws), w = weekly(eq.id), last = s.last || w[w.length-1];
+    const rOut = last && (last.real_ohm < SPEC.real[0] || last.real_ohm > SPEC.real[1]);
+    const iOut = last && (last.imag_ohm < SPEC.imag[0] || last.imag_ohm > SPEC.imag[1]);
+    const first = ws < START_WEEK ? `첫 점검 <b>${md(dueOf(START_WEEK))}</b>` : `이번 주 점검일 <b>${md(s.due)}</b>`;
+    const hol = ws >= START_WEEK && s.due !== ws ? `<span>${esc(st.hol.get(ws) || '공휴일')} → 순연</span>` : '';
+    let btn = '';
+    if(s.k === 'retest') btn = `<button class="btn retest" type="button" data-entry="${eq.id}" data-try="2">${icon.plus}재측정 입력 (1회)</button>`;
+    else if(['todo','today','late','pre'].includes(s.k)) btn = `<button class="btn pri" type="button" data-entry="${eq.id}" data-try="1">${icon.plus}측정 입력</button>`;
+    return `<div class="card">
+      <div class="ch"><div><div class="cn">${esc(eq.mgmt_no)} · ${esc(eq.model)}</div><div class="cc">${esc(eq.maker||'')} ${esc(eq.spec||'')} · S/N ${esc(eq.serial_no||'-')}</div></div>
+        <span class="badge ${s.cls} ko">${s.txt}</span></div>
+      <div class="due"><span>${first}</span>${hol}</div>
+      <div class="vals">
+        <div class="val ${rOut?'bad':''}"><div class="l">Real<span>${SPEC.real[0]} ~ ${SPEC.real[1]} Ω</span></div><div class="n">${last?n2(last.real_ohm):'–'}<small>Ω</small></div></div>
+        <div class="val ${iOut?'bad':''}"><div class="l">Imaginary<span>${SPEC.imag[0]} ~ +${SPEC.imag[1]} Ω</span></div><div class="n">${last?n2(last.imag_ohm):'–'}<small>Ω</small></div></div>
+      </div>
+      <div class="meta">${last ? `최근 측정 ${md(last.check_date)} · ${last.attempt===2?'재측정 · ':''}${esc(who(last.measured_by))}` : '아직 측정 기록이 없습니다'}</div>
+      ${s.k === 'retest' ? '<div class="live bad">1차 측정 불합격 — 커넥터 체결·케이블·교정 상태를 확인한 뒤 1회 재측정하세요.</div>' : ''}
+      ${s.k === 'fail' || eq.status === 'repair' ? '<div class="live bad">사용 중지(수리중) 상태입니다. 수리 후 관리자가 설비 대장에서 사용 상태를 되돌립니다.</div>' : ''}
+      ${btn}
+    </div>`;
+  }).join('') : '<div class="empty">주간 점검 대상 설비가 없습니다</div>';
+}
+
+/* ---------- SPC 계산 ---------- */
+const mean = a => a.reduce((s,v) => s+v, 0) / a.length;
+function imr(vals, spec){
+  const n = vals.length, mr = vals.slice(1).map((v,i) => Math.abs(v - vals[i]));
+  const nb = Math.min(n, 20);
+  const out = { n, mr, base:nb, fixed: nb >= 20 };
+  if(nb >= 5){
+    const b = vals.slice(0, nb), bm = mr.slice(0, nb - 1);
+    out.cl = mean(b); out.mrbar = mean(bm);
+    out.ucl = out.cl + 2.66 * out.mrbar; out.lcl = out.cl - 2.66 * out.mrbar; out.mrucl = 3.267 * out.mrbar;
+  }
+  if(n >= 2){
+    const m = mean(vals), mrb = mean(mr), sd = mrb / 1.128;
+    out.mean = m; out.sigma = sd;
+    out.cpk = sd > 0 ? Math.min(spec[1] - m, m - spec[0]) / (3 * sd) : null;
+  }
+  // 이상 신호
+  const flags = vals.map(() => []);
+  vals.forEach((v, i) => {
+    if(v < spec[0] || v > spec[1]) flags[i].push('spec');
+    if(out.ucl != null && (v > out.ucl || v < out.lcl)) flags[i].push('ucl');
+  });
+  if(out.cl != null){
+    for(let i = 6; i < n; i++){ const s = vals.slice(i-6, i+1);
+      if(s.every(v => v > out.cl) || s.every(v => v < out.cl)) for(let k = i-6; k <= i; k++) if(!flags[k].includes('run')) flags[k].push('run'); }
+  }
+  for(let i = 5; i < n; i++){ const s = vals.slice(i-5, i+1);
+    const up = s.every((v,k) => k === 0 || v > s[k-1]), dn = s.every((v,k) => k === 0 || v < s[k-1]);
+    if(up || dn) for(let k = i-5; k <= i; k++) if(!flags[k].includes('trend')) flags[k].push('trend'); }
+  out.flags = flags;
+  return out;
+}
+
+/* ---------- SVG 관리도 ---------- */
+function ctrlChart(pts, lines, opt = {}){
+  const W = 600, H = 200, L = 46, R = 12, T = 12, B = 26, pw = W-L-R, ph = H-T-B;
+  if(!pts.length) return `<svg viewBox="0 0 ${W} ${H}"><text x="${W/2}" y="${H/2}" text-anchor="middle">기록 없음</text></svg>`;
+  const vs = pts.map(p => p.v), core = vs.concat([lines.ucl, lines.lcl, lines.cl].filter(v => v != null));
+  let mn = Math.min(...core), mx = Math.max(...core);
+  const span0 = Math.max(mx - mn, opt.minSpan || 1);
+  // 규격선이 데이터에서 너무 멀면 그리지 않고 표시만 (변동이 눌려 보이지 않도록)
+  const specIn = [lines.lsl, lines.usl].filter(v => v != null && v >= mn - span0 * 2.5 && v <= mx + span0 * 2.5);
+  if(specIn.length){ mn = Math.min(mn, ...specIn); mx = Math.max(mx, ...specIn); }
+  const pad = Math.max(mx - mn, opt.minSpan || 1) * .12; mn -= pad; mx += pad;
+  if(opt.zeroFloor) mn = Math.max(mn, 0);
+  const x = i => L + (pts.length === 1 ? pw/2 : (i / (pts.length - 1)) * pw), y = v => T + ph - ((v-mn)/(mx-mn)) * ph;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label||''}">`;
+  for(let k = 0; k <= 4; k++){ const v = mn + (mx-mn)*k/4, yy = y(v);
+    s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="#EDF1F7"/><text x="${L-6}" y="${yy+3.5}" text-anchor="end">${v.toFixed(opt.dec ?? 1)}</text>`; }
+  const hl = (v, c, dash, tag) => v == null ? '' : (v < mn || v > mx) ? '' :
+    `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-width="1.3" ${dash?'stroke-dasharray="5 4"':''}/><text x="${W-R}" y="${y(v)-4}" text-anchor="end" style="fill:${c}">${tag} ${v.toFixed(opt.dec ?? 2)}</text>`;
+  s += hl(lines.usl, '#D2453B', 1, 'USL') + hl(lines.lsl, '#D2453B', 1, 'LSL');
+  s += hl(lines.ucl, '#8A97AB', 1, 'UCL') + hl(lines.lcl, '#8A97AB', 1, 'LCL') + hl(lines.cl, '#8A97AB', 0, 'CL');
+  const step = Math.max(1, Math.ceil(pts.length / 8));
+  const lastI = pts.length - 1;
+  pts.forEach((p, i) => { if((i % step === 0 && lastI - i >= step * .6) || i === lastI)
+    s += `<text x="${x(i)}" y="${H-7}" text-anchor="${i === lastI && i ? 'end' : 'middle'}">${p.d.slice(5).replace('-','/')}</text>`; });
+  if(pts.length > 1) s += `<polyline fill="none" stroke="#1F4E9C" stroke-width="1.8" stroke-linejoin="round" points="${pts.map((p,i) => `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ')}"/>`;
+  pts.forEach((p, i) => {
+    const red = p.f.includes('spec') || p.f.includes('ucl'), amb = !red && (p.f.includes('run') || p.f.includes('trend'));
+    s += `<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="${red||amb?4.2:3}" fill="${red?'#D2453B':amb?'#C98A2B':'#1F4E9C'}"><title>${p.d}  ${p.v.toFixed(2)}</title></circle>`;
+  });
+  return s + '</svg>';
+}
+
+function renderSpc(){
+  const eq = st.eq.find(e => e.id === st.eqId);
+  if(!eq){ ['cRI','cII','cRM','cIM','stats','alarms'].forEach(i => document.getElementById(i).innerHTML = ''); return; }
+  let w = weekly(eq.id); if(st.n) w = w.slice(-st.n);
+  const R = imr(w.map(c => Number(c.real_ohm)), SPEC.real), I = imr(w.map(c => Number(c.imag_ohm)), SPEC.imag);
+  const pts = (res, k) => w.map((c, i) => ({ d:c.check_date, v:Number(c[k]), f:res.flags[i] }));
+  const mrPts = res => res.mr.map((v, i) => ({ d:w[i+1].check_date, v, f: res.mrucl != null && v > res.mrucl ? ['ucl'] : [] }));
+  const limTxt = r => r.cl == null ? (r.n ? `관리한계: ${5 - r.base}점 더 필요` : '') : `${r.fixed ? '' : '잠정 · '}CL ${r.cl.toFixed(2)} · UCL ${r.ucl.toFixed(2)} · LCL ${r.lcl.toFixed(2)}`;
+  document.getElementById('rLim').textContent = limTxt(R);
+  document.getElementById('iLim').textContent = limTxt(I);
+  document.getElementById('rMr').textContent = R.mrucl != null ? `MR̄ ${R.mrbar.toFixed(3)} · UCL ${R.mrucl.toFixed(3)}` : '';
+  document.getElementById('iMr').textContent = I.mrucl != null ? `MR̄ ${I.mrbar.toFixed(3)} · UCL ${I.mrucl.toFixed(3)}` : '';
+  const rl = { usl:SPEC.real[1], lsl:SPEC.real[0], cl:R.cl, ucl:R.ucl, lcl:R.lcl }, il = { usl:SPEC.imag[1], lsl:SPEC.imag[0], cl:I.cl, ucl:I.ucl, lcl:I.lcl };
+  document.getElementById('cRI').innerHTML = ctrlChart(pts(R, 'real_ohm'), rl, { label:'Real 개별값', minSpan:.5 });
+  document.getElementById('cII').innerHTML = ctrlChart(pts(I, 'imag_ohm'), il, { label:'Imaginary 개별값', minSpan:1 });
+  document.getElementById('cRM').innerHTML = ctrlChart(mrPts(R), { cl:R.mrbar, ucl:R.mrucl }, { label:'Real MR', minSpan:.2, zeroFloor:true, dec:2 });
+  document.getElementById('cIM').innerHTML = ctrlChart(mrPts(I), { cl:I.mrbar, ucl:I.mrucl }, { label:'Imaginary MR', minSpan:.5, zeroFloor:true, dec:2 });
+
+  const cpk = v => v == null ? '–' : v.toFixed(2);
+  const stat = (k, v, bad) => `<div class="stat"><div class="k">${k}</div><div class="v ${bad?'bad':''}">${v}</div></div>`;
+  document.getElementById('stats').innerHTML =
+    stat('데이터 (주)', w.length) +
+    stat('Real 평균 · σ', R.mean == null ? '–' : `${R.mean.toFixed(2)} · ${R.sigma.toFixed(3)}`) +
+    stat('Real Cpk', cpk(R.cpk), R.cpk != null && R.cpk < 1.33) +
+    stat('Imag 평균 · σ', I.mean == null ? '–' : `${I.mean.toFixed(2)} · ${I.sigma.toFixed(3)}`) +
+    stat('Imag Cpk', cpk(I.cpk), I.cpk != null && I.cpk < 1.33);
+
+  // 최근 신호 (마지막 점 기준)
+  const msgs = [];
+  const last = (res, nm) => { const f = res.flags[res.flags.length - 1] || [];
+    if(f.includes('spec')) msgs.push(['red', `${nm}: 최근 값이 규격을 벗어났습니다`]);
+    else if(f.includes('ucl')) msgs.push(['red', `${nm}: 최근 값이 관리한계를 벗어났습니다 — 측정 조건과 커넥터 상태를 확인하세요`]);
+    if(f.includes('run')) msgs.push(['', `${nm}: 중심선 한쪽으로 7주 연속 — 값이 한 방향으로 치우쳤습니다`]);
+    if(f.includes('trend')) msgs.push(['', `${nm}: 6주 연속 상승 또는 하강 — 저항체 노화 등 경향 변화를 확인하세요`]); };
+  last(R, 'Real'); last(I, 'Imaginary');
+  if(R.cpk != null && w.length >= 10 && R.cpk < 1.33) msgs.push(['', `Real Cpk ${R.cpk.toFixed(2)} — 1.33 미만입니다`]);
+  if(!msgs.length && w.length) msgs.push(['ok', w.length < 5 ? `데이터 ${w.length}주 — 5주부터 관리한계를 계산하고 20주에 확정합니다` : '최근 점에 이상 신호가 없습니다']);
+  document.getElementById('alarms').innerHTML = msgs.map(([c, t]) => `<div class="alarm ${c}">${esc(t)}</div>`).join('');
+}
+
+/* ---------- 이력 ---------- */
+function historyRows(eqId){
+  const eq = st.eq.find(e => e.id === eqId); if(!eq) return [];
+  const cs = checksOf(eqId), weeks = new Set(cs.map(c => c.week_start));
+  const today = QC.todayKST(), rows = cs.map(c => ({ ws:c.week_start, c }));
+  // 미실시 주
+  for(let ws = START_WEEK; ws <= weekStart(today); ws = addDays(ws, 7)){
+    if(!weeks.has(ws) && dueOf(ws) < today) rows.push({ ws, miss:true });
+  }
+  return rows.sort((a,b) => a.ws === b.ws ? (a.c && b.c ? b.c.attempt - a.c.attempt : 0) : a.ws < b.ws ? 1 : -1);
+}
+function renderLog(){
+  const rows = historyRows(st.eqId);
+  document.getElementById('logCnt').textContent = `${rows.filter(r => r.c).length}건${rows.some(r => r.miss) ? ` · 미실시 ${rows.filter(r => r.miss).length}주` : ''}`;
+  document.getElementById('log').innerHTML = `<thead><tr><th>점검 예정일</th><th>측정일</th><th>차수</th><th>Real (Ω)</th><th>Imag (Ω)</th><th>판정</th><th>측정자</th><th>측정 장비</th><th>조치 · 비고</th></tr></thead><tbody>${
+    rows.length ? rows.map(r => r.miss
+      ? `<tr class="miss"><td>${md(dueOf(r.ws))}</td><td colspan="8" class="t">미실시</td></tr>`
+      : `<tr class="${QC.isAdmin()?'c':''}" data-id="${r.c.id}"><td>${md(dueOf(r.ws))}</td><td>${md(r.c.check_date)}</td><td>${r.c.attempt === 2 ? '재측정' : '1차'}</td>
+          <td class="${r.c.real_ohm < r.c.real_min || r.c.real_ohm > r.c.real_max ? 'x' : ''}">${n2(r.c.real_ohm)}</td>
+          <td class="${r.c.imag_ohm < r.c.imag_min || r.c.imag_ohm > r.c.imag_max ? 'x' : ''}">${n2(r.c.imag_ohm)}</td>
+          <td><span class="badge ${r.c.result === 'pass' ? 'grn' : 'red'} ko">${r.c.result === 'pass' ? '합격' : '불합격'}</span></td>
+          <td>${esc(who(r.c.measured_by))}</td><td>${esc(meterName(r.c.meter_id))}</td>
+          <td class="t">${esc([r.c.action_taken, r.c.note].filter(Boolean).join(' / '))}</td></tr>`).join('')
+    : '<tr><td colspan="9" class="t" style="text-align:center;color:var(--ink3)">기록이 없습니다</td></tr>'}</tbody>`;
+}
+
+function renderAll(){ renderCards(); renderSpc(); renderLog(); }
+async function refresh(){ await loadAll(); fillEqSelect(); renderAll(); }
+
+/* ---------- 측정 입력 ---------- */
+function openEntry(eqId, attempt, rec){
+  const isNew = !rec, eq = st.eq.find(e => e.id === (rec ? rec.instrument_id : eqId));
+  const defMeter = (st.meters.find(m => m.owner === 'BCT') || st.meters[0] || {}).id || '';
+  const title = isNew ? `${eq.mgmt_no} ${attempt === 2 ? '재측정' : '주간 점검'} 입력` : `${eq.mgmt_no} 점검 기록 수정`;
+  const f = QC.openModal(title, `<div class="grid2">
+    <div class="full live" style="background:var(--pale2)">${esc(eq.model)} · S/N ${esc(eq.serial_no||'-')} · 측정 주파수 <b>${FREQ} MHz</b>${(rec ? rec.attempt : attempt) === 2 ? ' · <b>재측정 (1회)</b>' : ''}</div>
+    ${fld('check_date','측정일', rec ? rec.check_date : QC.todayKST(), {type:'date', req:true, attr:`max="${QC.todayKST()}"`})}
+    ${fld('meter_id','측정 장비', rec ? (rec.meter_id||'') : defMeter, {options: [['', '(지정 안 함)'], ...st.meters.map(m => [m.id, `${m.mgmt_no} ${m.model}${m.owner !== 'BCT' ? ' (' + m.owner + ')' : ''}`])]})}
+    ${fld('real_ohm','Real (Ω)', rec ? rec.real_ohm : '', {type:'number', req:true, attr:'step="0.01" inputmode="decimal"', hint:`기준 ${SPEC.real[0]} ~ ${SPEC.real[1]} Ω`})}
+    ${fld('imag_ohm','Imaginary (Ω)', rec ? rec.imag_ohm : '', {type:'number', req:true, attr:'step="0.01" inputmode="decimal"', hint:`기준 ${SPEC.imag[0]} ~ +${SPEC.imag[1]} Ω`})}
+    <div class="full"><div class="live" id="liveChk">값을 입력하면 판정이 표시됩니다</div></div>
+    ${fld('action_taken','조치 내용', rec && rec.action_taken, {area:true, full:true, hint:'불합격일 때 확인·조치한 내용 (예: N형 커넥터 재체결 후 재측정)'})}
+    ${fld('note','비고', rec && rec.note, {full:true})}
+  </div>`, async fd => {
+    const r = { check_date: fd.get('check_date'), meter_id: nz(fd.get('meter_id')), real_ohm: Number(fd.get('real_ohm')), imag_ohm: Number(fd.get('imag_ohm')),
+      action_taken: nz(fd.get('action_taken')), note: nz(fd.get('note')) };
+    if(r.check_date > QC.todayKST()) throw new Error('미래 날짜는 기록할 수 없습니다');
+    let res;
+    if(isNew){
+      res = await sb.from('qc_equip_checks').insert({ ...r, instrument_id: eq.id, attempt, freq_mhz: FREQ, week_start: weekStart(r.check_date), result:'pass' }).select().single();
+    } else {
+      res = await sb.from('qc_equip_checks').update(r).eq('id', rec.id).select().single();
+    }
+    if(res.error) throw new Error(/duplicate|unique/i.test(res.error.message) ? '이번 주 같은 차수의 기록이 이미 있습니다' : res.error.message);
+    const ok = res.data.result === 'pass', a = res.data.attempt;
+    toast(ok ? '합격으로 기록했습니다' : a === 1 ? '불합격 — 확인 후 재측정 1회를 입력하세요' : '재측정 불합격 — 설비를 사용 중지(수리중)로 바꿨습니다. 관리자에게 보고하세요', !ok);
+    await refresh();
+  }, QC.isAdmin() && !isNew ? { extra:{ label:'삭제', run: async () => {
+    if(!confirm('이 점검 기록을 삭제할까요? 되돌릴 수 없습니다.')) return false;
+    const { error } = await sb.from('qc_equip_checks').delete().eq('id', rec.id); if(error) throw new Error(error.message);
+    toast('삭제했습니다'); await refresh(); } } } : {});
+  const chk = () => {
+    const re = parseFloat(f.real_ohm.value), im = parseFloat(f.imag_ohm.value), el = f.querySelector('#liveChk');
+    if(isNaN(re) || isNaN(im)){ el.className = 'live'; el.textContent = '값을 입력하면 판정이 표시됩니다'; return; }
+    const rOut = re < SPEC.real[0] || re > SPEC.real[1], iOut = im < SPEC.imag[0] || im > SPEC.imag[1];
+    const a = rec ? rec.attempt : attempt;
+    el.className = 'live ' + (rOut || iOut ? 'bad' : 'ok');
+    el.textContent = !(rOut || iOut) ? '합격 — 기준 이내입니다'
+      : `불합격 — ${[rOut && 'Real', iOut && 'Imaginary'].filter(Boolean).join(', ')} 기준 이탈. ` + (a === 1 ? '저장 후 커넥터·케이블을 확인하고 1회 재측정하세요.' : '저장하면 설비가 사용 중지(수리중)로 바뀝니다.');
+  };
+  f.addEventListener('input', e => { if(['real_ohm','imag_ohm'].includes(e.target.name)) chk(); });
+  chk();
+}
+
+/* ---------- 공휴일 (관리자) ---------- */
+function openHolidays(){
+  const today = QC.todayKST();
+  const list = [...st.hol.entries()].filter(([d]) => d >= addDays(today, -31));
+  QC.openModal('공휴일 관리', `<div class="grid2">
+    <div class="full" style="font-size:13px;color:var(--ink2)">월요일이 공휴일이면 점검일이 다음 근무일로 넘어갑니다. 임시공휴일은 여기에 추가하세요.</div>
+    ${fld('d','날짜', '', {type:'date', req:true})}
+    ${fld('name','이름', '', {req:true, attr:'placeholder="예) 임시공휴일"'})}
+    <div class="full hlist">${list.map(([d, n]) => `<div class="hrow"><b>${d} (${DOW[dow(d)]})</b><span>${esc(n)}</span><button class="btn sm ghost" type="button" data-del="${d}">삭제</button></div>`).join('') || '<div class="empty" style="padding:20px">등록된 공휴일이 없습니다</div>'}</div>
+  </div>`, async fd => {
+    const { error } = await sb.from('qc_holidays').upsert({ d: fd.get('d'), name: nz(fd.get('name')) });
+    if(error) throw new Error(error.message);
+    toast('공휴일을 저장했습니다'); await refresh();
+  }, { ok:'+ 추가' });
+  document.querySelector('.modal.show .mb').onclick = async e => {
+    const b = e.target.closest('[data-del]'); if(!b) return;
+    if(!confirm(`${b.dataset.del} 공휴일을 삭제할까요?`)) return;
+    const { error } = await sb.from('qc_holidays').delete().eq('d', b.dataset.del);
+    if(error) return toast(error.message, true);
+    b.closest('.hrow').remove(); st.hol.delete(b.dataset.del); renderAll();
+  };
+}
+
+/* ---------- 출력 ---------- */
+function exportCsv(){
+  const eq = st.eq.find(e => e.id === st.eqId); if(!eq) return;
+  const rows = checksOf(eq.id).map(c => [dueOf(c.week_start), c.check_date, c.attempt === 2 ? '재측정' : '1차', FREQ, c.real_ohm, c.imag_ohm,
+    `${c.real_min}~${c.real_max}`, `${c.imag_min}~${c.imag_max}`, c.result === 'pass' ? '합격' : '불합격', who(c.measured_by), meterName(c.meter_id), c.action_taken, c.note]);
+  QC.csv([['점검예정일','측정일','차수','주파수(MHz)','Real(Ω)','Imag(Ω)','Real기준','Imag기준','판정','측정자','측정장비','조치','비고'], ...rows], `BCT_DummyLoad_주간점검_${eq.mgmt_no}_${QC.todayKST()}.csv`);
+}
+function printDoc(){
+  const eq = st.eq.find(e => e.id === st.eqId); if(!eq) return;
+  const rows = historyRows(eq.id).slice().reverse();
+  const g = id => document.getElementById(id).innerHTML;
+  document.getElementById('printDoc').innerHTML = `
+    <table class="hd" style="margin-bottom:6px"><tr><td rowspan="3" class="ttl" style="font-size:15pt;letter-spacing:.12em">Dummy Load 주간 점검 기록</td>
+      <td class="lbl">설비</td><td>${esc(eq.mgmt_no)} · ${esc(eq.maker||'')} ${esc(eq.model)} (S/N ${esc(eq.serial_no||'-')})</td>
+      <td rowspan="3" style="padding:0;width:220px"><table class="sign" style="border:0"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td></td><td></td><td></td></tr></table></td></tr>
+      <tr><td class="lbl">기준</td><td>${FREQ} MHz · Real ${SPEC.real[0]}~${SPEC.real[1]} Ω · Imag ${SPEC.imag[0]}~+${SPEC.imag[1]} Ω</td></tr>
+      <tr><td class="lbl">출력일</td><td>${QC.todayKST()} · 주 1회 (월요일, 공휴일이면 다음 근무일)</td></tr></table>
+    <div class="charts"><div class="chart"><div class="ct">Real (Ω) · 개별값</div>${g('cRI')}</div><div class="chart"><div class="ct">Imaginary (Ω) · 개별값</div>${g('cII')}</div></div>
+    <table class="list"><thead><tr><th>예정일</th><th>측정일</th><th>차수</th><th>Real</th><th>Imag</th><th>판정</th><th>측정자</th><th>조치 · 비고</th></tr></thead><tbody>${
+      rows.map(r => r.miss ? `<tr><td>${dueOf(r.ws)}</td><td colspan="7" class="l">미실시</td></tr>`
+        : `<tr><td>${dueOf(r.ws)}</td><td>${r.c.check_date}</td><td>${r.c.attempt === 2 ? '재측정' : '1차'}</td><td>${n2(r.c.real_ohm)}</td><td>${n2(r.c.imag_ohm)}</td><td>${r.c.result === 'pass' ? '합격' : '불합격'}</td><td>${esc(who(r.c.measured_by))}</td><td class="l">${esc([r.c.action_taken, r.c.note].filter(Boolean).join(' / '))}</td></tr>`).join('')
+      || '<tr><td colspan="8">기록 없음</td></tr>'}</tbody></table>`;
+  window.print();
+}
+
+/* ---------- 이벤트 ---------- */
+function fillEqSelect(){
+  document.getElementById('selEq').innerHTML = st.eq.map(e => `<option value="${e.id}" ${e.id===st.eqId?'selected':''}>${esc(e.mgmt_no)} · ${esc(e.model)}</option>`).join('');
+}
+document.getElementById('bCsv').innerHTML = icon.dl + 'CSV';
+document.getElementById('bPrint').innerHTML = icon.print + '기록 인쇄';
+document.getElementById('bCsv').onclick = exportCsv;
+document.getElementById('bPrint').onclick = printDoc;
+document.getElementById('bHol').onclick = openHolidays;
+document.getElementById('cards').addEventListener('click', e => { const b = e.target.closest('[data-entry]'); if(b) openEntry(b.dataset.entry, Number(b.dataset.try)); });
+document.getElementById('log').addEventListener('click', e => { if(!QC.isAdmin()) return; const tr = e.target.closest('tr[data-id]'); if(tr) openEntry(null, null, st.checks.find(c => c.id === tr.dataset.id)); });
+document.getElementById('selEq').onchange = e => { st.eqId = e.target.value; renderSpc(); renderLog(); };
+document.getElementById('selN').onchange = e => { st.n = Number(e.target.value); renderSpc(); };
+
+QC.init('instruments', async () => {
+  document.getElementById('bHol').classList.toggle('hidden', !QC.isAdmin());
+  await loadAll();
+  // equip-check.html#설비-5 → 해당 설비 선택
+  const h = decodeURIComponent(location.hash.slice(1));
+  const hit = h && st.eq.find(e => e.mgmt_no === h); if(hit) st.eqId = hit.id;
+  fillEqSelect(); renderAll();
+});
+</script>
+</body>
+</html>

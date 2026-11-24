@@ -102,6 +102,10 @@ a.mod:hover{border-color:var(--primary);box-shadow:0 14px 34px -20px rgba(31,78,
     <h3>교정 조치가 필요한 계측기</h3>
     <div class="due-list" id="dueList"></div>
   </div>
+  <div class="due hidden" id="eqDue">
+    <h3>이번 주 설비 점검</h3>
+    <div class="due-list" id="eqDueList"></div>
+  </div>
 </main>
 
 <script src="./assets/qc.js"></script>
@@ -159,6 +163,32 @@ QC.init('home', async () => {
     ]);
     const b = document.querySelectorAll('#envStats b');
     b[0].textContent = z.count ?? '–'; b[1].textContent = t.count ?? '–'; b[2].textContent = d.count ?? '–';
+  })();
+  // Dummy Load 주간 점검 (월요일, 공휴일이면 다음 근무일) — 오늘 점검·기한 초과·재측정 필요만 표시
+  (async () => {
+    const today = QC.todayKST(), D = s => new Date(s + 'T12:00:00Z'), add = (s, n) => { const d = D(s); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); };
+    const ws = add(today, -((D(today).getUTCDay() + 6) % 7));
+    if(ws < '2026-11-30') return;
+    const [e, h, c] = await Promise.all([
+      QC.sb.from('qc_instruments').select('id,mgmt_no,model,status').eq('weekly_imp_check', true).eq('status','active').order('seq'),
+      QC.sb.from('qc_holidays').select('d').gte('d', ws).lte('d', add(ws, 6)),
+      QC.sb.from('qc_equip_checks').select('instrument_id,attempt,result').eq('week_start', ws),
+    ]);
+    const hol = new Set((h.data || []).map(x => x.d)), off = s => [0,6].includes(D(s).getUTCDay()) || hol.has(s);
+    let due = ws; while(off(due)) due = add(due, 1);
+    const rows = (e.data || []).map(q => {
+      const cs = (c.data || []).filter(x => x.instrument_id === q.id), a1 = cs.find(x => x.attempt === 1), a2 = cs.find(x => x.attempt === 2);
+      if(a2 || (a1 && a1.result === 'pass')) return null;
+      if(a1) return [q, '재측정 필요', 'amb'];
+      if(today > due) return [q, '기한 초과', 'red'];
+      if(today === due) return [q, '오늘 점검', 'blu'];
+      return null;
+    }).filter(Boolean);
+    if(!rows.length) return;
+    document.getElementById('eqDue').classList.remove('hidden');
+    document.getElementById('eqDueList').innerHTML = rows.map(([q, t, cls]) => `<a href="./equip-check.html#${encodeURIComponent(q.mgmt_no)}">
+      <span class="no">${QC.esc(q.mgmt_no)}</span><span class="nm">Dummy Load ${QC.esc(q.model)} · 임피던스 점검</span><span class="dt">${due.slice(5).replace('-','/')}</span>
+      <span class="badge ${cls} ko">${t}</span></a>`).join('');
   })();
   const { data, error } = await QC.sb.from('qc_instrument_status').select('id,mgmt_no,name,status,cal_state,days_left,next_due').eq('kind','instrument').neq('status','disposed');
   if(error) return QC.toast(error.message, true);

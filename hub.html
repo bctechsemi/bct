@@ -24,12 +24,6 @@ a{color:inherit;text-decoration:none}
 
 /* ---------- background layers ---------- */
 #net{position:fixed;inset:0;z-index:0}
-.blob{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}
-.b1{width:640px;height:640px;background:#1F4E9C;opacity:.55;top:-220px;right:-140px;animation:drift1 18s ease-in-out infinite}
-.b2{width:480px;height:480px;background:#C98A2B;opacity:.14;bottom:-200px;left:-120px;animation:drift2 22s ease-in-out infinite}
-.b3{width:380px;height:380px;background:#2B6BD1;opacity:.22;top:40%;left:38%;animation:drift1 26s ease-in-out infinite reverse}
-@keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(-80px,60px)}}
-@keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(90px,-50px)}}
 .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
 /* ---------- page shell ---------- */
@@ -70,16 +64,10 @@ h1 .bct{display:block;color:#fff}
 
 /* bento */
 .bento{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:14px;perspective:1200px}
-.card{--mx:50%;--my:50%;position:relative;border-radius:22px;padding:clamp(18px,2.2vh,26px) clamp(18px,1.8vw,26px);
+.card{position:relative;border-radius:22px;padding:clamp(18px,2.2vh,26px) clamp(18px,1.8vw,26px);
   background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.11);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
   overflow:hidden;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.8,.2,1),border-color .3s,background .3s;display:flex;flex-direction:column;min-height:0}
-.card:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .3s;
-  background:radial-gradient(420px circle at var(--mx) var(--my),rgba(120,165,240,.18),transparent 45%)}
-.card:after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;opacity:0;transition:opacity .3s;
-  background:radial-gradient(260px circle at var(--mx) var(--my),rgba(201,138,43,.75),transparent 60%);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
-.card:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.06)}
-.card:hover:before,.card:hover:after{opacity:1}
+.card:hover{border-color:rgba(201,138,43,.5);background:rgba(255,255,255,.065)}
 .c-sales{grid-row:span 2}
 .c-cm{background:rgba(31,78,156,.32);border-color:rgba(120,165,240,.28)}
 
@@ -157,13 +145,12 @@ a.row:hover .tag.live{color:#fff}
 @keyframes draw{to{stroke-dashoffset:0}}
 @keyframes fade{to{opacity:1}}
 
-/* ticker */
-.ticker{height:42px;border-top:1px solid rgba(255,255,255,.1);margin:0 calc(-1 * clamp(20px,3.2vw,48px));overflow:hidden;display:flex;align-items:center;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
-.track-t{display:flex;gap:44px;white-space:nowrap;animation:tick 40s linear infinite;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist2)}
-.track-t span{display:inline-flex;align-items:center;gap:10px}
-.track-t i{width:4px;height:4px;background:var(--amber);border-radius:50%}
-@keyframes tick{to{transform:translateX(-50%)}}
+/* footer line (static) */
+.ticker{height:42px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;gap:16px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist2)}
+.ticker span{display:inline-flex;align-items:center;gap:10px;white-space:nowrap}
+.ticker i{width:4px;height:4px;background:var(--amber);border-radius:50%}
+@media (max-width:640px){.ticker .t-r{display:none}}
 
 /* entrance */
 .in{opacity:0;transform:translateY(26px);filter:blur(6px);animation:enter 1s cubic-bezier(.2,.8,.2,1) forwards}
@@ -207,7 +194,7 @@ a.row:hover .tag.live{color:#fff}
 .page{transition:filter .7s cubic-bezier(.2,.8,.2,1),transform .7s cubic-bezier(.2,.8,.2,1)}
 body.locked .page{filter:blur(14px) saturate(.8);transform:scale(.985);pointer-events:none;user-select:none}
 .gate{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;
-  background:radial-gradient(ellipse at center,rgba(10,31,66,.55),rgba(10,31,66,.85));transition:opacity .6s,visibility .6s}
+  background:rgba(10,31,66,.74);transition:opacity .6s,visibility .6s}
 body:not(.locked) .gate{opacity:0;visibility:hidden}
 .gate-card{position:relative;width:100%;max-width:400px;padding:38px 34px 30px;border-radius:26px;
   background:rgba(15,44,92,.55);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
@@ -260,7 +247,6 @@ body:not(.locked) .gate-card{transform:translateY(-16px) scale(.97);transition:t
 <body class="locked">
 
 <canvas id="net"></canvas>
-<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
 <div class="grain"></div>
 
 <div class="page">
@@ -405,7 +391,8 @@ body:not(.locked) .gate-card{transform:translateY(-16px) scale(.97);transition:t
   </main>
 
   <div class="ticker in" style="animation-delay:1s">
-    <div class="track-t" id="tick"></div>
+    <span><i></i>BCT Co., Ltd. · Business Hub</span>
+    <span class="t-r">hub.bct1.co.kr</span>
   </div>
 </div>
 
@@ -566,18 +553,13 @@ setTimeout(()=>document.querySelectorAll('[data-count]').forEach(el=>{
   const t=setInterval(()=>{el.textContent=String(++i).padStart(2,'0');if(i>=n)clearInterval(t)},180);
 }),1000);
 
-/* ---------- ticker ---------- */
-const items=['Sales','Order Book','Quotation','Transaction Statement','Ecount ERP','Company Profile','Contract Manufacturing','ASENDIA OPS Hub','HS HiTek','Repair Service','SOP · Repair Certificate','Development','PBIC · Backstream Isolation','RF Power Components','Quality Control','Instrument Calibration','Temperature · Humidity','3정5S Audit','Worker Qualification'];
-const html=items.map(t=>`<span><i></i>${t}</span>`).join('');
-document.getElementById('tick').innerHTML=html+html;
 
 /* ---------- card spotlight + tilt ---------- */
 const fine=matchMedia('(pointer:fine)').matches;
 document.querySelectorAll('.card').forEach(c=>{
   c.addEventListener('pointermove',e=>{
     const r=c.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
-    c.style.setProperty('--mx',x+'px');c.style.setProperty('--my',y+'px');
-    if(fine){const rx=((y/r.height)-.5)*-5,ry=((x/r.width)-.5)*5;c.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`;}
+        if(fine){const rx=((y/r.height)-.5)*-5,ry=((x/r.width)-.5)*5;c.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`;}
   });
   c.addEventListener('pointerleave',()=>c.style.transform='');
 });

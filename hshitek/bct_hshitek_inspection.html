@@ -1,0 +1,1293 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>검사성적서 작성 · BCT × HS HiTek</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+(function(){
+  var d = document.documentElement;
+  try{
+    d.setAttribute('data-theme', localStorage.getItem('bct_hub_theme') === 'dark' ? 'dark' : 'light');
+    d.lang = localStorage.getItem('bct_hshitek_lang') === 'en' ? 'en' : 'ko';
+  }catch(e){}
+})();
+</script>
+<style>
+  @font-face{ font-family:'KIMM'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2212@1.0/KIMM_Light.woff2') format('woff2'); font-weight:300; font-display:swap; }
+  @font-face{ font-family:'KIMM'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2212@1.0/KIMM_Bold.woff2') format('woff2'); font-weight:700; font-display:swap; }
+
+  /* ===== Tokens : same as OPS Hub index.html ===== */
+  :root{
+    --primary:#024ad8; --primary-pressed:#0e3191; --primary-soft:#c9e0fc; --on-primary:#ffffff;
+    --ink:#1a1a1a; --charcoal:#3d3d3d; --graphite:#636363;
+    --canvas:#ffffff; --paper:#ffffff; --cloud:#f7f7f7; --fog:#e8e8e8; --steel:#c2c2c2;
+    --hairline:#e8e8e8; --hairline-strong:#c2c2c2;
+    --slab:#1a1a1a; --slab-2:#292929; --on-slab:#ffffff; --on-slab-muted:#c2c2c2; --slab-accent:#296ef9;
+    --ok:#1f7a4d; --ok-soft:#dcefe4; --ng:#c1443c; --ng-soft:#f8e1df;
+    --lift:0 2px 8px rgba(26,26,26,.08);
+    --float:0 8px 24px rgba(26,26,26,.12);
+    --font-head:'KIMM', 'Google Sans', 'Gowun Batang', sans-serif;
+    --font-en:'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-ko:'Google Sans', 'Gowun Batang', serif;
+    --font-mono:'JetBrains Mono', 'Gowun Batang', ui-monospace, monospace;
+    --font-text:var(--font-en);
+    --r-xs:2px; --r-sm:3px; --r-md:4px; --r-lg:8px; --r-xl:16px; --r-pill:9999px;
+  }
+  :root[lang="ko"]{ --font-text:var(--font-ko); }
+  :root[data-theme="dark"]{
+    --primary:#296ef9; --primary-pressed:#5b8ffb; --primary-soft:#1b2f57; --on-primary:#ffffff;
+    --ink:#f2f2f2; --charcoal:#cfcfcf; --graphite:#a3a3a3;
+    --canvas:#111111; --paper:#1b1b1b; --cloud:#161616; --fog:#262626; --steel:#4a4a4a;
+    --hairline:#2a2a2a; --hairline-strong:#444444;
+    --slab:#000000; --slab-2:#1b1b1b;
+    --ok:#5cc28d; --ok-soft:#173326; --ng:#f08178; --ng-soft:#3a1d1b;
+    --lift:0 2px 8px rgba(0,0,0,.5);
+    --float:0 8px 24px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--canvas); color:var(--ink); font-family:var(--font-text); font-size:16px; line-height:1.4; -webkit-font-smoothing:antialiased; min-height:100vh; display:flex; flex-direction:column; }
+  :root[lang="ko"] p, :root[lang="ko"] h1, :root[lang="ko"] h2, :root[lang="ko"] h3{ word-break:keep-all; }
+  button, input, select, textarea{ font:inherit; color:inherit; }
+  a{ color:inherit; }
+  ::selection{ background:var(--primary-soft); color:var(--ink); }
+  :focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+  .mono{ font-family:var(--font-mono) !important; }
+  .wrap{ max-width:1600px; margin:0 auto; width:100%; padding:0 clamp(16px,3vw,40px); }
+
+  /* utility + nav (Hub) */
+  .utility{ background:var(--slab); color:var(--on-slab); font-size:14px; }
+  .utility .wrap{ height:36px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .utility .u-left{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .utility .u-left span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .u-dot{ width:6px; height:6px; border-radius:50%; background:var(--slab-accent); flex:0 0 auto; }
+  .u-right{ font-family:var(--font-mono); font-size:12px; color:var(--on-slab-muted); white-space:nowrap; display:flex; gap:14px; align-items:center; }
+  .u-right a{ color:var(--on-slab-muted); text-decoration:none; }
+  .u-right a:hover{ color:var(--on-slab); }
+  .nav{ background:var(--canvas); border-bottom:1px solid var(--hairline); position:sticky; top:0; z-index:20; }
+  .nav .wrap{ height:64px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .nav-brand{ display:flex; align-items:center; gap:14px; text-decoration:none; flex:0 0 auto; }
+  .nav-brand img{ height:34px; width:auto; display:block; }
+  :root[data-theme="dark"] .nav-brand img{ filter:brightness(0) invert(1); }
+  .nav-brand .x{ font-size:14px; color:var(--graphite); }
+  .nav-brand .cust{ font-family:var(--font-en); font-size:16px; font-weight:600; }
+  .nav-links{ display:flex; align-items:center; gap:4px; }
+  .nav-link{ position:relative; padding:8px 16px; font-size:16px; height:64px; display:flex; align-items:center; background:none; border:none; cursor:pointer; color:var(--ink); }
+  .nav-link::after{ content:''; position:absolute; left:16px; right:16px; bottom:0; height:2px; background:transparent; }
+  .nav-link:hover::after, .nav-link.active::after{ background:var(--primary); }
+  .nav-right{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .icon-btn{ width:40px; height:40px; border-radius:var(--r-md); border:1px solid var(--hairline-strong); background:var(--canvas); color:var(--ink); display:grid; place-items:center; cursor:pointer; padding:0; }
+  .icon-btn:hover{ border-color:var(--ink); }
+  .icon-btn svg{ width:18px; height:18px; }
+  .icon-btn .i-sun{ display:none; }
+  :root[data-theme="dark"] .icon-btn .i-sun{ display:block; }
+  :root[data-theme="dark"] .icon-btn .i-moon{ display:none; }
+  .lang-toggle{ display:flex; border:1px solid var(--hairline-strong); border-radius:var(--r-md); overflow:hidden; height:40px; }
+  .lang-btn{ font-family:var(--font-en) !important; font-size:12.6px; font-weight:700; letter-spacing:.126px; padding:0 14px; border:none; background:var(--canvas); color:var(--graphite); cursor:pointer; }
+  .lang-btn + .lang-btn{ border-left:1px solid var(--hairline-strong); }
+  .lang-btn.active{ background:var(--ink); color:var(--canvas); }
+  @media (max-width:1023px){ .nav-links{ display:none; } }
+
+  /* buttons (Hub) */
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; padding:0 18px; border-radius:var(--r-md); font-family:var(--font-en) !important; font-size:13px; font-weight:600; letter-spacing:.7px; text-transform:uppercase; text-decoration:none; cursor:pointer; border:1px solid transparent; white-space:nowrap; transition:background .15s, color .15s, border-color .15s; background:none; }
+  :root[lang="ko"] .btn{ font-family:var(--font-ko) !important; letter-spacing:.2px; }
+  .btn-primary{ background:var(--primary); color:var(--on-primary); }
+  .btn-primary:hover{ background:var(--primary-pressed); }
+  .btn-outline{ color:var(--ink); border-color:var(--ink); }
+  .btn-outline:hover{ background:var(--ink); color:var(--canvas); }
+  .btn-ghost{ color:var(--ink); border-color:var(--hairline-strong); }
+  .btn-ghost:hover{ border-color:var(--ink); }
+  .btn-danger{ color:var(--ng); border-color:var(--ng); }
+  .btn-danger:hover{ background:var(--ng); color:#fff; }
+  .btn:disabled, .btn[aria-disabled="true"]{ background:var(--fog); color:var(--graphite); border-color:var(--fog); cursor:not-allowed; }
+  .btn-sm{ height:32px; padding:0 12px; font-size:12px; }
+
+  /* status / judge pills */
+  .status{ display:inline-flex; align-items:center; gap:6px; font-family:var(--font-en); font-size:12px; font-weight:700; letter-spacing:.1px; border-radius:var(--r-sm); padding:4px 8px; line-height:1; text-transform:uppercase; white-space:nowrap; }
+  :root[lang="ko"] .status{ font-family:var(--font-ko); }
+  .status::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .st-draft{ background:var(--fog); color:var(--charcoal); }
+  .st-submitted{ background:var(--primary-soft); color:var(--primary); }
+  :root[data-theme="dark"] .st-submitted{ color:#cfe0ff; }
+  .st-approved, .j-pass{ background:var(--ok-soft); color:var(--ok); }
+  .j-fail{ background:var(--ng-soft); color:var(--ng); }
+  .j-na{ background:var(--fog); color:var(--charcoal); }
+  .j-open{ background:transparent; color:var(--graphite); border:1px dashed var(--hairline-strong); }
+  .j-open::before{ display:none; }
+
+  /* page head */
+  main{ flex:1; }
+  .page-head{ padding:40px 0 24px; display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .page-head h1{ font-family:var(--font-head); font-weight:700; font-size:clamp(30px,3.4vw,42px); line-height:1.05; letter-spacing:-0.015em; margin:0; }
+  .page-head p{ margin:10px 0 0; color:var(--charcoal); max-width:60ch; }
+  .eyebrow{ font-family:var(--font-mono); font-size:12px; font-weight:600; letter-spacing:.12em; color:var(--graphite); margin-bottom:10px; text-transform:uppercase; }
+
+  /* list */
+  .band{ background:var(--cloud); padding:32px 0 64px; min-height:60vh; }
+  .toolbar{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+  .tab{ border:1px solid var(--hairline-strong); background:var(--paper); color:var(--ink); border-radius:var(--r-pill); padding:7px 18px; font-size:15px; font-weight:500; cursor:pointer; }
+  .tab:hover{ border-color:var(--ink); }
+  .tab.active{ background:var(--ink); color:var(--canvas); border-color:var(--ink); }
+  .tab .n{ font-family:var(--font-mono); font-size:12px; margin-left:6px; opacity:.75; }
+  .search{ height:40px; border:1px solid var(--hairline-strong); background:var(--paper); border-radius:var(--r-md); padding:0 14px; min-width:260px; }
+  .card{ background:var(--paper); border-radius:var(--r-xl); box-shadow:var(--lift); }
+  .tbl-wrap{ overflow-x:auto; }
+  table.list{ width:100%; border-collapse:collapse; font-size:15px; }
+  table.list th{ text-align:left; font-weight:500; font-size:13px; color:var(--graphite); padding:14px 16px; border-bottom:1px solid var(--hairline-strong); white-space:nowrap; }
+  table.list td{ padding:14px 16px; border-bottom:1px solid var(--hairline); white-space:nowrap; }
+  table.list tbody tr{ cursor:pointer; }
+  table.list tbody tr:hover td{ background:var(--cloud); }
+  table.list tbody tr:last-child td{ border-bottom:none; }
+  .empty{ padding:56px 24px; text-align:center; color:var(--charcoal); }
+  .empty b{ display:block; font-size:20px; font-weight:500; color:var(--ink); margin-bottom:8px; }
+
+  /* login */
+  .login{ display:grid; place-items:center; padding:72px 16px; background:var(--cloud); min-height:calc(100vh - 100px); }
+  .login .card{ width:100%; max-width:420px; padding:40px 36px; }
+  .login h1{ font-family:var(--font-head); font-size:30px; margin:0 0 8px; }
+  .login p{ color:var(--charcoal); margin:0 0 24px; font-size:15px; }
+  .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; min-width:0; }
+  .field label{ font-size:13px; color:var(--graphite); }
+  .field input, .field select, .field textarea{ height:42px; border:1px solid var(--hairline-strong); border-radius:var(--r-md); padding:0 12px; background:var(--paper); width:100%; }
+  .field textarea{ height:auto; min-height:72px; padding:10px 12px; resize:vertical; }
+  .field input:focus, .field textarea:focus{ border-color:var(--primary); outline:none; }
+  .field input[readonly], .field textarea[readonly]{ background:var(--cloud); color:var(--charcoal); }
+  .err{ color:var(--ng); font-size:14px; min-height:20px; margin:4px 0 8px; }
+
+  /* editor */
+  .ed{ display:grid; grid-template-columns:minmax(440px, 560px) 1fr; min-height:calc(100vh - 100px); }
+  @media (max-width:1100px){ .ed{ grid-template-columns:1fr; } }
+  .ed-form{ border-right:1px solid var(--hairline); background:var(--canvas); padding:24px clamp(16px,2vw,28px) 80px; }
+  .ed-preview{ background:var(--cloud); padding:24px; overflow:auto; display:flex; flex-direction:column; align-items:center; }
+  .ed-bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+  .ed-bar .back{ display:inline-flex; align-items:center; gap:6px; background:none; border:none; cursor:pointer; color:var(--charcoal); font-size:15px; padding:0; }
+  .ed-bar .back:hover{ color:var(--ink); }
+  .ed-title{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  .ed-title h2{ font-family:var(--font-head); font-size:28px; margin:0; letter-spacing:-.01em; }
+  .ed-meta{ font-family:var(--font-mono); font-size:12px; color:var(--graphite); margin-bottom:20px; }
+  .sec{ border-top:1px solid var(--hairline); padding:22px 0 8px; }
+  .sec-h{ display:flex; align-items:baseline; gap:12px; margin-bottom:16px; }
+  .sec-h .n{ font-family:var(--font-mono); font-size:12px; font-weight:600; letter-spacing:.12em; color:var(--primary); }
+  .sec-h .t{ font-size:19px; font-weight:500; }
+  .sec-h .s{ margin-left:auto; font-size:13px; color:var(--graphite); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+  .notice{ background:var(--cloud); border:1px solid var(--hairline); border-radius:var(--r-lg); padding:12px 14px; font-size:14px; color:var(--charcoal); margin-bottom:14px; display:flex; gap:10px; align-items:flex-start; }
+  .notice .pill{ flex:0 0 auto; }
+
+  .drop{ border:1.5px dashed var(--hairline-strong); border-radius:var(--r-xl); padding:18px; display:flex; align-items:center; gap:16px; margin-bottom:18px; background:var(--cloud); transition:border-color .15s, background .15s; }
+  .drop.over{ border-color:var(--primary); background:var(--primary-soft); }
+  .drop svg{ width:34px; height:34px; flex:0 0 auto; stroke:var(--ink); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+  .drop svg .ac{ stroke:var(--primary); }
+  .drop .dt{ font-weight:500; }
+  .drop .dd{ font-size:13px; color:var(--graphite); margin-top:2px; }
+  .drop .btns{ margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .progress{ font-family:var(--font-mono); font-size:12px; color:var(--primary); margin:-8px 0 14px; min-height:16px; }
+
+  .it{ border:1px solid var(--hairline); border-radius:var(--r-xl); padding:16px; margin-bottom:12px; background:var(--paper); }
+  .it.fail{ border-color:var(--ng); }
+  .it-head{ display:flex; gap:12px; align-items:flex-start; }
+  .it-no{ font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--graphite); padding-top:3px; min-width:20px; }
+  .it-name{ font-weight:500; line-height:1.3; }
+  .it-crit{ font-size:13px; color:var(--charcoal); margin-top:4px; }
+  .it-head .status{ margin-left:auto; }
+  .photos{ display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 12px 32px; }
+  .tile{ position:relative; width:96px; height:72px; border-radius:var(--r-lg); border:1px dashed var(--hairline-strong); background:var(--cloud); display:grid; place-items:center; overflow:hidden; cursor:pointer; font-family:var(--font-mono); font-size:11px; color:var(--graphite); text-align:center; line-height:1.3; }
+  .tile.has{ border-style:solid; border-color:var(--hairline); cursor:zoom-in; }
+  .tile img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .tile .tn{ position:absolute; left:4px; top:4px; background:rgba(26,26,26,.82); color:#fff; border-radius:var(--r-xs); padding:1px 5px; font-size:10px; }
+  .tile .rm{ position:absolute; right:3px; top:3px; width:20px; height:20px; border-radius:50%; border:none; background:rgba(26,26,26,.82); color:#fff; cursor:pointer; font-size:13px; line-height:20px; padding:0; display:none; }
+  .tile.has:hover .rm{ display:block; }
+  .tile input{ display:none; }
+  .tile.locked{ cursor:default; }
+  .it-foot{ display:flex; gap:10px; align-items:center; margin-left:32px; flex-wrap:wrap; }
+  .seg{ display:inline-flex; border:1px solid var(--hairline-strong); border-radius:var(--r-md); overflow:hidden; }
+  .seg button{ border:none; background:var(--paper); padding:0 16px; height:34px; font-family:var(--font-en); font-weight:700; font-size:12.6px; letter-spacing:.2px; cursor:pointer; color:var(--charcoal); }
+  .seg button + button{ border-left:1px solid var(--hairline-strong); }
+  .seg button.on-ok{ background:var(--ok); color:#fff; }
+  .seg button.on-ng{ background:var(--ng); color:#fff; }
+  .seg button.on-na{ background:var(--ink); color:var(--canvas); }
+  .seg button:disabled{ cursor:not-allowed; }
+  .it-foot input{ flex:1; min-width:140px; height:34px; border:1px solid var(--hairline); border-radius:var(--r-md); padding:0 10px; background:var(--paper); font-size:14px; }
+
+  .sign-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:560px){ .sign-grid, .grid2{ grid-template-columns:1fr; } }
+  .sign-box{ border:1px solid var(--hairline); border-radius:var(--r-xl); padding:14px; background:var(--paper); }
+  .sign-box h4{ margin:0 0 10px; font-size:15px; font-weight:500; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .pad{ width:100%; height:120px; border:1px solid var(--hairline-strong); border-radius:var(--r-lg); background:#fff; touch-action:none; cursor:crosshair; display:block; }
+  .sign-img{ width:100%; height:120px; border:1px solid var(--hairline); border-radius:var(--r-lg); background:#fff; object-fit:contain; display:block; }
+  .sign-box .sm{ font-size:12px; color:var(--graphite); margin-top:8px; font-family:var(--font-mono); }
+  .sign-box .act{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .sign-wait{ height:120px; border:1px dashed var(--hairline-strong); border-radius:var(--r-lg); display:grid; place-items:center; color:var(--graphite); font-size:14px; text-align:center; padding:8px; }
+  .actions-bottom{ display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
+
+  /* spec + share */
+  table.spec{ width:100%; border-collapse:collapse; font-size:14px; }
+  table.spec th{ text-align:left; font-size:13px; font-weight:500; color:var(--graphite); padding:12px; border-bottom:1px solid var(--hairline-strong); }
+  table.spec td{ padding:10px 12px; border-bottom:1px solid var(--hairline); vertical-align:top; }
+  table.spec input, table.spec textarea{ width:100%; border:1px solid var(--hairline); border-radius:var(--r-md); background:var(--paper); padding:6px 8px; font-size:14px; }
+  table.spec textarea{ min-height:54px; resize:vertical; }
+  .code-out{ font-family:var(--font-mono); font-size:28px; font-weight:600; letter-spacing:.08em; background:var(--cloud); border-radius:var(--r-lg); padding:18px 20px; margin:12px 0; word-break:break-all; }
+
+  /* lightbox + toast */
+  .lb{ position:fixed; inset:0; background:rgba(0,0,0,.86); z-index:80; display:none; align-items:center; justify-content:center; padding:32px; cursor:zoom-out; }
+  .lb.open{ display:flex; }
+  .lb img{ max-width:100%; max-height:100%; object-fit:contain; border-radius:var(--r-md); }
+  .lb .cap{ position:absolute; left:0; right:0; bottom:14px; text-align:center; color:#fff; font-size:14px; }
+  .toast{ position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:var(--canvas); padding:12px 18px; border-radius:var(--r-lg); font-size:15px; box-shadow:var(--float); opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:90; max-width:min(560px, 92vw); }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.bad{ background:var(--ng); color:#fff; }
+  .busy{ position:fixed; inset:0; z-index:70; cursor:progress; display:none; }
+  .busy.on{ display:block; }
+
+  /*SHEET_CSS_START*/
+  /* ===== A4 sheet (always light paper; print text is ink, never light gray) ===== */
+  .sheet{ width:210mm; height:297mm; background:#fff; color:#1a1a1a; position:relative; padding:13mm 14mm 10mm; margin:0 0 24px; box-shadow:0 8px 24px rgba(26,26,26,.14); display:flex; flex-direction:column; overflow:hidden; font-family:'Google Sans','Gowun Batang',sans-serif; font-size:10px; line-height:1.35; }
+  .sheet *{ color:inherit; }
+  .sh-top{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding-bottom:9px; border-bottom:2px solid #1a1a1a; }
+  .sh-logo{ height:24px; width:auto; display:block; margin-bottom:8px; }
+  .sh-title{ font-family:'KIMM','Google Sans',sans-serif; font-weight:700; font-size:23px; letter-spacing:-.01em; line-height:1.1; }
+  .sh-en{ font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:600; letter-spacing:.16em; margin-top:3px; }
+  .sh-no{ text-align:right; font-family:'JetBrains Mono',monospace; font-size:9px; line-height:1.55; }
+  .sh-no b{ font-size:12px; font-weight:600; }
+  .sh-bar{ width:56px; height:3px; background:#024ad8; margin:8px 0 12px; }
+  .sh-h{ font-size:10.5px; font-weight:700; margin:12px 0 6px; display:flex; align-items:baseline; gap:6px; }
+  .sh-h span{ font-family:'JetBrains Mono',monospace; font-size:7.5px; font-weight:600; letter-spacing:.14em; }
+  table.sh-info{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  table.sh-info th, table.sh-info td{ border:1px solid #c2c2c2; padding:5px 7px; text-align:left; vertical-align:middle; }
+  table.sh-info th{ background:#f7f7f7; font-weight:600; width:17%; font-size:9px; }
+  table.sh-info th small{ display:block; font-family:'JetBrains Mono',monospace; font-size:7px; font-weight:500; letter-spacing:.06em; }
+  table.sh-info td{ font-size:10px; }
+  table.sh-info td.mono{ font-family:'JetBrains Mono',monospace; font-size:9.5px; }
+  table.sh-res{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  table.sh-res th{ background:#1a1a1a; color:#fff; font-size:8.5px; font-weight:600; padding:5px 6px; text-align:left; border:1px solid #1a1a1a; }
+  table.sh-res th small{ display:block; font-family:'JetBrains Mono',monospace; font-size:6.5px; font-weight:500; letter-spacing:.08em; color:#fff; }
+  table.sh-res td{ border:1px solid #c2c2c2; padding:5px 6px; vertical-align:middle; font-size:9px; }
+  table.sh-res tr:nth-child(even) td{ background:#f7f7f7; }
+  table.sh-res td.c{ text-align:center; }
+  table.sh-res td .en{ display:block; font-size:7.5px; color:#3d3d3d; margin-top:1px; }
+  table.sh-res td.mono{ font-family:'JetBrains Mono',monospace; font-size:8.5px; }
+  .jd{ display:inline-block; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:8.5px; padding:2px 5px; border-radius:2px; }
+  .jd.pass{ background:#dcefe4; color:#1f7a4d; }
+  .jd.fail{ background:#f8e1df; color:#c1443c; }
+  .jd.na{ background:#e8e8e8; color:#1a1a1a; }
+  .jd.open{ border:1px dashed #636363; color:#1a1a1a; }
+  .sh-overall{ display:flex; align-items:center; justify-content:space-between; gap:12px; border:1.5px solid #1a1a1a; border-radius:4px; padding:9px 12px; margin-top:12px; }
+  .sh-overall .lbl{ font-size:11px; font-weight:700; }
+  .sh-overall .lbl span{ display:block; font-family:'JetBrains Mono',monospace; font-size:7.5px; letter-spacing:.14em; font-weight:600; }
+  .sh-overall .sum{ font-family:'JetBrains Mono',monospace; font-size:9px; }
+  .sh-overall .big{ font-family:'Google Sans',sans-serif; font-weight:700; font-size:22px; letter-spacing:.04em; padding:3px 14px; border-radius:3px; }
+  .big.pass{ background:#dcefe4; color:#1f7a4d; }
+  .big.fail{ background:#f8e1df; color:#c1443c; }
+  .big.open{ border:1.5px dashed #1a1a1a; font-size:13px; }
+  .sh-remark{ border:1px solid #c2c2c2; padding:6px 8px; min-height:28px; font-size:9.5px; white-space:pre-wrap; }
+  .sh-sign{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .sh-sign .box{ border:1px solid #c2c2c2; }
+  .sh-sign .box .hd{ background:#f7f7f7; border-bottom:1px solid #c2c2c2; padding:4px 8px; font-size:9px; font-weight:600; display:flex; justify-content:space-between; }
+  .sh-sign .box .hd span{ font-family:'JetBrains Mono',monospace; font-size:7px; letter-spacing:.1em; font-weight:500; }
+  .sh-sign .box .sg{ height:52px; display:flex; align-items:center; justify-content:center; padding:3px; }
+  .sh-sign .box .sg img{ max-height:46px; max-width:90%; }
+  .sh-sign .box .sg em{ font-style:normal; font-size:9px; }
+  .sh-sign .box .ft{ border-top:1px solid #c2c2c2; padding:4px 8px; display:flex; justify-content:space-between; font-size:9px; }
+  .sh-sign .box .ft .mono{ font-family:'JetBrains Mono',monospace; font-size:8px; }
+  .sh-foot{ margin-top:auto; padding-top:7px; border-top:1px solid #c2c2c2; display:flex; justify-content:space-between; gap:10px; font-size:7.5px; font-family:'JetBrains Mono',monospace; }
+  .sh-mini{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #1a1a1a; padding-bottom:7px; }
+  .sh-mini .t{ font-family:'KIMM','Google Sans',sans-serif; font-weight:700; font-size:15px; }
+  .sh-mini .r{ font-family:'JetBrains Mono',monospace; font-size:8.5px; text-align:right; line-height:1.5; }
+  .ph-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-top:10px; }
+  .ph{ border:1px solid #c2c2c2; }
+  .ph .im{ height:66mm; background:#f7f7f7; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .ph .im img{ width:100%; height:100%; object-fit:contain; display:block; }
+  .ph .im em{ font-style:normal; font-size:9px; }
+  .ph .cap{ border-top:1px solid #c2c2c2; padding:4px 7px; display:flex; align-items:center; gap:6px; font-size:8.5px; }
+  .ph .cap .no{ font-family:'JetBrains Mono',monospace; font-weight:700; background:#1a1a1a; color:#fff; padding:1px 5px; border-radius:2px; font-size:8px; }
+  .ph .cap .nm{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .wm{ position:absolute; left:0; right:0; top:42%; text-align:center; transform:rotate(-24deg); font-family:'Google Sans',sans-serif; font-weight:700; font-size:72px; letter-spacing:.12em; color:rgba(193,68,60,.13); pointer-events:none; }
+
+  @media print{
+    @page{ size:A4; margin:0; }
+    html, body{ background:#fff !important; }
+    .no-print{ display:none !important; }
+    .ed{ display:block; min-height:0; }
+    .ed-preview{ padding:0 !important; background:#fff !important; overflow:visible !important; display:block !important; }
+    .sheets{ zoom:1 !important; }
+    .sheet{ margin:0 !important; box-shadow:none !important; break-after:page; page-break-after:always; }
+    .sheet:last-child{ break-after:auto; page-break-after:auto; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+  /*SHEET_CSS_END*/
+</style>
+</head>
+<body>
+
+<div class="utility no-print">
+  <div class="wrap">
+    <div class="u-left"><span class="u-dot" aria-hidden="true"></span><span data-i18n="util">BCT × HS HiTek · 검사성적서 작성 (내부용)</span></div>
+    <div class="u-right"><a href="index.html" data-i18n="toHub">← OPS Hub</a><span id="uUser"></span></div>
+  </div>
+</div>
+
+<nav class="nav no-print">
+  <div class="wrap">
+    <a class="nav-brand" href="index.html" aria-label="BCT × HS HiTek OPS Hub">
+      <img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT">
+      <span class="x" aria-hidden="true">×</span>
+      <span class="cust">HS HiTek</span>
+    </a>
+    <div class="nav-links" id="navLinks"></div>
+    <div class="nav-right">
+      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" type="button">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button class="lang-btn" id="btnKo" onclick="setLang('ko')" type="button">KO</button>
+        <button class="lang-btn" id="btnEn" onclick="setLang('en')" type="button">EN</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main id="app"></main>
+
+<div class="lb no-print" id="lb" onclick="closeLb()"><div class="cap" id="lbCap"></div></div>
+<div class="toast no-print" id="toast" role="status" aria-live="polite"></div>
+<div class="busy no-print" id="busy"></div>
+
+<script>
+/* =====================================================================
+   Config — Supabase (ASENDIA와 같은 프로젝트). publishable key는 공개용 키.
+   ===================================================================== */
+var CONFIG = {
+  SUPABASE_URL: 'https://okiamzritzrrxhouzolm.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_nmVTVGoaQqIMKvit5YHL5g_S7uahQlr'
+};
+var REST = CONFIG.SUPABASE_URL + '/rest/v1';
+var AUTH = CONFIG.SUPABASE_URL + '/auth/v1';
+var STORE = CONFIG.SUPABASE_URL + '/storage/v1';
+var BUCKET = 'hshitek-photos';
+var SESSION_KEY = 'bct_hshitek_session';
+var MODEL = 'L3 PRIME CONTROLLER';
+var LOGO = 'https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png';
+
+/* =====================================================================
+   i18n
+   ===================================================================== */
+var T = {
+  ko: {
+    util:'BCT × HS HiTek · 검사성적서 작성 (내부용)', toHub:'← OPS Hub',
+    navList:'성적서 목록', navSpec:'검사 기준', navShare:'고객 공유', logout:'로그아웃',
+    loginT:'BCT 로그인', loginP:'검사성적서 작성은 BCT 내부 계정으로만 할 수 있습니다.', email:'이메일', password:'비밀번호', signIn:'로그인',
+    forbidT:'접근 권한 없음', forbidP:'이 화면은 BCT 내부용입니다. 고객사는 성적서 조회 화면을 이용해 주세요.', toCustomer:'고객 조회 화면 열기',
+    listEy:'01 · QUALITY · L3 PRIME CONTROLLER', listT:'검사성적서', listP:'출하 검사 결과를 입력하고 사진을 증빙으로 붙입니다. 승인된 성적서만 HS HiTek 조회 화면에 공개됩니다.',
+    newReport:'새 성적서', all:'전체', draft:'작성 중', submitted:'서명 완료', approved:'승인', searchPh:'S/N · 성적서 번호 검색',
+    cNo:'성적서 번호', cSn:'S/N (Main Board)', cDate:'검사일', cShip:'출하일', cJudge:'판정', cStatus:'상태', cInsp:'검사자', cAppr:'승인자', cUpd:'수정',
+    emptyT:'성적서가 없습니다', emptyP:'"새 성적서"로 첫 검사를 시작하세요.', loading:'불러오는 중…',
+    back:'← 목록', unsaved:'저장 안 됨', saved:'저장됨', newTag:'새 성적서',
+    s1:'기본 정보', s2:'사진 증빙 · 판정', s3:'비고', s4:'결재',
+    fSn:'S/N (Main Board 일련번호)', fLot:'Lot No.', fPo:'PO No.', fDate:'검사일', fShip:'출하일', fRev:'검사 기준', fRemark:'비고 (성적서에 표시)',
+    snPh:'예: MB-260723_2-1',
+    dropT:'제품 폴더를 끌어다 놓으세요', dropD:'파일명 앞 번호(0_ ~ 10_)로 사진이 항목에 자동 배정됩니다.', pickFolder:'폴더 선택', pickFiles:'사진 선택',
+    crit:'기준', photo:'사진', notePh:'비고 (선택)', addPhoto:'사진', judgedOf:'판정', photosOf:'사진',
+    save:'저장', submit:'검사 완료 · 서명 제출', approve:'승인 · 고객 공개', toDraft:'작성 중으로 되돌리기', revoke:'승인 취소', del:'삭제', print:'PDF · 인쇄',
+    inspector:'검사자', approver:'승인자', name:'이름', clear:'지우기', signHere:'여기에 서명', waitSubmit:'검사자 서명 후 승인할 수 있습니다', waitAdmin:'관리자(admin) 승인 대기',
+    lockedSub:'검사자 서명이 끝난 성적서입니다. 수정하려면 작성 중으로 되돌리세요(서명이 지워집니다).',
+    lockedApp:'승인되어 HS HiTek에 공개된 성적서입니다. 내용과 사진은 잠겨 있습니다.',
+    needSn:'S/N을 먼저 입력하세요', needSign:'서명을 입력하세요', needName:'이름을 입력하세요',
+    confirmSubmit:'서명을 제출하면 내용을 수정할 수 없습니다. 제출할까요?', confirmApprove:'승인하면 HS HiTek 조회 화면에 바로 공개됩니다. 승인할까요?',
+    confirmDraft:'작성 중으로 되돌리면 검사자 서명이 지워집니다. 계속할까요?', confirmRevoke:'승인을 취소하면 고객 화면에서 바로 사라집니다. 계속할까요?',
+    confirmDel:'이 성적서와 사진을 삭제합니다. 되돌릴 수 없습니다. 삭제할까요?', confirmLeave:'저장하지 않은 변경이 있습니다. 나갈까요?',
+    sameSigner:'검사자와 승인자가 같은 계정입니다. 그래도 승인할까요?', dupSn:'같은 S/N의 성적서가 이미 있습니다: ', dupSn2:'그래도 저장할까요?',
+    snMismatch:'폴더 이름과 S/N이 다릅니다: ', uploaded:'장 올림', ignored:'번호 없는 파일 제외: ', uploading:'사진 올리는 중',
+    savedT:'저장했습니다', submittedT:'서명을 제출했습니다', approvedT:'승인했습니다. 고객 화면에 공개됐습니다.', draftT:'작성 중으로 되돌렸습니다', revokedT:'승인을 취소했습니다', deletedT:'삭제했습니다',
+    sheetWm:'미승인', pass:'합격', fail:'불합격', na:'해당 없음', open:'미판정',
+    specEy:'검사 기준 · SPEC', specT:'검사 기준', specP:'새 성적서는 이 기준을 복사해 시작합니다. 이미 만든 성적서에는 영향이 없습니다. 수정은 admin만 할 수 있습니다.',
+    spNo:'No', spName:'항목 (KO / EN)', spCrit:'판정 기준 (KO / EN)', spPhoto:'사진 번호', spSave:'저장', spSaved:'기준을 저장했습니다', spReadonly:'읽기 전용 · admin만 수정',
+    shareEy:'고객 공유 · CUSTOMER', shareT:'고객 공유', shareP:'HS HiTek은 열람 코드로 승인된 성적서만 봅니다. 계정을 만들지 않으며, 코드를 바꾸면 이전 코드는 바로 막힙니다.',
+    shareLink:'고객 조회 화면', shareCur:'현재 코드', shareNone:'아직 발급된 코드가 없습니다', shareNew:'새 코드 발급', shareOnce:'이 코드는 지금 한 번만 보입니다. HS HiTek 담당자에게 전달하세요.', copy:'복사', copied:'복사했습니다', shareAdmin:'코드 발급은 admin만 할 수 있습니다', shareConfirm:'새 코드를 발급하면 지금 코드는 바로 막힙니다. 발급할까요?',
+    issued:'발급', active:'사용 중',
+    theme_d:'다크 모드로 전환', theme_l:'라이트 모드로 전환',
+    e_photo:'사진 증빙이 빠진 항목이 있습니다', e_judge:'판정하지 않은 항목이 있습니다', e_isign:'검사자 서명이 필요합니다', e_asign:'승인자 서명이 필요합니다', e_admin:'승인은 admin만 할 수 있습니다', e_locked:'잠긴 성적서입니다', e_session:'로그인이 만료됐습니다. 다시 로그인하세요.'
+  },
+  en: {
+    util:'BCT × HS HiTek · Inspection report authoring (internal)', toHub:'← OPS Hub',
+    navList:'Reports', navSpec:'Inspection spec', navShare:'Customer sharing', logout:'Sign out',
+    loginT:'BCT sign-in', loginP:'Inspection reports can only be written with a BCT internal account.', email:'Email', password:'Password', signIn:'Sign in',
+    forbidT:'Access restricted', forbidP:'This page is for BCT staff only. Customers should use the report viewer.', toCustomer:'Open the customer viewer',
+    listEy:'01 · QUALITY · L3 PRIME CONTROLLER', listT:'Inspection reports', listP:'Enter final inspection results with photo evidence. Only approved reports are published to the HS HiTek viewer.',
+    newReport:'New report', all:'All', draft:'Draft', submitted:'Signed', approved:'Approved', searchPh:'Search S/N or report no.',
+    cNo:'Report no.', cSn:'S/N (main board)', cDate:'Inspected', cShip:'Ship date', cJudge:'Result', cStatus:'Status', cInsp:'Inspector', cAppr:'Approver', cUpd:'Updated',
+    emptyT:'No reports yet', emptyP:'Start the first inspection with "New report".', loading:'Loading…',
+    back:'← Reports', unsaved:'Unsaved', saved:'Saved', newTag:'New report',
+    s1:'Header', s2:'Photo evidence · judgement', s3:'Remarks', s4:'Sign-off',
+    fSn:'S/N (main board serial)', fLot:'Lot no.', fPo:'PO no.', fDate:'Inspection date', fShip:'Ship date', fRev:'Spec rev.', fRemark:'Remarks (printed on the report)',
+    snPh:'e.g. MB-260723_2-1',
+    dropT:'Drop the unit folder here', dropD:'Photos are matched to items by the number at the start of the file name (0_ to 10_).', pickFolder:'Choose folder', pickFiles:'Choose photos',
+    crit:'Criteria', photo:'Photo', notePh:'Note (optional)', addPhoto:'Photo', judgedOf:'judged', photosOf:'photos',
+    save:'Save', submit:'Finish · sign and submit', approve:'Approve · publish', toDraft:'Return to draft', revoke:'Revoke approval', del:'Delete', print:'PDF · Print',
+    inspector:'Inspector', approver:'Approver', name:'Name', clear:'Clear', signHere:'Sign here', waitSubmit:'Approval opens after the inspector signs', waitAdmin:'Waiting for admin approval',
+    lockedSub:'The inspector has signed this report. Return it to draft to edit (the signature will be cleared).',
+    lockedApp:'Approved and published to HS HiTek. Content and photos are locked.',
+    needSn:'Enter the S/N first', needSign:'Please sign', needName:'Enter a name',
+    confirmSubmit:'After signing, the report cannot be edited. Submit?', confirmApprove:'Approving publishes the report to the HS HiTek viewer right away. Approve?',
+    confirmDraft:'Returning to draft clears the inspector signature. Continue?', confirmRevoke:'Revoking removes the report from the customer viewer right away. Continue?',
+    confirmDel:'This deletes the report and its photos and cannot be undone. Delete?', confirmLeave:'You have unsaved changes. Leave anyway?',
+    sameSigner:'The inspector and approver are the same account. Approve anyway?', dupSn:'A report with the same S/N already exists: ', dupSn2:'Save anyway?',
+    snMismatch:'Folder name differs from the S/N: ', uploaded:' uploaded', ignored:'Skipped files without a number: ', uploading:'Uploading photos',
+    savedT:'Saved', submittedT:'Signed and submitted', approvedT:'Approved and published to the customer viewer', draftT:'Returned to draft', revokedT:'Approval revoked', deletedT:'Deleted',
+    sheetWm:'DRAFT', pass:'PASS', fail:'FAIL', na:'N/A', open:'Open',
+    specEy:'INSPECTION SPEC', specT:'Inspection spec', specP:'New reports copy this spec. Existing reports are not affected. Only admins can edit it.',
+    spNo:'No', spName:'Item (KO / EN)', spCrit:'Criteria (KO / EN)', spPhoto:'Photo nos.', spSave:'Save', spSaved:'Spec saved', spReadonly:'Read-only · admins can edit',
+    shareEy:'CUSTOMER SHARING', shareT:'Customer sharing', shareP:'HS HiTek sees only approved reports, using an access code. No customer accounts are created; issuing a new code blocks the old one at once.',
+    shareLink:'Customer viewer', shareCur:'Current code', shareNone:'No code issued yet', shareNew:'Issue new code', shareOnce:'This code is shown only once. Send it to your HS HiTek contact.', copy:'Copy', copied:'Copied', shareAdmin:'Only admins can issue codes', shareConfirm:'Issuing a new code blocks the current one immediately. Issue?',
+    issued:'Issued', active:'Active',
+    theme_d:'Switch to dark mode', theme_l:'Switch to light mode',
+    e_photo:'Photo evidence is missing for one or more items', e_judge:'Some items are not judged yet', e_isign:'Inspector signature is required', e_asign:'Approver signature is required', e_admin:'Only an admin can approve', e_locked:'This report is locked', e_session:'Your session expired. Please sign in again.'
+  }
+};
+var lang = document.documentElement.lang === 'en' ? 'en' : 'ko';
+function t(k){ return (T[lang] && T[lang][k]) || T.ko[k] || k; }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+/* =====================================================================
+   State
+   ===================================================================== */
+var S = {
+  session:null, profile:null, view:'loading', reports:[], listLoaded:false, filter:'all', q:'',
+  cur:null, isNew:false, dirty:false, spec:[], urls:{}, access:null, newCode:null, uploadMsg:''
+};
+
+/* ===== theme / lang ===== */
+function themeLabel(){
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var b = document.getElementById('themeBtn'); var txt = t(dark ? 'theme_l' : 'theme_d');
+  b.setAttribute('aria-label', txt); b.title = txt;
+}
+function toggleTheme(){
+  var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('bct_hub_theme', next); }catch(e){}
+  themeLabel();
+}
+function setLang(l){
+  lang = l; document.documentElement.lang = l;
+  document.getElementById('btnEn').classList.toggle('active', l === 'en');
+  document.getElementById('btnKo').classList.toggle('active', l === 'ko');
+  document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.getAttribute('data-i18n')); });
+  try{ localStorage.setItem('bct_hshitek_lang', l); }catch(e){}
+  themeLabel(); render();
+}
+
+/* ===== toast / busy / lightbox ===== */
+var toastTimer = null;
+function toast(msg, bad){
+  var el = document.getElementById('toast'); el.textContent = msg; el.className = 'toast show' + (bad ? ' bad' : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(function(){ el.className = 'toast' + (bad ? ' bad' : ''); }, bad ? 5200 : 2600);
+}
+function busy(on){ document.getElementById('busy').classList.toggle('on', !!on); }
+function openLb(src, cap){
+  if(!src) return;
+  var lb = document.getElementById('lb'), old = lb.querySelector('img'); if(old) old.remove();
+  var im = new Image(); im.alt = cap || ''; im.src = src; lb.insertBefore(im, lb.firstChild);
+  document.getElementById('lbCap').textContent = cap || ''; lb.classList.add('open');
+}
+function closeLb(){ document.getElementById('lb').classList.remove('open'); }
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeLb(); });
+
+/* =====================================================================
+   Supabase (fetch only — no SDK)
+   ===================================================================== */
+function loadSession(){ try{ return JSON.parse(localStorage.getItem(SESSION_KEY)); }catch(e){ return null; } }
+function saveSession(s){ try{ if(s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); }catch(e){} }
+async function authToken(body, grant){
+  var r = await fetch(AUTH + '/token?grant_type=' + grant, { method:'POST', headers:{ apikey:CONFIG.SUPABASE_ANON_KEY, 'Content-Type':'application/json' }, body:JSON.stringify(body) });
+  var d = await r.json().catch(function(){ return {}; });
+  if(!r.ok) throw new Error(d.error_description || d.msg || d.message || 'Sign-in failed');
+  return { access_token:d.access_token, refresh_token:d.refresh_token, expires_at:Math.floor(Date.now()/1000) + (d.expires_in || 3600), user:d.user };
+}
+async function ensureFresh(){
+  if(!S.session) throw new Error(t('e_session'));
+  if(S.session.expires_at - 90 > Date.now()/1000) return;
+  try{ S.session = await authToken({ refresh_token:S.session.refresh_token }, 'refresh_token'); saveSession(S.session); }
+  catch(e){ S.session = null; saveSession(null); S.view = 'login'; render(); throw new Error(t('e_session')); }
+}
+function hdr(extra){
+  var h = { apikey:CONFIG.SUPABASE_ANON_KEY, Authorization:'Bearer ' + (S.session ? S.session.access_token : CONFIG.SUPABASE_ANON_KEY) };
+  for(var k in (extra || {})) h[k] = extra[k];
+  return h;
+}
+function niceErr(m){
+  m = String(m || '');
+  if(/Photo evidence/i.test(m)) return t('e_photo');
+  if(/must be judged/i.test(m)) return t('e_judge');
+  if(/Inspector signature/i.test(m)) return t('e_isign');
+  if(/Approver signature/i.test(m)) return t('e_asign');
+  if(/Only an admin can approve/i.test(m)) return t('e_admin');
+  if(/locked|cannot be edited/i.test(m)) return t('e_locked');
+  return m;
+}
+async function rest(path, opt){
+  opt = opt || {};
+  await ensureFresh();
+  var h = hdr({ 'Content-Type':'application/json' });
+  if(opt.prefer) h.Prefer = opt.prefer;
+  var r = await fetch(REST + path, { method:opt.method || 'GET', headers:h, body:opt.body !== undefined ? JSON.stringify(opt.body) : undefined });
+  var txt = await r.text(); var d = null;
+  try{ d = txt ? JSON.parse(txt) : null; }catch(e){ d = txt; }
+  if(!r.ok) throw new Error(niceErr((d && (d.message || d.error_description || d.msg)) || ('HTTP ' + r.status)));
+  return d;
+}
+
+/* ===== storage ===== */
+async function signPaths(paths){
+  paths = paths.filter(function(p){ return p && !S.urls[p]; });
+  if(!paths.length) return;
+  await ensureFresh();
+  for(var i = 0; i < paths.length; i += 100){
+    var r = await fetch(STORE + '/object/sign/' + BUCKET, { method:'POST', headers:hdr({ 'Content-Type':'application/json' }), body:JSON.stringify({ expiresIn:3600, paths:paths.slice(i, i + 100) }) });
+    if(!r.ok) continue;
+    var d = await r.json();
+    d.forEach(function(x){ if(x.signedURL && x.path) S.urls[x.path] = STORE + x.signedURL; });
+  }
+}
+async function resizeImage(file){
+  var bmp = await createImageBitmap(file, { imageOrientation:'from-image' });
+  var M = 1600, s = Math.min(1, M / Math.max(bmp.width, bmp.height));
+  var c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  if(bmp.close) bmp.close();
+  return await new Promise(function(res){ c.toBlob(res, 'image/jpeg', 0.82); });
+}
+async function uploadBlob(path, blob){
+  await ensureFresh();
+  var r = await fetch(STORE + '/object/' + BUCKET + '/' + path, { method:'POST', headers:hdr({ 'Content-Type':'image/jpeg', 'x-upsert':'true' }), body:blob });
+  if(!r.ok){ var d = await r.json().catch(function(){ return {}; }); throw new Error(d.message || d.error || ('Upload failed ' + r.status)); }
+}
+async function removePaths(paths){
+  if(!paths.length) return;
+  try{
+    await ensureFresh();
+    await fetch(STORE + '/object/' + BUCKET, { method:'DELETE', headers:hdr({ 'Content-Type':'application/json' }), body:JSON.stringify({ prefixes:paths }) });
+  }catch(e){}
+}
+
+/* =====================================================================
+   Judgement (mirrors the DB trigger; the DB result is what gets stored)
+   ===================================================================== */
+function judgeItem(it){
+  var v = String(it.value == null ? '' : it.value).trim();
+  if(it.kind === 'numeric'){
+    if(!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(v)) return null;
+    var n = parseFloat(v);
+    if((it.lsl == null || n >= +it.lsl) && (it.usl == null || n <= +it.usl)) return 'PASS';
+    return 'FAIL';
+  }
+  var u = v.toUpperCase();
+  return u === 'OK' ? 'PASS' : u === 'NG' ? 'FAIL' : u === 'NA' ? 'NA' : null;
+}
+function overallOf(items){
+  var fail = false, open = false;
+  (items || []).forEach(function(it){ var j = judgeItem(it); if(j === 'FAIL') fail = true; if(j == null) open = true; });
+  if(fail) return 'FAIL';
+  if(open || !(items || []).length) return null;
+  return 'PASS';
+}
+function photoGap(it){ return judgeItem(it) !== 'NA' && (it.photos || []).length < (it.photo_nos || []).length; }
+function judgeClass(j){ return j === 'PASS' ? 'pass' : j === 'FAIL' ? 'fail' : j === 'NA' ? 'na' : 'open'; }
+function judgeText(j){ return j === 'PASS' ? 'PASS' : j === 'FAIL' ? 'FAIL' : j === 'NA' ? 'N/A' : '—'; }
+function judgePill(j){
+  var cls = j === 'PASS' ? 'j-pass' : j === 'FAIL' ? 'j-fail' : j === 'NA' ? 'j-na' : 'j-open';
+  var txt = j === 'PASS' ? t('pass') : j === 'FAIL' ? t('fail') : j === 'NA' ? t('na') : t('open');
+  return '<span class="status ' + cls + '">' + esc(txt) + '</span>';
+}
+function statusPill(s){ return '<span class="status st-' + s + '">' + esc(t(s)) + '</span>'; }
+
+/* ===== dates ===== */
+function pad2(n){ return (n < 10 ? '0' : '') + n; }
+function today(){ var d = new Date(Date.now() + 9 * 3600e3); return d.toISOString().slice(0, 10); }
+function fmtDate(s){ return s ? String(s).slice(0, 10) : '—'; }
+function fmtDT(s){
+  if(!s) return '—';
+  var d = new Date(new Date(s).getTime() + 9 * 3600e3);
+  return d.toISOString().slice(0, 10) + ' ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes());
+}
+
+/* =====================================================================
+   A4 sheets — shared renderer (same code in bct_hshitek_reports.html)
+   urlOf(photo) -> image URL or null
+   ===================================================================== */
+/*SHEET_JS_START*/
+function photoList(r){
+  var out = [];
+  (r.items || []).forEach(function(it){
+    (it.photo_nos || []).forEach(function(no){
+      var p = (it.photos || []).filter(function(x){ return x.no === no; })[0] || null;
+      out.push({ no:no, item:it, photo:p });
+    });
+  });
+  return out;
+}
+function sheetsHTML(r, urlOf){
+  var items = r.items || [];
+  var ov = r.status === 'approved' && r.overall ? r.overall : overallOf(items);
+  var photos = photoList(r);
+  var per = 6, photoPages = Math.max(1, Math.ceil(photos.length / per)), total = 1 + photoPages;
+  var wm = r.status !== 'approved' ? '<div class="wm">' + esc(lang === 'en' ? 'DRAFT' : '미승인 DRAFT') + '</div>' : '';
+  var nPass = 0, nFail = 0, nNa = 0;
+  items.forEach(function(it){ var j = judgeItem(it); if(j === 'PASS') nPass++; else if(j === 'FAIL') nFail++; else if(j === 'NA') nNa++; });
+  var foot = function(p){
+    return '<div class="sh-foot"><span>BCT Co., Ltd. (㈜비씨테크) · Final Inspection Report · ' + esc(r.report_no || 'HSI-(new)') + '</span><span>' + p + ' / ' + total + '</span></div>';
+  };
+
+  var h = '';
+  /* ---- page 1 : summary ---- */
+  h += '<section class="sheet">' + wm;
+  h += '<div class="sh-top"><div><img class="sh-logo" src="' + LOGO + '" alt="BCT" crossorigin="anonymous"><div class="sh-title">출하 검사성적서</div><div class="sh-en">FINAL INSPECTION REPORT</div></div>';
+  h += '<div class="sh-no">REPORT NO.<br><b>' + esc(r.report_no || '—') + '</b><br>SPEC ' + esc(r.spec_rev || '—') + '</div></div>';
+  h += '<div class="sh-bar"></div>';
+  h += '<table class="sh-info"><tbody>';
+  h += '<tr><th>고객사<small>CUSTOMER</small></th><td>HS하이테크 (HS HiTek)</td><th>모델<small>MODEL</small></th><td class="mono">' + esc(r.model || MODEL) + '</td></tr>';
+  h += '<tr><th>S/N<small>MAIN BOARD</small></th><td class="mono"><b>' + esc(r.serial_no || '—') + '</b></td><th>검사일<small>INSPECTED</small></th><td class="mono">' + esc(fmtDate(r.inspect_date)) + '</td></tr>';
+  h += '<tr><th>Lot No.<small>LOT</small></th><td class="mono">' + esc(r.lot_no || '—') + '</td><th>출하일<small>SHIP DATE</small></th><td class="mono">' + esc(fmtDate(r.ship_date)) + '</td></tr>';
+  h += '<tr><th>PO No.<small>PURCHASE ORDER</small></th><td class="mono">' + esc(r.po_no || '—') + '</td><th>공급사<small>SUPPLIER</small></th><td>㈜비씨테크 (BCT Co., Ltd.)</td></tr>';
+  h += '</tbody></table>';
+
+  h += '<div class="sh-h">검사 결과 <span>INSPECTION RESULTS</span></div>';
+  h += '<table class="sh-res"><colgroup><col style="width:6%"><col style="width:29%"><col style="width:33%"><col style="width:10%"><col style="width:10%"><col style="width:12%"></colgroup><thead><tr>';
+  h += '<th>No<small>&nbsp;</small></th><th>검사 항목<small>ITEM</small></th><th>판정 기준<small>CRITERIA</small></th><th>방법<small>METHOD</small></th><th>사진<small>PHOTO</small></th><th>판정<small>RESULT</small></th>';
+  h += '</tr></thead><tbody>';
+  items.forEach(function(it, i){
+    var j = judgeItem(it);
+    var crit = it.kind === 'numeric'
+      ? ((it.lsl != null ? it.lsl : '') + ' ~ ' + (it.usl != null ? it.usl : '') + ' ' + (it.unit || ''))
+      : esc(it.criteria_ko || '') + '<span class="en">' + esc(it.criteria_en || '') + '</span>';
+    var res = it.kind === 'numeric' ? '<span class="mono">' + esc(it.value || '—') + '</span> ' : '';
+    h += '<tr><td class="c mono">' + (i + 1) + '</td>';
+    h += '<td>' + esc(it.name_ko) + '<span class="en">' + esc(it.name_en) + '</span>' + (it.note ? '<span class="en">※ ' + esc(it.note) + '</span>' : '') + '</td>';
+    h += '<td>' + crit + '</td>';
+    h += '<td>' + esc(it.method_ko || '') + '<span class="en">' + esc(it.method_en || '') + '</span></td>';
+    h += '<td class="c mono">' + ((it.photo_nos || []).length ? esc(it.photo_nos.join(' · ')) : '—') + '</td>';
+    h += '<td class="c">' + res + '<span class="jd ' + judgeClass(j) + '">' + judgeText(j) + '</span></td></tr>';
+  });
+  h += '</tbody></table>';
+
+  h += '<div class="sh-overall"><div class="lbl">종합 판정<span>OVERALL RESULT</span></div>';
+  h += '<div class="sum">PASS ' + nPass + ' · FAIL ' + nFail + (nNa ? ' · N/A ' + nNa : '') + ' / ' + items.length + '</div>';
+  h += '<div class="big ' + (ov === 'PASS' ? 'pass' : ov === 'FAIL' ? 'fail' : 'open') + '">' + (ov === 'PASS' ? 'PASS 합격' : ov === 'FAIL' ? 'FAIL 불합격' : '미완료 PENDING') + '</div></div>';
+
+  h += '<div class="sh-h">비고 <span>REMARKS</span></div><div class="sh-remark">' + esc(r.remark || '') + '</div>';
+
+  h += '<div class="sh-h">결재 <span>SIGN-OFF</span></div><div class="sh-sign">';
+  h += signBox('검사', 'INSPECTED BY', r.inspector_name, r.inspector_sign, r.inspected_at);
+  h += signBox('승인', 'APPROVED BY', r.approver_name, r.approver_sign, r.approved_at);
+  h += '</div>';
+  h += foot(1) + '</section>';
+
+  /* ---- photo pages ---- */
+  for(var p = 0; p < photoPages; p++){
+    h += '<section class="sheet">' + wm;
+    h += '<div class="sh-mini"><div><div class="t">사진 증빙</div><div class="sh-en">PHOTO EVIDENCE</div></div><div class="r">' + esc(r.report_no || '—') + '<br>S/N ' + esc(r.serial_no || '—') + '</div></div>';
+    h += '<div class="ph-grid">';
+    photos.slice(p * per, p * per + per).forEach(function(x){
+      var u = x.photo ? urlOf(x.photo) : null;
+      var j = judgeItem(x.item);
+      h += '<div class="ph"><div class="im">' + (u ? '<img src="' + esc(u) + '" alt="" crossorigin="anonymous">' : '<em>사진 없음 · NO PHOTO</em>') + '</div>';
+      h += '<div class="cap"><span class="no">' + x.no + '</span><span class="nm">' + esc(x.item.name_ko) + ' · ' + esc(x.item.name_en) + '</span><span class="jd ' + judgeClass(j) + '">' + judgeText(j) + '</span></div></div>';
+    });
+    h += '</div>' + foot(p + 2) + '</section>';
+  }
+  return h;
+}
+function signBox(ko, en, name, sign, at){
+  return '<div class="box"><div class="hd">' + ko + ' <span>' + en + '</span></div>' +
+    '<div class="sg">' + (sign ? '<img src="' + sign + '" alt="">' : '<em>—</em>') + '</div>' +
+    '<div class="ft"><span>' + esc(name || '') + '</span><span class="mono">' + esc(at ? fmtDT(at) : '') + '</span></div></div>';
+}
+/*SHEET_JS_END*/
+function fitSheets(){
+  var pane = document.querySelector('.ed-preview'), wrap = document.querySelector('.sheets');
+  if(!pane || !wrap) return;
+  var avail = pane.clientWidth - 48, w = 794;
+  wrap.style.zoom = Math.min(1, Math.max(0.4, avail / w));
+}
+window.addEventListener('resize', fitSheets);
+
+/* =====================================================================
+   Auth flow
+   ===================================================================== */
+async function init(){
+  setLang(lang);
+  S.session = loadSession();
+  if(!S.session){ S.view = 'login'; render(); return; }
+  try{ await afterLogin(); }catch(e){ S.view = 'login'; render(); }
+}
+async function afterLogin(){
+  var rows = await rest('/profiles?select=role,email&id=eq.' + S.session.user.id);
+  S.profile = rows && rows[0] ? rows[0] : { role:'customer', email:S.session.user.email };
+  document.getElementById('uUser').textContent = S.profile.email + ' · ' + S.profile.role;
+  if(S.profile.role !== 'admin' && S.profile.role !== 'engineer'){ S.view = 'forbidden'; render(); return; }
+  go(location.hash || '#list');
+}
+async function doLogin(ev){
+  ev.preventDefault();
+  var em = document.getElementById('lgEmail').value.trim(), pw = document.getElementById('lgPw').value;
+  var err = document.getElementById('lgErr'); err.textContent = '';
+  busy(true);
+  try{ S.session = await authToken({ email:em, password:pw }, 'password'); saveSession(S.session); await afterLogin(); }
+  catch(e){ err.textContent = e.message; }
+  finally{ busy(false); }
+}
+async function logout(){
+  try{ if(S.session) await fetch(AUTH + '/logout', { method:'POST', headers:hdr() }); }catch(e){}
+  S.session = null; S.profile = null; saveSession(null); S.listLoaded = false; S.reports = [];
+  document.getElementById('uUser').textContent = '';
+  S.view = 'login'; history.replaceState(null, '', location.pathname); render();
+}
+function isAdmin(){ return S.profile && S.profile.role === 'admin'; }
+
+/* =====================================================================
+   Routing
+   ===================================================================== */
+function go(hash){
+  if(S.view === 'edit' && S.dirty && !confirm(t('confirmLeave'))){ return; }
+  S.dirty = false;
+  if(location.hash !== hash) history.replaceState(null, '', hash);
+  var m = hash.match(/^#r\/(.+)$/);
+  if(hash === '#new') return openNew();
+  if(m) return openReport(m[1]);
+  if(hash === '#spec'){ S.view = 'spec'; render(); return loadSpec(true); }
+  if(hash === '#share'){ S.view = 'share'; S.newCode = null; render(); return loadAccess(); }
+  S.view = 'list'; render(); loadList();
+}
+window.addEventListener('beforeunload', function(e){ if(S.view === 'edit' && S.dirty){ e.preventDefault(); e.returnValue = ''; } });
+
+function renderNav(){
+  var el = document.getElementById('navLinks');
+  if(!S.profile || S.view === 'login' || S.view === 'forbidden'){ el.innerHTML = ''; return; }
+  var cur = S.view === 'spec' ? 'spec' : S.view === 'share' ? 'share' : 'list';
+  el.innerHTML =
+    '<button class="nav-link' + (cur === 'list' ? ' active' : '') + '" onclick="go(\'#list\')">' + t('navList') + '</button>' +
+    '<button class="nav-link' + (cur === 'spec' ? ' active' : '') + '" onclick="go(\'#spec\')">' + t('navSpec') + '</button>' +
+    '<button class="nav-link' + (cur === 'share' ? ' active' : '') + '" onclick="go(\'#share\')">' + t('navShare') + '</button>' +
+    '<button class="nav-link" onclick="logout()">' + t('logout') + '</button>';
+}
+
+function render(){
+  renderNav();
+  var app = document.getElementById('app');
+  if(S.view === 'loading'){ app.innerHTML = '<div class="empty">' + t('loading') + '</div>'; return; }
+  if(S.view === 'login'){ app.innerHTML = loginHTML(); return; }
+  if(S.view === 'forbidden'){ app.innerHTML = forbidHTML(); return; }
+  if(S.view === 'list'){ app.innerHTML = listHTML(); return; }
+  if(S.view === 'spec'){ app.innerHTML = specHTML(); return; }
+  if(S.view === 'share'){ app.innerHTML = shareHTML(); return; }
+  if(S.view === 'edit'){ renderEdit(); return; }
+}
+
+function loginHTML(){
+  return '<div class="login"><form class="card" onsubmit="doLogin(event)">' +
+    '<div class="eyebrow">BCT × HS HITEK</div><h1>' + t('loginT') + '</h1><p>' + t('loginP') + '</p>' +
+    '<div class="field"><label for="lgEmail">' + t('email') + '</label><input id="lgEmail" type="email" autocomplete="username" required></div>' +
+    '<div class="field"><label for="lgPw">' + t('password') + '</label><input id="lgPw" type="password" autocomplete="current-password" required></div>' +
+    '<div class="err" id="lgErr"></div>' +
+    '<button class="btn btn-primary" style="width:100%" type="submit">' + t('signIn') + '</button></form></div>';
+}
+function forbidHTML(){
+  return '<div class="login"><div class="card"><h1>' + t('forbidT') + '</h1><p>' + t('forbidP') + '</p>' +
+    '<a class="btn btn-primary" style="width:100%" href="bct_hshitek_reports.html">' + t('toCustomer') + '</a>' +
+    '<button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="logout()">' + t('logout') + '</button></div></div>';
+}
+
+/* =====================================================================
+   List
+   ===================================================================== */
+async function loadList(){
+  try{
+    S.reports = await rest('/hshitek_reports?select=id,report_no,serial_no,inspect_date,ship_date,overall,status,inspector_name,approver_name,updated_at&order=created_at.desc');
+    S.listLoaded = true;
+    if(S.view === 'list') render();
+  }catch(e){ toast(e.message, true); }
+}
+function listHTML(){
+  var counts = { all:S.reports.length, draft:0, submitted:0, approved:0 };
+  S.reports.forEach(function(r){ counts[r.status]++; });
+  var q = S.q.trim().toLowerCase();
+  var rows = S.reports.filter(function(r){
+    if(S.filter !== 'all' && r.status !== S.filter) return false;
+    if(q && (String(r.serial_no) + ' ' + String(r.report_no)).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  var h = '<div class="wrap"><div class="page-head"><div><div class="eyebrow">' + t('listEy') + '</div><h1>' + t('listT') + '</h1><p>' + t('listP') + '</p></div>' +
+    '<button class="btn btn-primary" onclick="go(\'#new\')">' + t('newReport') + ' <span aria-hidden="true">+</span></button></div></div>';
+  h += '<section class="band"><div class="wrap"><div class="toolbar"><div class="tabs">';
+  ['all','draft','submitted','approved'].forEach(function(f){
+    h += '<button class="tab' + (S.filter === f ? ' active' : '') + '" onclick="S.filter=\'' + f + '\';render()">' + t(f) + '<span class="n">' + counts[f] + '</span></button>';
+  });
+  h += '</div><input class="search" type="search" placeholder="' + esc(t('searchPh')) + '" value="' + esc(S.q) + '" oninput="S.q=this.value;var p=this.selectionStart;render();var s=document.querySelector(\'.search\');s.focus();s.setSelectionRange(p,p)"></div>';
+  h += '<div class="card"><div class="tbl-wrap">';
+  if(!S.listLoaded){ h += '<div class="empty">' + t('loading') + '</div>'; }
+  else if(!rows.length){ h += '<div class="empty"><b>' + t('emptyT') + '</b>' + t('emptyP') + '</div>'; }
+  else{
+    h += '<table class="list"><thead><tr><th>' + t('cNo') + '</th><th>' + t('cSn') + '</th><th>' + t('cDate') + '</th><th>' + t('cShip') + '</th><th>' + t('cJudge') + '</th><th>' + t('cStatus') + '</th><th>' + t('cInsp') + '</th><th>' + t('cAppr') + '</th><th>' + t('cUpd') + '</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      h += '<tr onclick="go(\'#r/' + r.id + '\')"><td class="mono">' + esc(r.report_no) + '</td><td class="mono"><b>' + esc(r.serial_no) + '</b></td><td class="mono">' + esc(fmtDate(r.inspect_date)) + '</td><td class="mono">' + esc(fmtDate(r.ship_date)) + '</td>' +
+        '<td>' + judgePill(r.overall) + '</td><td>' + statusPill(r.status) + '</td><td>' + esc(r.inspector_name || '—') + '</td><td>' + esc(r.approver_name || '—') + '</td><td class="mono" style="font-size:13px;color:var(--graphite)">' + esc(fmtDT(r.updated_at)) + '</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  h += '</div></div></div></section>';
+  return h;
+}
+
+/* =====================================================================
+   Spec
+   ===================================================================== */
+async function loadSpec(rerender){
+  try{
+    var rows = await rest('/hshitek_spec_items?select=*&model=eq.' + encodeURIComponent(MODEL) + '&active=eq.true&order=spec_rev.desc,seq.asc');
+    var rev = rows.length ? rows[0].spec_rev : null;
+    S.spec = rows.filter(function(r){ return r.spec_rev === rev; });
+    if(rerender && S.view === 'spec') render();
+  }catch(e){ toast(e.message, true); }
+}
+function specHTML(){
+  var adm = isAdmin();
+  var h = '<div class="wrap"><div class="page-head"><div><div class="eyebrow">' + t('specEy') + '</div><h1>' + t('specT') + '</h1><p>' + t('specP') + '</p></div>' +
+    '<span class="status ' + (adm ? 'st-submitted' : 'st-draft') + '">' + esc(S.spec.length ? S.spec[0].spec_rev : '—') + (adm ? '' : ' · ' + t('spReadonly')) + '</span></div></div>';
+  h += '<section class="band"><div class="wrap"><div class="card"><div class="tbl-wrap"><table class="spec"><thead><tr><th style="width:50px">' + t('spNo') + '</th><th style="width:28%">' + t('spName') + '</th><th>' + t('spCrit') + '</th><th style="width:110px">' + t('spPhoto') + '</th>' + (adm ? '<th style="width:90px"></th>' : '') + '</tr></thead><tbody>';
+  if(!S.spec.length) h += '<tr><td colspan="5" class="empty">' + t('loading') + '</td></tr>';
+  S.spec.forEach(function(s){
+    if(adm){
+      h += '<tr data-id="' + s.id + '"><td class="mono">' + s.seq + '</td>' +
+        '<td><input data-k="name_ko" value="' + esc(s.name_ko) + '"><input data-k="name_en" value="' + esc(s.name_en) + '" style="margin-top:6px"></td>' +
+        '<td><textarea data-k="criteria_ko">' + esc(s.criteria_ko) + '</textarea><textarea data-k="criteria_en" style="margin-top:6px">' + esc(s.criteria_en) + '</textarea></td>' +
+        '<td><input data-k="photo_nos" class="mono" value="' + esc((s.photo_nos || []).join(',')) + '"></td>' +
+        '<td><button class="btn btn-ghost btn-sm" onclick="saveSpec(' + s.id + ')">' + t('spSave') + '</button></td></tr>';
+    }else{
+      h += '<tr><td class="mono">' + s.seq + '</td><td>' + esc(s.name_ko) + '<div style="font-size:13px;color:var(--graphite)">' + esc(s.name_en) + '</div></td>' +
+        '<td>' + esc(s.criteria_ko) + '<div style="font-size:13px;color:var(--graphite)">' + esc(s.criteria_en) + '</div></td><td class="mono">' + esc((s.photo_nos || []).join(' · ')) + '</td></tr>';
+    }
+  });
+  h += '</tbody></table></div></div></div></section>';
+  return h;
+}
+async function saveSpec(id){
+  var tr = document.querySelector('tr[data-id="' + id + '"]'); if(!tr) return;
+  var body = {};
+  tr.querySelectorAll('[data-k]').forEach(function(el){ body[el.getAttribute('data-k')] = el.value.trim(); });
+  body.photo_nos = body.photo_nos.split(/[^0-9]+/).filter(Boolean).map(Number);
+  busy(true);
+  try{ await rest('/hshitek_spec_items?id=eq.' + id, { method:'PATCH', body:body }); toast(t('spSaved')); await loadSpec(true); }
+  catch(e){ toast(e.message, true); }
+  finally{ busy(false); }
+}
+
+/* =====================================================================
+   Share (customer access code)
+   ===================================================================== */
+async function loadAccess(){
+  if(!isAdmin()){ S.access = []; render(); return; }
+  try{ S.access = await rest('/hshitek_customer_access?select=label,active,created_at&order=created_at.desc&limit=5'); }
+  catch(e){ S.access = []; }
+  if(S.view === 'share') render();
+}
+function custUrl(){ return new URL('bct_hshitek_reports.html', location.href).href; }
+function shareHTML(){
+  var adm = isAdmin();
+  var act = (S.access || []).filter(function(a){ return a.active; })[0];
+  var h = '<div class="wrap"><div class="page-head"><div><div class="eyebrow">' + t('shareEy') + '</div><h1>' + t('shareT') + '</h1><p>' + t('shareP') + '</p></div>' +
+    '<a class="btn btn-outline" href="bct_hshitek_reports.html" target="_blank" rel="noopener">' + t('shareLink') + ' <span aria-hidden="true">↗</span></a></div></div>';
+  h += '<section class="band"><div class="wrap"><div class="card" style="padding:32px;max-width:720px">';
+  h += '<div class="eyebrow">' + t('shareLink') + '</div><div class="mono" style="font-size:14px;word-break:break-all;margin-bottom:24px">' + esc(custUrl()) + '</div>';
+  h += '<div class="eyebrow">' + t('shareCur') + '</div>';
+  if(!adm){ h += '<p style="color:var(--charcoal)">' + t('shareAdmin') + '</p>'; }
+  else{
+    h += act ? '<p style="margin:0 0 16px"><span class="status st-approved">' + t('active') + '</span> <span class="mono" style="font-size:13px;margin-left:8px">' + t('issued') + ' ' + esc(fmtDT(act.created_at)) + '</span></p>'
+             : '<p style="color:var(--charcoal);margin:0 0 16px">' + t('shareNone') + '</p>';
+    if(S.newCode){
+      h += '<div class="code-out" id="codeOut">' + esc(S.newCode) + '</div><p style="color:var(--charcoal);margin:0 0 16px;font-size:14px">' + t('shareOnce') + '</p>' +
+        '<button class="btn btn-primary" onclick="copyCode()">' + t('copy') + '</button>';
+    }else{
+      h += '<button class="btn btn-primary" onclick="issueCode()">' + t('shareNew') + '</button>';
+    }
+  }
+  h += '</div></div></section>';
+  return h;
+}
+function genCode(){
+  var A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', b = new Uint32Array(12), s = '';
+  crypto.getRandomValues(b);
+  for(var i = 0; i < 12; i++){ s += A[b[i] % A.length]; if(i === 3 || i === 7) s += '-'; }
+  return s;
+}
+async function issueCode(){
+  if(!confirm(t('shareConfirm'))) return;
+  var code = genCode();
+  busy(true);
+  try{ await rest('/rpc/hshitek_set_customer_code', { method:'POST', body:{ p_code:code, p_label:'HS HiTek' } }); S.newCode = code; await loadAccess(); }
+  catch(e){ toast(e.message, true); }
+  finally{ busy(false); }
+}
+function copyCode(){ if(navigator.clipboard) navigator.clipboard.writeText(S.newCode).then(function(){ toast(t('copied')); }); }
+
+/* =====================================================================
+   Editor
+   ===================================================================== */
+function uuid(){ return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){ var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }); }
+async function openNew(){
+  S.view = 'loading'; render();
+  await loadSpec(false);
+  S.cur = {
+    id:uuid(), report_no:null, model:MODEL, serial_no:'', lot_no:'', po_no:'', inspect_date:today(), ship_date:null,
+    spec_rev:S.spec.length ? S.spec[0].spec_rev : 'Rev.0', remark:'', status:'draft',
+    items:S.spec.map(function(s){
+      return { seq:s.seq, name_ko:s.name_ko, name_en:s.name_en, criteria_ko:s.criteria_ko, criteria_en:s.criteria_en,
+               method_ko:s.method_ko, method_en:s.method_en, kind:s.kind, lsl:s.lsl, usl:s.usl, unit:s.unit,
+               photo_nos:s.photo_nos || [], value:null, note:'', photos:[] };
+    }),
+    inspector_name:defaultName()
+  };
+  S.isNew = true; S.dirty = false; S.view = 'edit'; render();
+}
+function defaultName(){ return S.profile ? String(S.profile.email || '').split('@')[0] : ''; }
+async function openReport(id){
+  S.view = 'loading'; render();
+  try{
+    var rows = await rest('/hshitek_reports?select=*&id=eq.' + encodeURIComponent(id));
+    if(!rows.length){ toast('Not found', true); return go('#list'); }
+    S.cur = rows[0]; S.isNew = false; S.dirty = false;
+    await signPaths(allPaths(S.cur));
+    S.view = 'edit'; render();
+  }catch(e){ toast(e.message, true); }
+}
+function allPaths(r){ var a = []; (r.items || []).forEach(function(it){ (it.photos || []).forEach(function(p){ a.push(p.path); }); }); return a; }
+function editable(){ return S.cur && S.cur.status === 'draft'; }
+function markDirty(){ S.dirty = true; var el = document.getElementById('dirtyTag'); if(el){ el.textContent = t('unsaved'); el.className = 'status st-draft'; } }
+function setF(k, v){ S.cur[k] = v; markDirty(); renderPreview(); }
+function urlOfInternal(p){ return S.urls[p.path] || null; }
+
+function renderEdit(){
+  var r = S.cur, ed = editable(), adm = isAdmin();
+  var nJudged = r.items.filter(function(it){ return judgeItem(it) != null; }).length;
+  var nPh = 0, nNeed = 0; r.items.forEach(function(it){ nPh += (it.photos || []).length; nNeed += (it.photo_nos || []).length; });
+  var ro = ed ? '' : ' readonly';
+  var h = '<div class="ed"><div class="ed-form no-print">';
+  h += '<div class="ed-bar"><button class="back" onclick="go(\'#list\')">' + t('back') + '</button>' +
+       '<div style="display:flex;gap:8px">' + (ed ? '<button class="btn btn-ghost btn-sm" onclick="saveDraft()">' + t('save') + '</button>' : '') +
+       '<button class="btn btn-outline btn-sm" onclick="printReport()">' + t('print') + '</button></div></div>';
+  h += '<div class="ed-title"><h2 class="mono" style="font-family:var(--font-head)">' + esc(r.report_no || t('newTag')) + '</h2>' + statusPill(r.status) +
+       '<span id="dirtyTag" class="status ' + (S.dirty ? 'st-draft' : 'j-open') + '">' + (S.dirty ? t('unsaved') : (S.isNew ? t('newTag') : t('saved'))) + '</span></div>';
+  h += '<div class="ed-meta">' + esc(MODEL) + ' · ' + esc(r.spec_rev) + (r.updated_at ? ' · ' + esc(fmtDT(r.updated_at)) : '') + '</div>';
+  if(r.status === 'submitted') h += '<div class="notice">' + statusPill('submitted') + '<span>' + t('lockedSub') + '</span></div>';
+  if(r.status === 'approved') h += '<div class="notice">' + statusPill('approved') + '<span>' + t('lockedApp') + '</span></div>';
+
+  /* 01 header */
+  h += '<div class="sec"><div class="sec-h"><span class="n">01</span><span class="t">' + t('s1') + '</span></div>';
+  h += '<div class="field"><label>' + t('fSn') + '</label><input class="mono" id="fSn" placeholder="' + esc(t('snPh')) + '" value="' + esc(r.serial_no) + '" oninput="setF(\'serial_no\',this.value.trim())"' + ro + '></div>';
+  h += '<div class="grid2"><div class="field"><label>' + t('fLot') + '</label><input class="mono" value="' + esc(r.lot_no || '') + '" oninput="setF(\'lot_no\',this.value)"' + ro + '></div>' +
+       '<div class="field"><label>' + t('fPo') + '</label><input class="mono" value="' + esc(r.po_no || '') + '" oninput="setF(\'po_no\',this.value)"' + ro + '></div>' +
+       '<div class="field"><label>' + t('fDate') + '</label><input type="date" value="' + esc(r.inspect_date || '') + '" oninput="setF(\'inspect_date\',this.value)"' + ro + '></div>' +
+       '<div class="field"><label>' + t('fShip') + '</label><input type="date" value="' + esc(r.ship_date || '') + '" oninput="setF(\'ship_date\',this.value||null)"' + ro + '></div></div></div>';
+
+  /* 02 photos + judgement */
+  h += '<div class="sec"><div class="sec-h"><span class="n">02</span><span class="t">' + t('s2') + '</span><span class="s mono">' + t('judgedOf') + ' ' + nJudged + '/' + r.items.length + ' · ' + t('photosOf') + ' ' + nPh + '/' + nNeed + '</span></div>';
+  if(ed){
+    h += '<div class="drop" id="drop"><svg viewBox="0 0 32 32"><path d="M3 9h9l3 3h14v15H3z"/><path class="ac" d="M16 25v-9M12 19.5l4-4 4 4"/></svg>' +
+      '<div><div class="dt">' + t('dropT') + '</div><div class="dd">' + t('dropD') + '</div></div>' +
+      '<div class="btns"><label class="btn btn-ghost btn-sm">' + t('pickFolder') + '<input type="file" webkitdirectory directory multiple hidden onchange="onPick(this)"></label>' +
+      '<label class="btn btn-ghost btn-sm">' + t('pickFiles') + '<input type="file" accept="image/*" multiple hidden onchange="onPick(this)"></label></div></div>' +
+      '<div class="progress" id="prog">' + esc(S.uploadMsg) + '</div>';
+  }
+  r.items.forEach(function(it, i){
+    var j = judgeItem(it), v = String(it.value || '').toUpperCase();
+    h += '<div class="it' + (j === 'FAIL' ? ' fail' : '') + '" id="it' + i + '"><div class="it-head"><span class="it-no">' + pad2(i + 1) + '</span><div><div class="it-name">' + esc(lang === 'en' ? it.name_en : it.name_ko) + '</div>' +
+      '<div class="it-crit">' + t('crit') + ': ' + esc(lang === 'en' ? it.criteria_en : it.criteria_ko) + '</div></div>' + judgePill(j) + '</div>';
+    h += '<div class="photos"' + ((it.photo_nos || []).length ? '' : ' style="margin:8px 0 4px"') + '>';
+    (it.photo_nos || []).forEach(function(no){
+      var p = (it.photos || []).filter(function(x){ return x.no === no; })[0];
+      var u = p ? S.urls[p.path] : null;
+      if(p){
+        h += '<div class="tile has' + (ed ? '' : ' locked') + '" onclick="openLb(\'' + esc(u || '') + '\',\'' + esc(t('photo') + ' ' + no + ' · ' + it.name_ko) + '\')">' + (u ? '<img src="' + esc(u) + '" alt="">' : '') + '<span class="tn">' + no + '</span>' +
+          (ed ? '<button class="rm" title="✕" onclick="event.stopPropagation();removePhoto(' + i + ',' + no + ')">×</button>' : '') + '</div>';
+      }else if(ed){
+        h += '<label class="tile">' + t('addPhoto') + '<br>' + no + '<input type="file" accept="image/*" onchange="onSlot(this,' + i + ',' + no + ')"></label>';
+      }else{
+        h += '<div class="tile locked">' + t('addPhoto') + '<br>' + no + '</div>';
+      }
+    });
+    h += '</div><div class="it-foot"><div class="seg">';
+    [['OK','on-ok'],['NG','on-ng'],['NA','on-na']].forEach(function(b){
+      h += '<button type="button" class="' + (v === b[0] ? b[1] : '') + '"' + (ed ? ' onclick="setJudge(' + i + ',\'' + b[0] + '\')"' : ' disabled') + '>' + b[0] + '</button>';
+    });
+    h += '</div><input placeholder="' + esc(t('notePh')) + '" value="' + esc(it.note || '') + '" oninput="S.cur.items[' + i + '].note=this.value;markDirty();renderPreview()"' + ro + '></div></div>';
+  });
+  h += '</div>';
+
+  /* 03 remark */
+  h += '<div class="sec"><div class="sec-h"><span class="n">03</span><span class="t">' + t('s3') + '</span></div>' +
+       '<div class="field"><textarea oninput="setF(\'remark\',this.value)"' + ro + ' placeholder="' + esc(t('fRemark')) + '">' + esc(r.remark || '') + '</textarea></div></div>';
+
+  /* 04 sign-off */
+  h += '<div class="sec"><div class="sec-h"><span class="n">04</span><span class="t">' + t('s4') + '</span></div><div class="sign-grid">';
+  // inspector
+  h += '<div class="sign-box"><h4>' + t('inspector') + (r.inspected_at ? '<span class="mono" style="font-size:12px;color:var(--graphite)">' + esc(fmtDT(r.inspected_at)) + '</span>' : '') + '</h4>';
+  if(r.status === 'draft'){
+    h += '<div class="field" style="margin-bottom:8px"><input id="insName" placeholder="' + esc(t('name')) + '" value="' + esc(r.inspector_name || defaultName()) + '"></div>' +
+         '<canvas class="pad" id="padI" aria-label="' + esc(t('signHere')) + '"></canvas>' +
+         '<div class="act"><button class="btn btn-ghost btn-sm" onclick="clearPad(\'padI\')">' + t('clear') + '</button><button class="btn btn-primary btn-sm" onclick="submitReport()">' + t('submit') + '</button></div>';
+  }else{
+    h += signImg(r.inspector_sign) + '<div class="sm">' + esc(r.inspector_name || '') + '</div>';
+  }
+  h += '</div>';
+  // approver
+  h += '<div class="sign-box"><h4>' + t('approver') + (r.approved_at ? '<span class="mono" style="font-size:12px;color:var(--graphite)">' + esc(fmtDT(r.approved_at)) + '</span>' : '') + '</h4>';
+  if(r.status === 'approved'){
+    h += signImg(r.approver_sign) + '<div class="sm">' + esc(r.approver_name || '') + '</div>';
+  }else if(r.status === 'submitted' && adm){
+    h += '<div class="field" style="margin-bottom:8px"><input id="apName" placeholder="' + esc(t('name')) + '" value="' + esc(defaultName()) + '"></div>' +
+         '<canvas class="pad" id="padA" aria-label="' + esc(t('signHere')) + '"></canvas>' +
+         '<div class="act"><button class="btn btn-ghost btn-sm" onclick="clearPad(\'padA\')">' + t('clear') + '</button><button class="btn btn-primary btn-sm" onclick="approveReport()">' + t('approve') + '</button></div>';
+  }else{
+    h += '<div class="sign-wait">' + (r.status === 'submitted' ? t('waitAdmin') : t('waitSubmit')) + '</div>';
+  }
+  h += '</div></div>';
+  h += '<div class="actions-bottom">';
+  if(r.status === 'submitted') h += '<button class="btn btn-ghost btn-sm" onclick="toDraft()">' + t('toDraft') + '</button>';
+  if(r.status === 'approved' && adm) h += '<button class="btn btn-danger btn-sm" onclick="revoke()">' + t('revoke') + '</button>';
+  if(adm && !S.isNew && r.status !== 'approved') h += '<button class="btn btn-danger btn-sm" onclick="deleteReport()">' + t('del') + '</button>';
+  h += '</div></div>';
+
+  h += '</div><div class="ed-preview"><div class="sheets" id="sheets"></div></div></div>';
+  document.getElementById('app').innerHTML = h;
+  renderPreview();
+  initPad('padI'); initPad('padA');
+  bindDrop();
+}
+function signImg(src){ return src ? '<img class="sign-img" src="' + src + '" alt="signature">' : '<div class="sign-wait">—</div>'; }
+function renderPreview(){
+  var el = document.getElementById('sheets'); if(!el || !S.cur) return;
+  el.innerHTML = sheetsHTML(S.cur, urlOfInternal);
+  fitSheets();
+}
+function setJudge(i, v){
+  var it = S.cur.items[i];
+  it.value = String(it.value || '').toUpperCase() === v ? null : v;
+  markDirty(); renderEdit();
+}
+
+/* ===== signature pad ===== */
+function initPad(id){
+  var c = document.getElementById(id); if(!c) return;
+  var dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+  var ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
+  ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1a1a1a'; ctx.fillStyle = '#1a1a1a';
+  c.dataset.empty = '1';
+  var down = false, last = null;
+  function pt(e){ var r = c.getBoundingClientRect(); return { x:e.clientX - r.left, y:e.clientY - r.top }; }
+  c.addEventListener('pointerdown', function(e){ down = true; c.setPointerCapture(e.pointerId); last = pt(e); ctx.beginPath(); ctx.arc(last.x, last.y, 1.1, 0, 7); ctx.fill(); c.dataset.empty = '0'; });
+  c.addEventListener('pointermove', function(e){ if(!down) return; var p = pt(e); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p; });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ c.addEventListener(ev, function(){ down = false; }); });
+}
+function clearPad(id){ var c = document.getElementById(id); if(!c) return; c.getContext('2d').clearRect(0, 0, c.width, c.height); c.dataset.empty = '1'; }
+function padData(id){ var c = document.getElementById(id); return c && c.dataset.empty === '0' ? c.toDataURL('image/png') : null; }
+
+/* ===== photos ===== */
+function bindDrop(){
+  var d = document.getElementById('drop'); if(!d) return;
+  d.addEventListener('dragover', function(e){ e.preventDefault(); d.classList.add('over'); });
+  d.addEventListener('dragleave', function(){ d.classList.remove('over'); });
+  d.addEventListener('drop', async function(e){
+    e.preventDefault(); d.classList.remove('over');
+    var got = await filesFromDrop(e.dataTransfer);
+    await ingest(got.files, got.folder);
+  });
+}
+function fileOf(en){ return new Promise(function(res, rej){ en.file(res, rej); }); }
+async function walkDir(dir, out){
+  var rd = dir.createReader(), batch;
+  do{
+    batch = await new Promise(function(res, rej){ rd.readEntries(res, rej); });
+    for(var i = 0; i < batch.length; i++){ if(batch[i].isFile) out.push(await fileOf(batch[i])); }
+  }while(batch.length);
+}
+async function filesFromDrop(dt){
+  var entries = [];
+  for(var i = 0; i < dt.items.length; i++){ var en = dt.items[i].webkitGetAsEntry && dt.items[i].webkitGetAsEntry(); if(en) entries.push(en); }
+  if(!entries.length) return { files:Array.prototype.slice.call(dt.files), folder:null };
+  var out = [], folder = null;
+  for(var k = 0; k < entries.length; k++){
+    if(entries[k].isDirectory){ folder = folder || entries[k].name; await walkDir(entries[k], out); }
+    else out.push(await fileOf(entries[k]));
+  }
+  return { files:out, folder:folder };
+}
+function onPick(input){
+  var files = Array.prototype.slice.call(input.files || []);
+  var folder = files.length && files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : null;
+  input.value = '';
+  ingest(files, folder);
+}
+async function ingest(files, folder){
+  if(!editable()) return;
+  if(folder){
+    if(!S.cur.serial_no){ S.cur.serial_no = folder.trim(); var f = document.getElementById('fSn'); if(f) f.value = S.cur.serial_no; markDirty(); }
+    else if(S.cur.serial_no !== folder.trim()){ toast(t('snMismatch') + folder + ' ≠ ' + S.cur.serial_no, true); }
+  }
+  var jobs = [], skipped = [];
+  files.forEach(function(f){
+    if(!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|heic)$/i.test(f.name)) return;
+    var m = f.name.match(/^(\d+)_/);
+    if(!m){ skipped.push(f.name); return; }
+    var no = parseInt(m[1], 10);
+    var idx = -1;
+    S.cur.items.forEach(function(it, i){ if((it.photo_nos || []).indexOf(no) >= 0) idx = i; });
+    if(idx < 0){ skipped.push(f.name); return; }
+    jobs.push({ file:f, no:no, idx:idx });
+  });
+  jobs.sort(function(a, b){ return a.no - b.no; });
+  await runUploads(jobs);
+  if(skipped.length) toast(t('ignored') + skipped.join(', '), true);
+}
+function onSlot(input, idx, no){
+  var f = input.files && input.files[0]; input.value = '';
+  if(f) runUploads([{ file:f, no:no, idx:idx }]);
+}
+async function runUploads(jobs){
+  if(!jobs.length) return;
+  busy(true);
+  var done = 0, old = [];
+  try{
+    for(var k = 0; k < jobs.length; k++){
+      var j = jobs[k];
+      S.uploadMsg = t('uploading') + ' ' + (k + 1) + '/' + jobs.length + ' · ' + j.file.name;
+      var pg = document.getElementById('prog'); if(pg) pg.textContent = S.uploadMsg;
+      var blob = await resizeImage(j.file);
+      var path = S.cur.id + '/' + j.no + '_' + Date.now() + '.jpg';
+      await uploadBlob(path, blob);
+      var it = S.cur.items[j.idx];
+      it.photos = (it.photos || []).filter(function(p){ if(p.no === j.no){ old.push(p.path); return false; } return true; });
+      it.photos.push({ no:j.no, path:path, name:j.file.name });
+      it.photos.sort(function(a, b){ return a.no - b.no; });
+      S.urls[path] = URL.createObjectURL(blob);
+      done++;
+    }
+  }catch(e){ toast(e.message, true); }
+  finally{ busy(false); }
+  S.uploadMsg = done ? done + t('uploaded') : '';
+  markDirty(); renderEdit();
+  if(done && S.cur.serial_no) await saveDraft(true);
+  if(old.length) removePaths(old);
+}
+function removePhoto(idx, no){
+  var it = S.cur.items[idx], gone = [];
+  it.photos = (it.photos || []).filter(function(p){ if(p.no === no){ gone.push(p.path); return false; } return true; });
+  markDirty(); renderEdit();
+  saveDraft(true).then(function(ok){ if(ok) removePaths(gone); });
+}
+
+/* ===== save / workflow ===== */
+function draftBody(){
+  var r = S.cur;
+  return { id:r.id, model:r.model || MODEL, serial_no:r.serial_no, lot_no:r.lot_no || null, po_no:r.po_no || null,
+           inspect_date:r.inspect_date || today(), ship_date:r.ship_date || null, spec_rev:r.spec_rev, items:r.items, remark:r.remark || null };
+}
+async function checkDupSn(){
+  var rows = await rest('/hshitek_reports?select=report_no&serial_no=eq.' + encodeURIComponent(S.cur.serial_no) + '&id=neq.' + S.cur.id);
+  if(rows.length) return confirm(t('dupSn') + rows.map(function(x){ return x.report_no; }).join(', ') + '\n' + t('dupSn2'));
+  return true;
+}
+function applyRow(row){
+  var keep = S.cur;
+  S.cur = row;
+  if(!S.cur.inspector_name && keep.inspector_name) S.cur.inspector_name = keep.inspector_name;
+  S.isNew = false; S.dirty = false; S.listLoaded = false;
+  if(location.hash !== '#r/' + row.id) history.replaceState(null, '', '#r/' + row.id);
+}
+async function saveDraft(silent){
+  if(!S.cur.serial_no){ toast(t('needSn'), true); var f = document.getElementById('fSn'); if(f) f.focus(); return false; }
+  busy(true);
+  try{
+    if(S.isNew && !silent && !(await checkDupSn())) return false;
+    var rows;
+    if(S.isNew) rows = await rest('/hshitek_reports', { method:'POST', body:draftBody(), prefer:'return=representation' });
+    else{ var b = draftBody(); delete b.id; rows = await rest('/hshitek_reports?id=eq.' + S.cur.id, { method:'PATCH', body:b, prefer:'return=representation' }); }
+    applyRow(rows[0]);
+    if(!silent) toast(t('savedT'));
+    renderEdit();
+    return true;
+  }catch(e){ toast(e.message, true); return false; }
+  finally{ busy(false); }
+}
+async function submitReport(){
+  var nm = (document.getElementById('insName') || {}).value || '';
+  var sg = padData('padI');
+  if(!nm.trim()) return toast(t('needName'), true);
+  if(!sg) return toast(t('needSign'), true);
+  if(!S.cur.serial_no) return toast(t('needSn'), true);
+  if(overallOf(S.cur.items) == null) return toast(t('e_judge'), true);
+  if(S.cur.items.some(photoGap)) return toast(t('e_photo'), true);
+  if(!confirm(t('confirmSubmit'))) return;
+  busy(true);
+  try{
+    if(S.isNew && !(await checkDupSn())) return;
+    var b = draftBody(); b.status = 'submitted'; b.inspector_name = nm.trim(); b.inspector_sign = sg;
+    var rows;
+    if(S.isNew) rows = await rest('/hshitek_reports', { method:'POST', body:b, prefer:'return=representation' });
+    else{ delete b.id; rows = await rest('/hshitek_reports?id=eq.' + S.cur.id, { method:'PATCH', body:b, prefer:'return=representation' }); }
+    applyRow(rows[0]); toast(t('submittedT')); renderEdit();
+  }catch(e){ toast(e.message, true); }
+  finally{ busy(false); }
+}
+async function approveReport(){
+  var nm = (document.getElementById('apName') || {}).value || '';
+  var sg = padData('padA');
+  if(!nm.trim()) return toast(t('needName'), true);
+  if(!sg) return toast(t('needSign'), true);
+  if(S.cur.inspector_id && S.session && S.cur.inspector_id === S.session.user.id && !confirm(t('sameSigner'))) return;
+  if(!confirm(t('confirmApprove'))) return;
+  await patchStatus({ status:'approved', approver_name:nm.trim(), approver_sign:sg }, 'approvedT');
+}
+async function toDraft(){ if(confirm(t('confirmDraft'))) await patchStatus({ status:'draft' }, 'draftT'); }
+async function revoke(){ if(confirm(t('confirmRevoke'))) await patchStatus({ status:'submitted' }, 'revokedT'); }
+async function patchStatus(body, msg){
+  busy(true);
+  try{
+    var rows = await rest('/hshitek_reports?id=eq.' + S.cur.id, { method:'PATCH', body:body, prefer:'return=representation' });
+    applyRow(rows[0]); toast(t(msg)); renderEdit();
+  }catch(e){ toast(e.message, true); }
+  finally{ busy(false); }
+}
+async function deleteReport(){
+  if(!confirm(t('confirmDel'))) return;
+  busy(true);
+  try{
+    var paths = allPaths(S.cur);
+    await rest('/hshitek_reports?id=eq.' + S.cur.id, { method:'DELETE' });
+    await removePaths(paths);
+    S.dirty = false; S.listLoaded = false; toast(t('deletedT')); go('#list');
+  }catch(e){ toast(e.message, true); }
+  finally{ busy(false); }
+}
+
+/* ===== print / PDF ===== */
+async function printReport(){
+  var imgs = Array.prototype.slice.call(document.querySelectorAll('#sheets img'));
+  await Promise.all(imgs.map(function(im){ return im.complete ? 0 : new Promise(function(res){ im.onload = im.onerror = res; }); }));
+  var old = document.title;
+  document.title = (S.cur.report_no || 'HSI-new') + '_' + (S.cur.serial_no || '');
+  window.print();
+  setTimeout(function(){ document.title = old; }, 800);
+}
+
+window.addEventListener('hashchange', function(){ if(S.profile && S.view !== 'login' && S.view !== 'forbidden') go(location.hash || '#list'); });
+init();
+</script>
+</body>
+</html>

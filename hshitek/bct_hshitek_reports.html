@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>검사성적서 조회 · HS HiTek × BCT</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+(function(){
+  var d = document.documentElement;
+  try{
+    d.setAttribute('data-theme', localStorage.getItem('bct_hub_theme') === 'dark' ? 'dark' : 'light');
+    d.lang = localStorage.getItem('bct_hshitek_lang') === 'en' ? 'en' : 'ko';
+  }catch(e){}
+})();
+</script>
+<style>
+  @font-face{ font-family:'KIMM'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2212@1.0/KIMM_Light.woff2') format('woff2'); font-weight:300; font-display:swap; }
+  @font-face{ font-family:'KIMM'; src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2212@1.0/KIMM_Bold.woff2') format('woff2'); font-weight:700; font-display:swap; }
+
+  /* ===== Tokens : same as OPS Hub index.html ===== */
+  :root{
+    --primary:#024ad8; --primary-pressed:#0e3191; --primary-soft:#c9e0fc; --on-primary:#ffffff;
+    --ink:#1a1a1a; --charcoal:#3d3d3d; --graphite:#636363;
+    --canvas:#ffffff; --paper:#ffffff; --cloud:#f7f7f7; --fog:#e8e8e8; --steel:#c2c2c2;
+    --hairline:#e8e8e8; --hairline-strong:#c2c2c2;
+    --slab:#1a1a1a; --slab-2:#292929; --on-slab:#ffffff; --on-slab-muted:#c2c2c2; --slab-accent:#296ef9;
+    --ok:#1f7a4d; --ok-soft:#dcefe4; --ng:#c1443c; --ng-soft:#f8e1df;
+    --lift:0 2px 8px rgba(26,26,26,.08);
+    --float:0 8px 24px rgba(26,26,26,.12);
+    --font-head:'KIMM', 'Google Sans', 'Gowun Batang', sans-serif;
+    --font-en:'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-ko:'Google Sans', 'Gowun Batang', serif;
+    --font-mono:'JetBrains Mono', 'Gowun Batang', ui-monospace, monospace;
+    --font-text:var(--font-en);
+    --r-xs:2px; --r-sm:3px; --r-md:4px; --r-lg:8px; --r-xl:16px; --r-pill:9999px;
+  }
+  :root[lang="ko"]{ --font-text:var(--font-ko); }
+  :root[data-theme="dark"]{
+    --primary:#296ef9; --primary-pressed:#5b8ffb; --primary-soft:#1b2f57; --on-primary:#ffffff;
+    --ink:#f2f2f2; --charcoal:#cfcfcf; --graphite:#a3a3a3;
+    --canvas:#111111; --paper:#1b1b1b; --cloud:#161616; --fog:#262626; --steel:#4a4a4a;
+    --hairline:#2a2a2a; --hairline-strong:#444444;
+    --slab:#000000; --slab-2:#1b1b1b;
+    --ok:#5cc28d; --ok-soft:#173326; --ng:#f08178; --ng-soft:#3a1d1b;
+    --lift:0 2px 8px rgba(0,0,0,.5);
+    --float:0 8px 24px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--canvas); color:var(--ink); font-family:var(--font-text); font-size:16px; line-height:1.4; -webkit-font-smoothing:antialiased; min-height:100vh; display:flex; flex-direction:column; }
+  :root[lang="ko"] p, :root[lang="ko"] h1, :root[lang="ko"] h2{ word-break:keep-all; }
+  button, input, select{ font:inherit; color:inherit; }
+  a{ color:inherit; }
+  ::selection{ background:var(--primary-soft); color:var(--ink); }
+  :focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+  .mono{ font-family:var(--font-mono) !important; }
+  .wrap{ max-width:1366px; margin:0 auto; width:100%; padding:0 clamp(16px,3.5vw,48px); }
+
+  .utility{ background:var(--slab); color:var(--on-slab); font-size:14px; }
+  .utility .wrap{ height:36px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .utility .u-left{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .utility .u-left span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .u-dot{ width:6px; height:6px; border-radius:50%; background:var(--slab-accent); flex:0 0 auto; }
+  .u-right{ font-family:var(--font-mono); font-size:12px; color:var(--on-slab-muted); white-space:nowrap; }
+  .nav{ background:var(--canvas); border-bottom:1px solid var(--hairline); position:sticky; top:0; z-index:20; }
+  .nav .wrap{ height:64px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .nav-brand{ display:flex; align-items:center; gap:14px; text-decoration:none; flex:0 0 auto; }
+  .nav-brand img{ height:34px; width:auto; display:block; }
+  :root[data-theme="dark"] .nav-brand img{ filter:brightness(0) invert(1); }
+  .nav-brand .x{ font-size:14px; color:var(--graphite); }
+  .nav-brand .cust{ font-family:var(--font-en); font-size:16px; font-weight:600; }
+  .nav-right{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .icon-btn{ width:40px; height:40px; border-radius:var(--r-md); border:1px solid var(--hairline-strong); background:var(--canvas); color:var(--ink); display:grid; place-items:center; cursor:pointer; padding:0; }
+  .icon-btn:hover{ border-color:var(--ink); }
+  .icon-btn svg{ width:18px; height:18px; }
+  .icon-btn .i-sun{ display:none; }
+  :root[data-theme="dark"] .icon-btn .i-sun{ display:block; }
+  :root[data-theme="dark"] .icon-btn .i-moon{ display:none; }
+  .lang-toggle{ display:flex; border:1px solid var(--hairline-strong); border-radius:var(--r-md); overflow:hidden; height:40px; }
+  .lang-btn{ font-family:var(--font-en) !important; font-size:12.6px; font-weight:700; letter-spacing:.126px; padding:0 14px; border:none; background:var(--canvas); color:var(--graphite); cursor:pointer; }
+  .lang-btn + .lang-btn{ border-left:1px solid var(--hairline-strong); }
+  .lang-btn.active{ background:var(--ink); color:var(--canvas); }
+  .text-btn{ background:none; border:none; cursor:pointer; color:var(--charcoal); font-size:15px; padding:8px 10px; }
+  .text-btn:hover{ color:var(--ink); text-decoration:underline; text-underline-offset:4px; }
+
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; height:44px; padding:0 22px; border-radius:var(--r-md); font-family:var(--font-en) !important; font-size:14px; font-weight:600; letter-spacing:.7px; text-transform:uppercase; text-decoration:none; cursor:pointer; border:1px solid transparent; white-space:nowrap; transition:background .15s, color .15s, border-color .15s; background:none; }
+  :root[lang="ko"] .btn{ font-family:var(--font-ko) !important; letter-spacing:.2px; }
+  .btn-primary{ background:var(--primary); color:var(--on-primary); }
+  .btn-primary:hover{ background:var(--primary-pressed); }
+  .btn-outline{ color:var(--ink); border-color:var(--ink); }
+  .btn-outline:hover{ background:var(--ink); color:var(--canvas); }
+  .btn-sm{ height:36px; padding:0 14px; font-size:12.6px; }
+
+  .status{ display:inline-flex; align-items:center; gap:6px; font-family:var(--font-en); font-size:12px; font-weight:700; border-radius:var(--r-sm); padding:4px 8px; line-height:1; text-transform:uppercase; white-space:nowrap; }
+  .status::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .j-pass{ background:var(--ok-soft); color:var(--ok); }
+  .j-fail{ background:var(--ng-soft); color:var(--ng); }
+
+  main{ flex:1; }
+  .hero{ padding:clamp(40px,5vw,64px) 0 32px; }
+  .eyebrow{ display:flex; gap:10px; align-items:center; margin-bottom:20px; flex-wrap:wrap; }
+  .badge-ink{ background:var(--ink); color:var(--canvas); border-radius:var(--r-lg); padding:6px 12px; font-family:var(--font-en); font-size:14px; font-weight:500; }
+  .badge-outline{ border:1px solid var(--ink); border-radius:var(--r-lg); padding:5px 12px; font-family:var(--font-mono); font-size:12px; font-weight:500; letter-spacing:.06em; }
+  .hero h1{ font-family:var(--font-head); font-weight:700; font-size:clamp(36px,4.4vw,60px); line-height:1.06; letter-spacing:-0.02em; margin:0 0 16px; }
+  .hero p{ font-size:18px; line-height:1.5; color:var(--charcoal); max-width:56ch; margin:0; }
+
+  .band{ background:var(--cloud); padding:40px 0 72px; min-height:52vh; }
+  .card{ background:var(--paper); border-radius:var(--r-xl); box-shadow:var(--lift); }
+
+  .gate{ max-width:520px; padding:36px; }
+  .gate h2{ font-family:var(--font-head); font-size:28px; margin:0 0 8px; }
+  .gate p{ color:var(--charcoal); margin:0 0 22px; font-size:15px; }
+  .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .field label{ font-size:13px; color:var(--graphite); }
+  .field input{ height:48px; border:1px solid var(--hairline-strong); border-radius:var(--r-md); padding:0 14px; background:var(--paper); font-family:var(--font-mono); font-size:18px; letter-spacing:.08em; text-transform:uppercase; }
+  .field input:focus{ border-color:var(--primary); outline:none; }
+  .remember{ display:flex; align-items:center; gap:8px; font-size:14px; color:var(--charcoal); margin:4px 0 18px; }
+  .err{ color:var(--ng); font-size:14px; min-height:20px; margin-bottom:8px; }
+
+  .toolbar{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .stats{ display:flex; gap:0; flex-wrap:wrap; }
+  .stat{ padding-right:28px; margin-right:28px; border-right:1px solid var(--hairline-strong); }
+  .stat:last-child{ border-right:none; }
+  .stat .n{ font-family:var(--font-en); font-size:28px; font-weight:500; line-height:1; }
+  .stat .l{ font-size:13px; color:var(--graphite); margin-top:6px; }
+  .filters{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .filters input{ height:40px; border:1px solid var(--hairline-strong); background:var(--paper); border-radius:var(--r-md); padding:0 12px; }
+  .filters input[type="search"]{ min-width:240px; }
+  .filters span{ font-size:13px; color:var(--graphite); }
+  .tbl-wrap{ overflow-x:auto; }
+  table.list{ width:100%; border-collapse:collapse; font-size:15px; }
+  table.list th{ text-align:left; font-weight:500; font-size:13px; color:var(--graphite); padding:14px 16px; border-bottom:1px solid var(--hairline-strong); white-space:nowrap; }
+  table.list td{ padding:14px 16px; border-bottom:1px solid var(--hairline); white-space:nowrap; }
+  table.list tbody tr{ cursor:pointer; }
+  table.list tbody tr:hover td{ background:var(--cloud); }
+  table.list tbody tr:last-child td{ border-bottom:none; }
+  .empty{ padding:56px 24px; text-align:center; color:var(--charcoal); }
+  .empty b{ display:block; font-size:20px; font-weight:500; color:var(--ink); margin-bottom:8px; }
+  .open-arr{ color:var(--primary); font-family:var(--font-en); font-weight:600; font-size:13px; letter-spacing:.5px; text-transform:uppercase; }
+
+  .viewer-bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:20px 0; }
+  .viewer-bar .t{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .viewer-bar h2{ font-family:var(--font-head); font-size:26px; margin:0; }
+  .viewer-bar .meta{ font-family:var(--font-mono); font-size:13px; color:var(--graphite); }
+  .ed-preview{ background:var(--cloud); padding:28px 16px 64px; display:flex; flex-direction:column; align-items:center; }
+
+  .toast{ position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px); background:var(--ink); color:var(--canvas); padding:12px 18px; border-radius:var(--r-lg); font-size:15px; box-shadow:var(--float); opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:90; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .footer{ background:var(--slab); color:var(--on-slab); padding:28px 0; }
+  .footer .wrap{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; font-size:14px; }
+  .footer .f-r{ font-size:12px; color:var(--on-slab-muted); }
+
+/*SHEET_CSS_START*/
+  /* ===== A4 sheet (always light paper; print text is ink, never light gray) ===== */
+  .sheet{ width:210mm; height:297mm; background:#fff; color:#1a1a1a; position:relative; padding:13mm 14mm 10mm; margin:0 0 24px; box-shadow:0 8px 24px rgba(26,26,26,.14); display:flex; flex-direction:column; overflow:hidden; font-family:'Google Sans','Gowun Batang',sans-serif; font-size:10px; line-height:1.35; }
+  .sheet *{ color:inherit; }
+  .sh-top{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding-bottom:9px; border-bottom:2px solid #1a1a1a; }
+  .sh-logo{ height:24px; width:auto; display:block; margin-bottom:8px; }
+  .sh-title{ font-family:'KIMM','Google Sans',sans-serif; font-weight:700; font-size:23px; letter-spacing:-.01em; line-height:1.1; }
+  .sh-en{ font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:600; letter-spacing:.16em; margin-top:3px; }
+  .sh-no{ text-align:right; font-family:'JetBrains Mono',monospace; font-size:9px; line-height:1.55; }
+  .sh-no b{ font-size:12px; font-weight:600; }
+  .sh-bar{ width:56px; height:3px; background:#024ad8; margin:8px 0 12px; }
+  .sh-h{ font-size:10.5px; font-weight:700; margin:12px 0 6px; display:flex; align-items:baseline; gap:6px; }
+  .sh-h span{ font-family:'JetBrains Mono',monospace; font-size:7.5px; font-weight:600; letter-spacing:.14em; }
+  table.sh-info{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  table.sh-info th, table.sh-info td{ border:1px solid #c2c2c2; padding:5px 7px; text-align:left; vertical-align:middle; }
+  table.sh-info th{ background:#f7f7f7; font-weight:600; width:17%; font-size:9px; }
+  table.sh-info th small{ display:block; font-family:'JetBrains Mono',monospace; font-size:7px; font-weight:500; letter-spacing:.06em; }
+  table.sh-info td{ font-size:10px; }
+  table.sh-info td.mono{ font-family:'JetBrains Mono',monospace; font-size:9.5px; }
+  table.sh-res{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  table.sh-res th{ background:#1a1a1a; color:#fff; font-size:8.5px; font-weight:600; padding:5px 6px; text-align:left; border:1px solid #1a1a1a; }
+  table.sh-res th small{ display:block; font-family:'JetBrains Mono',monospace; font-size:6.5px; font-weight:500; letter-spacing:.08em; color:#fff; }
+  table.sh-res td{ border:1px solid #c2c2c2; padding:5px 6px; vertical-align:middle; font-size:9px; }
+  table.sh-res tr:nth-child(even) td{ background:#f7f7f7; }
+  table.sh-res td.c{ text-align:center; }
+  table.sh-res td .en{ display:block; font-size:7.5px; color:#3d3d3d; margin-top:1px; }
+  table.sh-res td.mono{ font-family:'JetBrains Mono',monospace; font-size:8.5px; }
+  .jd{ display:inline-block; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:8.5px; padding:2px 5px; border-radius:2px; }
+  .jd.pass{ background:#dcefe4; color:#1f7a4d; }
+  .jd.fail{ background:#f8e1df; color:#c1443c; }
+  .jd.na{ background:#e8e8e8; color:#1a1a1a; }
+  .jd.open{ border:1px dashed #636363; color:#1a1a1a; }
+  .sh-overall{ display:flex; align-items:center; justify-content:space-between; gap:12px; border:1.5px solid #1a1a1a; border-radius:4px; padding:9px 12px; margin-top:12px; }
+  .sh-overall .lbl{ font-size:11px; font-weight:700; }
+  .sh-overall .lbl span{ display:block; font-family:'JetBrains Mono',monospace; font-size:7.5px; letter-spacing:.14em; font-weight:600; }
+  .sh-overall .sum{ font-family:'JetBrains Mono',monospace; font-size:9px; }
+  .sh-overall .big{ font-family:'Google Sans',sans-serif; font-weight:700; font-size:22px; letter-spacing:.04em; padding:3px 14px; border-radius:3px; }
+  .big.pass{ background:#dcefe4; color:#1f7a4d; }
+  .big.fail{ background:#f8e1df; color:#c1443c; }
+  .big.open{ border:1.5px dashed #1a1a1a; font-size:13px; }
+  .sh-remark{ border:1px solid #c2c2c2; padding:6px 8px; min-height:28px; font-size:9.5px; white-space:pre-wrap; }
+  .sh-sign{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .sh-sign .box{ border:1px solid #c2c2c2; }
+  .sh-sign .box .hd{ background:#f7f7f7; border-bottom:1px solid #c2c2c2; padding:4px 8px; font-size:9px; font-weight:600; display:flex; justify-content:space-between; }
+  .sh-sign .box .hd span{ font-family:'JetBrains Mono',monospace; font-size:7px; letter-spacing:.1em; font-weight:500; }
+  .sh-sign .box .sg{ height:52px; display:flex; align-items:center; justify-content:center; padding:3px; }
+  .sh-sign .box .sg img{ max-height:46px; max-width:90%; }
+  .sh-sign .box .sg em{ font-style:normal; font-size:9px; }
+  .sh-sign .box .ft{ border-top:1px solid #c2c2c2; padding:4px 8px; display:flex; justify-content:space-between; font-size:9px; }
+  .sh-sign .box .ft .mono{ font-family:'JetBrains Mono',monospace; font-size:8px; }
+  .sh-foot{ margin-top:auto; padding-top:7px; border-top:1px solid #c2c2c2; display:flex; justify-content:space-between; gap:10px; font-size:7.5px; font-family:'JetBrains Mono',monospace; }
+  .sh-mini{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #1a1a1a; padding-bottom:7px; }
+  .sh-mini .t{ font-family:'KIMM','Google Sans',sans-serif; font-weight:700; font-size:15px; }
+  .sh-mini .r{ font-family:'JetBrains Mono',monospace; font-size:8.5px; text-align:right; line-height:1.5; }
+  .ph-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-top:10px; }
+  .ph{ border:1px solid #c2c2c2; }
+  .ph .im{ height:66mm; background:#f7f7f7; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .ph .im img{ width:100%; height:100%; object-fit:contain; display:block; }
+  .ph .im em{ font-style:normal; font-size:9px; }
+  .ph .cap{ border-top:1px solid #c2c2c2; padding:4px 7px; display:flex; align-items:center; gap:6px; font-size:8.5px; }
+  .ph .cap .no{ font-family:'JetBrains Mono',monospace; font-weight:700; background:#1a1a1a; color:#fff; padding:1px 5px; border-radius:2px; font-size:8px; }
+  .ph .cap .nm{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .wm{ position:absolute; left:0; right:0; top:42%; text-align:center; transform:rotate(-24deg); font-family:'Google Sans',sans-serif; font-weight:700; font-size:72px; letter-spacing:.12em; color:rgba(193,68,60,.13); pointer-events:none; }
+
+  @media print{
+    @page{ size:A4; margin:0; }
+    html, body{ background:#fff !important; }
+    .no-print{ display:none !important; }
+    .ed{ display:block; min-height:0; }
+    .ed-preview{ padding:0 !important; background:#fff !important; overflow:visible !important; display:block !important; }
+    .sheets{ zoom:1 !important; }
+    .sheet{ margin:0 !important; box-shadow:none !important; break-after:page; page-break-after:always; }
+    .sheet:last-child{ break-after:auto; page-break-after:auto; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+  /*SHEET_CSS_END*/
+</style>
+</head>
+<body>
+
+<div class="utility no-print">
+  <div class="wrap">
+    <div class="u-left"><span class="u-dot" aria-hidden="true"></span><span data-i18n="util">HS HiTek × BCT · 출하 검사성적서 조회</span></div>
+    <div class="u-right">READ-ONLY</div>
+  </div>
+</div>
+
+<nav class="nav no-print">
+  <div class="wrap">
+    <a class="nav-brand" href="#" onclick="backToList();return false" aria-label="BCT × HS HiTek">
+      <img src="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png" alt="BCT">
+      <span class="x" aria-hidden="true">×</span>
+      <span class="cust">HS HiTek</span>
+    </a>
+    <div class="nav-right">
+      <button class="text-btn" id="signOutBtn" type="button" onclick="signOut()" hidden data-i18n="signOut">코드 지우기</button>
+      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" type="button">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button class="lang-btn" id="btnKo" onclick="setLang('ko')" type="button">KO</button>
+        <button class="lang-btn" id="btnEn" onclick="setLang('en')" type="button">EN</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main id="app"></main>
+
+<footer class="footer no-print">
+  <div class="wrap"><span data-i18n="foot">승인된 성적서만 표시됩니다. 내용 문의는 ㈜비씨테크 품질 담당자에게 연락해 주세요.</span><span class="f-r">© 2018 BCT · HS HiTek OPS Hub</span></div>
+</footer>
+<div class="toast no-print" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+var CONFIG = {
+  SUPABASE_URL: 'https://okiamzritzrrxhouzolm.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_nmVTVGoaQqIMKvit5YHL5g_S7uahQlr'
+};
+var FN_URL = CONFIG.SUPABASE_URL + '/functions/v1/hshitek-customer';
+var CODE_KEY = 'bct_hshitek_view_code';
+var MODEL = 'L3 PRIME CONTROLLER';
+var LOGO = 'https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_logo_transparent.png';
+
+var T = {
+  ko: {
+    util:'HS HiTek × BCT · 출하 검사성적서 조회', signOut:'코드 지우기',
+    foot:'승인된 성적서만 표시됩니다. 내용 문의는 ㈜비씨테크 품질 담당자에게 연락해 주세요.',
+    heroT:'출하 검사성적서', heroP:'L3 PRIME CONTROLLER 출하 검사 결과와 사진 증빙을 확인하고 PDF로 저장할 수 있습니다. S/N은 Main Board 일련번호입니다.',
+    gateT:'열람 코드 입력', gateP:'BCT에서 받은 열람 코드를 입력하세요.', code:'열람 코드', remember:'이 기기에서 기억하기', open:'열기', checking:'확인 중…',
+    badCode:'코드가 맞지 않습니다. BCT 담당자에게 확인해 주세요.', netErr:'서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    total:'공개된 성적서', passN:'합격', lastN:'최근 승인', searchPh:'S/N · 성적서 번호', from:'출하일', to:'~',
+    cNo:'성적서 번호', cSn:'S/N (Main Board)', cDate:'검사일', cShip:'출하일', cJudge:'판정', cAppr:'승인일', view:'보기',
+    emptyT:'공개된 성적서가 없습니다', emptyP:'BCT에서 승인한 성적서가 여기에 표시됩니다.', noMatch:'조건에 맞는 성적서가 없습니다',
+    back:'← 목록', pdf:'PDF 저장 · 인쇄', refreshed:'사진 링크를 새로 받았습니다',
+    pass:'합격', fail:'불합격',
+    theme_d:'다크 모드로 전환', theme_l:'라이트 모드로 전환'
+  },
+  en: {
+    util:'HS HiTek × BCT · Final inspection reports', signOut:'Forget code',
+    foot:'Only approved reports are shown. For questions, contact the BCT quality team.',
+    heroT:'Final inspection reports', heroP:'Review final inspection results and photo evidence for the L3 PRIME CONTROLLER, and save them as PDF. The S/N is the main board serial number.',
+    gateT:'Enter access code', gateP:'Enter the access code you received from BCT.', code:'Access code', remember:'Remember on this device', open:'Open', checking:'Checking…',
+    badCode:'That code is not valid. Please check with your BCT contact.', netErr:'Could not reach the server. Please try again shortly.',
+    total:'published reports', passN:'passed', lastN:'latest approval', searchPh:'S/N or report no.', from:'Ship date', to:'to',
+    cNo:'Report no.', cSn:'S/N (main board)', cDate:'Inspected', cShip:'Ship date', cJudge:'Result', cAppr:'Approved', view:'View',
+    emptyT:'No published reports yet', emptyP:'Reports approved by BCT will appear here.', noMatch:'No reports match the filter',
+    back:'← Reports', pdf:'Save PDF · Print', refreshed:'Photo links refreshed',
+    pass:'PASS', fail:'FAIL',
+    theme_d:'Switch to dark mode', theme_l:'Switch to light mode'
+  }
+};
+var lang = document.documentElement.lang === 'en' ? 'en' : 'ko';
+function t(k){ return (T[lang] && T[lang][k]) || T.ko[k] || k; }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+var S = { code:null, reports:null, fetchedAt:0, view:'gate', cur:null, q:'', from:'', to:'', err:'', loading:false };
+
+function themeLabel(){
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var b = document.getElementById('themeBtn'); var txt = t(dark ? 'theme_l' : 'theme_d');
+  b.setAttribute('aria-label', txt); b.title = txt;
+}
+function toggleTheme(){
+  var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem('bct_hub_theme', next); }catch(e){}
+  themeLabel();
+}
+function setLang(l){
+  lang = l; document.documentElement.lang = l;
+  document.getElementById('btnEn').classList.toggle('active', l === 'en');
+  document.getElementById('btnKo').classList.toggle('active', l === 'ko');
+  document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.getAttribute('data-i18n')); });
+  try{ localStorage.setItem('bct_hshitek_lang', l); }catch(e){}
+  themeLabel(); render();
+}
+var toastTimer = null;
+function toast(msg){ var el = document.getElementById('toast'); el.textContent = msg; el.className = 'toast show'; clearTimeout(toastTimer); toastTimer = setTimeout(function(){ el.className = 'toast'; }, 2400); }
+
+/* ===== helpers shared with the internal page ===== */
+function pad2(n){ return (n < 10 ? '0' : '') + n; }
+function fmtDate(s){ return s ? String(s).slice(0, 10) : '—'; }
+function fmtDT(s){
+  if(!s) return '—';
+  var d = new Date(new Date(s).getTime() + 9 * 3600e3);
+  return d.toISOString().slice(0, 10) + ' ' + pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes());
+}
+function judgeItem(it){
+  var v = String(it.value == null ? '' : it.value).trim();
+  if(it.kind === 'numeric'){
+    if(!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(v)) return null;
+    var n = parseFloat(v);
+    if((it.lsl == null || n >= +it.lsl) && (it.usl == null || n <= +it.usl)) return 'PASS';
+    return 'FAIL';
+  }
+  var u = v.toUpperCase();
+  return u === 'OK' ? 'PASS' : u === 'NG' ? 'FAIL' : u === 'NA' ? 'NA' : null;
+}
+function overallOf(items){
+  var fail = false, open = false;
+  (items || []).forEach(function(it){ var j = judgeItem(it); if(j === 'FAIL') fail = true; if(j == null) open = true; });
+  if(fail) return 'FAIL';
+  if(open || !(items || []).length) return null;
+  return 'PASS';
+}
+function judgeClass(j){ return j === 'PASS' ? 'pass' : j === 'FAIL' ? 'fail' : j === 'NA' ? 'na' : 'open'; }
+function judgeText(j){ return j === 'PASS' ? 'PASS' : j === 'FAIL' ? 'FAIL' : j === 'NA' ? 'N/A' : '—'; }
+
+/*SHEET_JS_START*/
+function photoList(r){
+  var out = [];
+  (r.items || []).forEach(function(it){
+    (it.photo_nos || []).forEach(function(no){
+      var p = (it.photos || []).filter(function(x){ return x.no === no; })[0] || null;
+      out.push({ no:no, item:it, photo:p });
+    });
+  });
+  return out;
+}
+function sheetsHTML(r, urlOf){
+  var items = r.items || [];
+  var ov = r.status === 'approved' && r.overall ? r.overall : overallOf(items);
+  var photos = photoList(r);
+  var per = 6, photoPages = Math.max(1, Math.ceil(photos.length / per)), total = 1 + photoPages;
+  var wm = r.status !== 'approved' ? '<div class="wm">' + esc(lang === 'en' ? 'DRAFT' : '미승인 DRAFT') + '</div>' : '';
+  var nPass = 0, nFail = 0, nNa = 0;
+  items.forEach(function(it){ var j = judgeItem(it); if(j === 'PASS') nPass++; else if(j === 'FAIL') nFail++; else if(j === 'NA') nNa++; });
+  var foot = function(p){
+    return '<div class="sh-foot"><span>BCT Co., Ltd. (㈜비씨테크) · Final Inspection Report · ' + esc(r.report_no || 'HSI-(new)') + '</span><span>' + p + ' / ' + total + '</span></div>';
+  };
+
+  var h = '';
+  /* ---- page 1 : summary ---- */
+  h += '<section class="sheet">' + wm;
+  h += '<div class="sh-top"><div><img class="sh-logo" src="' + LOGO + '" alt="BCT" crossorigin="anonymous"><div class="sh-title">출하 검사성적서</div><div class="sh-en">FINAL INSPECTION REPORT</div></div>';
+  h += '<div class="sh-no">REPORT NO.<br><b>' + esc(r.report_no || '—') + '</b><br>SPEC ' + esc(r.spec_rev || '—') + '</div></div>';
+  h += '<div class="sh-bar"></div>';
+  h += '<table class="sh-info"><tbody>';
+  h += '<tr><th>고객사<small>CUSTOMER</small></th><td>HS하이테크 (HS HiTek)</td><th>모델<small>MODEL</small></th><td class="mono">' + esc(r.model || MODEL) + '</td></tr>';
+  h += '<tr><th>S/N<small>MAIN BOARD</small></th><td class="mono"><b>' + esc(r.serial_no || '—') + '</b></td><th>검사일<small>INSPECTED</small></th><td class="mono">' + esc(fmtDate(r.inspect_date)) + '</td></tr>';
+  h += '<tr><th>Lot No.<small>LOT</small></th><td class="mono">' + esc(r.lot_no || '—') + '</td><th>출하일<small>SHIP DATE</small></th><td class="mono">' + esc(fmtDate(r.ship_date)) + '</td></tr>';
+  h += '<tr><th>PO No.<small>PURCHASE ORDER</small></th><td class="mono">' + esc(r.po_no || '—') + '</td><th>공급사<small>SUPPLIER</small></th><td>㈜비씨테크 (BCT Co., Ltd.)</td></tr>';
+  h += '</tbody></table>';
+
+  h += '<div class="sh-h">검사 결과 <span>INSPECTION RESULTS</span></div>';
+  h += '<table class="sh-res"><colgroup><col style="width:6%"><col style="width:29%"><col style="width:33%"><col style="width:10%"><col style="width:10%"><col style="width:12%"></colgroup><thead><tr>';
+  h += '<th>No<small>&nbsp;</small></th><th>검사 항목<small>ITEM</small></th><th>판정 기준<small>CRITERIA</small></th><th>방법<small>METHOD</small></th><th>사진<small>PHOTO</small></th><th>판정<small>RESULT</small></th>';
+  h += '</tr></thead><tbody>';
+  items.forEach(function(it, i){
+    var j = judgeItem(it);
+    var crit = it.kind === 'numeric'
+      ? ((it.lsl != null ? it.lsl : '') + ' ~ ' + (it.usl != null ? it.usl : '') + ' ' + (it.unit || ''))
+      : esc(it.criteria_ko || '') + '<span class="en">' + esc(it.criteria_en || '') + '</span>';
+    var res = it.kind === 'numeric' ? '<span class="mono">' + esc(it.value || '—') + '</span> ' : '';
+    h += '<tr><td class="c mono">' + (i + 1) + '</td>';
+    h += '<td>' + esc(it.name_ko) + '<span class="en">' + esc(it.name_en) + '</span>' + (it.note ? '<span class="en">※ ' + esc(it.note) + '</span>' : '') + '</td>';
+    h += '<td>' + crit + '</td>';
+    h += '<td>' + esc(it.method_ko || '') + '<span class="en">' + esc(it.method_en || '') + '</span></td>';
+    h += '<td class="c mono">' + ((it.photo_nos || []).length ? esc(it.photo_nos.join(' · ')) : '—') + '</td>';
+    h += '<td class="c">' + res + '<span class="jd ' + judgeClass(j) + '">' + judgeText(j) + '</span></td></tr>';
+  });
+  h += '</tbody></table>';
+
+  h += '<div class="sh-overall"><div class="lbl">종합 판정<span>OVERALL RESULT</span></div>';
+  h += '<div class="sum">PASS ' + nPass + ' · FAIL ' + nFail + (nNa ? ' · N/A ' + nNa : '') + ' / ' + items.length + '</div>';
+  h += '<div class="big ' + (ov === 'PASS' ? 'pass' : ov === 'FAIL' ? 'fail' : 'open') + '">' + (ov === 'PASS' ? 'PASS 합격' : ov === 'FAIL' ? 'FAIL 불합격' : '미완료 PENDING') + '</div></div>';
+
+  h += '<div class="sh-h">비고 <span>REMARKS</span></div><div class="sh-remark">' + esc(r.remark || '') + '</div>';
+
+  h += '<div class="sh-h">결재 <span>SIGN-OFF</span></div><div class="sh-sign">';
+  h += signBox('검사', 'INSPECTED BY', r.inspector_name, r.inspector_sign, r.inspected_at);
+  h += signBox('승인', 'APPROVED BY', r.approver_name, r.approver_sign, r.approved_at);
+  h += '</div>';
+  h += foot(1) + '</section>';
+
+  /* ---- photo pages ---- */
+  for(var p = 0; p < photoPages; p++){
+    h += '<section class="sheet">' + wm;
+    h += '<div class="sh-mini"><div><div class="t">사진 증빙</div><div class="sh-en">PHOTO EVIDENCE</div></div><div class="r">' + esc(r.report_no || '—') + '<br>S/N ' + esc(r.serial_no || '—') + '</div></div>';
+    h += '<div class="ph-grid">';
+    photos.slice(p * per, p * per + per).forEach(function(x){
+      var u = x.photo ? urlOf(x.photo) : null;
+      var j = judgeItem(x.item);
+      h += '<div class="ph"><div class="im">' + (u ? '<img src="' + esc(u) + '" alt="" crossorigin="anonymous">' : '<em>사진 없음 · NO PHOTO</em>') + '</div>';
+      h += '<div class="cap"><span class="no">' + x.no + '</span><span class="nm">' + esc(x.item.name_ko) + ' · ' + esc(x.item.name_en) + '</span><span class="jd ' + judgeClass(j) + '">' + judgeText(j) + '</span></div></div>';
+    });
+    h += '</div>' + foot(p + 2) + '</section>';
+  }
+  return h;
+}
+function signBox(ko, en, name, sign, at){
+  return '<div class="box"><div class="hd">' + ko + ' <span>' + en + '</span></div>' +
+    '<div class="sg">' + (sign ? '<img src="' + sign + '" alt="">' : '<em>—</em>') + '</div>' +
+    '<div class="ft"><span>' + esc(name || '') + '</span><span class="mono">' + esc(at ? fmtDT(at) : '') + '</span></div></div>';
+}
+/*SHEET_JS_END*/
+
+function fitSheets(){
+  var pane = document.querySelector('.ed-preview'), wrap = document.querySelector('.sheets');
+  if(!pane || !wrap) return;
+  var avail = pane.clientWidth - 32, w = 794;
+  wrap.style.zoom = Math.min(1, Math.max(0.4, avail / w));
+}
+window.addEventListener('resize', fitSheets);
+
+/* ===== data ===== */
+async function fetchReports(code){
+  var r = await fetch(FN_URL, { method:'POST', headers:{ 'Content-Type':'application/json', apikey:CONFIG.SUPABASE_ANON_KEY }, body:JSON.stringify({ code:code }) });
+  if(r.status === 401) { var e = new Error('bad'); e.bad = true; throw e; }
+  if(!r.ok) throw new Error('net');
+  var d = await r.json();
+  return (d.reports || []).map(function(x){ x.status = 'approved'; return x; });
+}
+function savedCode(){ try{ return sessionStorage.getItem(CODE_KEY) || localStorage.getItem(CODE_KEY); }catch(e){ return null; } }
+function storeCode(code, remember){
+  try{ sessionStorage.setItem(CODE_KEY, code); if(remember) localStorage.setItem(CODE_KEY, code); else localStorage.removeItem(CODE_KEY); }catch(e){}
+}
+function signOut(){
+  try{ sessionStorage.removeItem(CODE_KEY); localStorage.removeItem(CODE_KEY); }catch(e){}
+  S.code = null; S.reports = null; S.cur = null; S.view = 'gate'; history.replaceState(null, '', location.pathname); render();
+}
+async function unlock(ev){
+  if(ev) ev.preventDefault();
+  var inp = document.getElementById('codeIn'), rem = document.getElementById('remIn');
+  var code = inp.value.trim().toUpperCase();
+  S.err = ''; S.loading = true; render();
+  try{
+    S.reports = await fetchReports(code); S.fetchedAt = Date.now(); S.code = code;
+    storeCode(code, rem && rem.checked);
+    S.view = 'list'; S.loading = false; route();
+  }catch(e){
+    S.loading = false; S.err = e.bad ? t('badCode') : t('netErr'); render();
+    var i2 = document.getElementById('codeIn'); if(i2){ i2.value = code; i2.focus(); }
+  }
+}
+async function refreshIfStale(){
+  if(Date.now() - S.fetchedAt < 50 * 60e3) return;
+  try{ S.reports = await fetchReports(S.code); S.fetchedAt = Date.now(); toast(t('refreshed')); }catch(e){}
+}
+
+/* ===== views ===== */
+function route(){
+  var m = location.hash.match(/^#r\/(.+)$/);
+  if(m && S.reports){
+    var r = S.reports.filter(function(x){ return x.id === m[1] || x.report_no === decodeURIComponent(m[1]); })[0];
+    if(r){ S.cur = r; S.view = 'view'; render(); return; }
+  }
+  S.cur = null; S.view = S.reports ? 'list' : 'gate'; render();
+}
+function openReport(id){ refreshIfStale().then(function(){ location.hash = '#r/' + id; }); }
+function backToList(){ if(S.reports){ history.pushState(null, '', location.pathname); route(); } }
+window.addEventListener('hashchange', route);
+
+function heroHTML(){
+  return '<section class="hero"><div class="wrap"><div class="eyebrow"><span class="badge-ink">HS HiTek × BCT</span><span class="badge-outline">' + MODEL + '</span></div>' +
+    '<h1>' + t('heroT') + '</h1><p>' + t('heroP') + '</p></div></section>';
+}
+function render(){
+  document.getElementById('signOutBtn').hidden = !S.code;
+  var app = document.getElementById('app'), h = '';
+  if(S.view === 'gate'){
+    h = heroHTML() + '<section class="band"><div class="wrap"><form class="card gate" onsubmit="unlock(event)">' +
+      '<h2>' + t('gateT') + '</h2><p>' + t('gateP') + '</p>' +
+      '<div class="field"><label for="codeIn">' + t('code') + '</label><input id="codeIn" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX" required minlength="10"></div>' +
+      '<label class="remember"><input type="checkbox" id="remIn"> ' + t('remember') + '</label>' +
+      '<div class="err">' + esc(S.err) + '</div>' +
+      '<button class="btn btn-primary" type="submit"' + (S.loading ? ' disabled' : '') + '>' + (S.loading ? t('checking') : t('open') + ' <span aria-hidden="true">→</span>') + '</button></form></div></section>';
+  }else if(S.view === 'list'){
+    h = heroHTML() + '<section class="band"><div class="wrap">' + listHTML() + '</div></section>';
+  }else if(S.view === 'view'){
+    var r = S.cur;
+    h = '<div class="wrap no-print"><div class="viewer-bar"><div class="t"><button class="text-btn" style="padding-left:0" onclick="backToList()">' + t('back') + '</button>' +
+      '<h2 class="mono">' + esc(r.report_no) + '</h2>' + pill(r.overall) + '<span class="meta">S/N ' + esc(r.serial_no) + ' · ' + esc(fmtDate(r.inspect_date)) + '</span></div>' +
+      '<button class="btn btn-primary btn-sm" onclick="printReport()">' + t('pdf') + '</button></div></div>' +
+      '<div class="ed-preview"><div class="sheets" id="sheets">' + sheetsHTML(r, function(p){ return p.url || null; }) + '</div></div>';
+  }
+  app.innerHTML = h;
+  if(S.view === 'view'){ fitSheets(); window.scrollTo(0, 0); }
+}
+function pill(j){ return j === 'PASS' ? '<span class="status j-pass">' + t('pass') + '</span>' : j === 'FAIL' ? '<span class="status j-fail">' + t('fail') + '</span>' : ''; }
+function listHTML(){
+  var all = S.reports || [];
+  var q = S.q.trim().toLowerCase();
+  var rows = all.filter(function(r){
+    if(q && (String(r.serial_no) + ' ' + String(r.report_no)).toLowerCase().indexOf(q) < 0) return false;
+    var sd = r.ship_date || r.inspect_date;
+    if(S.from && (!sd || sd < S.from)) return false;
+    if(S.to && (!sd || sd > S.to)) return false;
+    return true;
+  });
+  var nPass = all.filter(function(r){ return r.overall === 'PASS'; }).length;
+  var h = '<div class="toolbar"><div class="stats"><div class="stat"><div class="n">' + all.length + '</div><div class="l">' + t('total') + '</div></div>' +
+    '<div class="stat"><div class="n">' + nPass + '</div><div class="l">' + t('passN') + '</div></div>' +
+    '<div class="stat"><div class="n mono" style="font-size:20px;padding-top:6px">' + esc(all.length ? fmtDate(all[0].approved_at ? fmtDT(all[0].approved_at) : '') : '—') + '</div><div class="l">' + t('lastN') + '</div></div></div>' +
+    '<div class="filters"><input type="search" id="qIn" placeholder="' + esc(t('searchPh')) + '" value="' + esc(S.q) + '" oninput="S.q=this.value;refreshList(\'qIn\')">' +
+    '<span>' + t('from') + '</span><input type="date" id="fIn" value="' + esc(S.from) + '" onchange="S.from=this.value;refreshList()"><span>' + t('to') + '</span><input type="date" id="tIn" value="' + esc(S.to) + '" onchange="S.to=this.value;refreshList()"></div></div>';
+  h += '<div class="card"><div class="tbl-wrap" id="tbl">';
+  if(!all.length) h += '<div class="empty"><b>' + t('emptyT') + '</b>' + t('emptyP') + '</div>';
+  else if(!rows.length) h += '<div class="empty"><b>' + t('noMatch') + '</b></div>';
+  else{
+    h += '<table class="list"><thead><tr><th>' + t('cNo') + '</th><th>' + t('cSn') + '</th><th>' + t('cDate') + '</th><th>' + t('cShip') + '</th><th>' + t('cJudge') + '</th><th>' + t('cAppr') + '</th><th></th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      h += '<tr onclick="openReport(\'' + r.id + '\')"><td class="mono">' + esc(r.report_no) + '</td><td class="mono"><b>' + esc(r.serial_no) + '</b></td><td class="mono">' + esc(fmtDate(r.inspect_date)) + '</td><td class="mono">' + esc(fmtDate(r.ship_date)) + '</td>' +
+        '<td>' + pill(r.overall) + '</td><td class="mono">' + esc(fmtDT(r.approved_at)) + '</td><td class="open-arr">' + t('view') + ' →</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  h += '</div></div>';
+  return h;
+}
+function refreshList(focusId){
+  var p = focusId ? document.getElementById(focusId).selectionStart : null;
+  render();
+  if(focusId){ var el = document.getElementById(focusId); el.focus(); el.setSelectionRange(p, p); }
+}
+async function printReport(){
+  var imgs = Array.prototype.slice.call(document.querySelectorAll('#sheets img'));
+  await Promise.all(imgs.map(function(im){ return im.complete ? 0 : new Promise(function(res){ im.onload = im.onerror = res; }); }));
+  var old = document.title;
+  document.title = S.cur.report_no + '_' + S.cur.serial_no;
+  window.print();
+  setTimeout(function(){ document.title = old; }, 800);
+}
+
+(async function init(){
+  setLang(lang);
+  var c = savedCode();
+  if(!c){ render(); return; }
+  S.loading = true; render();
+  try{ S.reports = await fetchReports(c); S.fetchedAt = Date.now(); S.code = c; S.loading = false; route(); }
+  catch(e){ S.loading = false; if(e.bad){ try{ sessionStorage.removeItem(CODE_KEY); localStorage.removeItem(CODE_KEY); }catch(x){} } S.err = e.bad ? t('badCode') : t('netErr'); S.view = 'gate'; render(); }
+})();
+</script>
+</body>
+</html>

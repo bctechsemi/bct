@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Book — BCT Sales</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../quality/assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+.kpi .s{font-family:var(--mono);font-size:12px;color:var(--ink3);margin-top:3px;white-space:nowrap}
+.sumline{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin:-6px 0 16px}
+.sumline b{font-family:var(--mono);color:var(--ink);font-weight:700}
+.sel{padding:9px 12px;border:1px solid var(--line);border-radius:11px;background:#fff;outline:none;font-size:14px;max-width:220px}
+.sel:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(31,78,156,.12)}
+.filt{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--deep);background:var(--pale);border-radius:999px;padding:6px 8px 6px 12px;font-weight:600}
+.filt button{border:0;background:#fff;border-radius:999px;width:22px;height:22px;cursor:pointer;color:var(--ink2);display:flex;align-items:center;justify-content:center}
+.filt button svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.4}
+.tbl td.r,.tbl th.r{text-align:right}
+.tbl .amt{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.tbl .amt.neg{color:var(--red-ink);font-weight:700}
+.tbl tr.cx td{opacity:.5}
+.tbl .badges{display:flex;gap:4px;flex-wrap:wrap}
+.tbl .docs{font-family:var(--mono);font-size:12px;line-height:1.5;white-space:nowrap}
+.tbl .docs span{color:var(--ink3)}
+.dact{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.blist{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.money{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.money>div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.money .k{font-size:12px;color:var(--ink2)}
+.money .v{font-family:var(--mono);font-size:17px;font-weight:700;margin-top:3px;white-space:nowrap}
+.money .v.neg{color:var(--red-ink)}
+.money .n{font-size:11.5px;color:var(--ink3);margin-top:2px}
+dl.kv dd.pre{white-space:pre-wrap;line-height:1.5}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:86px 18px 1fr;gap:8px;padding:0 0 12px;position:relative}
+.tl li:not(:last-child)::before{content:'';position:absolute;left:102px;top:16px;bottom:0;width:2px;background:var(--line)}
+.tl .d{font-family:var(--mono);font-size:12px;color:var(--ink2);text-align:right;padding-top:1px}
+.tl .o{width:12px;height:12px;border-radius:50%;margin:3px 0 0 3px;background:var(--mist);position:relative;z-index:1}
+.tl li.sale .o{background:var(--primary)}
+.tl li.buy .o{background:var(--amber)}
+.tl li.plan .o{background:#fff;border:2px dashed var(--mist2)}
+.tl li.due .o{background:#fff;border:2px solid var(--red)}
+.tl b{font-size:13.5px;display:block}
+.tl span{font-size:12.5px;color:var(--ink2);display:block;margin-top:1px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px 8px 6px 10px;font-family:var(--mono);font-size:12.5px;background:#fff}
+.chip em{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:6px;background:var(--pale);color:var(--deep)}
+.chip em.PO{background:var(--grn-bg);color:#1E8A5D}
+.chip em.LOI{background:var(--amb-bg);color:#A86F1C}
+.chip .dt{color:var(--ink3);font-size:11.5px}
+.chip button{border:0;background:transparent;cursor:pointer;color:var(--ink3);padding:0;display:flex}
+.chip button svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2}
+.lrow{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;margin-bottom:8px}
+.lrow .t{font-weight:600;font-size:13.5px}
+.lrow .m{font-size:12.5px;color:var(--ink2);font-family:var(--mono)}
+.lrow .ops{grid-row:1/3;grid-column:2;display:flex;gap:4px}
+.nodata{font-size:13px;color:var(--ink3);padding:4px 0 2px}
+.log{font-size:12.5px;border-bottom:1px solid var(--line2);padding:8px 0}
+.log:last-child{border-bottom:0}
+.log .h{display:flex;gap:8px;align-items:center;color:var(--ink2)}
+.log .h b{color:var(--ink);font-weight:600}
+.log .h .dt{font-family:var(--mono);font-size:11.5px;margin-left:auto;color:var(--ink3)}
+.log .c{font-family:var(--mono);font-size:11.5px;color:var(--ink2);margin-top:3px;word-break:break-all}
+.calc{font-family:var(--mono);font-size:12.5px;color:var(--deep);background:var(--pale);border-radius:10px;padding:8px 11px}
+.fs{border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;margin:0 0 12px}
+.fs legend{font-size:12.5px;font-weight:700;color:var(--ink2);padding:0 6px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="ph">
+    <div>
+      <div class="eyebrow"><i></i>Sales · PO → Delivery → Invoice</div>
+      <h1>Order Book</h1>
+      <p>고객 발주·LOI·PR부터 외주·납품·계산서까지 BCT Job No. 하나로 이어 봅니다. 금액과 이익은 시스템이 계산합니다.</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="bCsv" type="button"></button>
+      <button class="btn pri" id="bAdd" type="button"></button>
+    </div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="sumline" id="sumline"></div>
+  <div class="toolbar">
+    <div class="search"><input id="q" type="search" placeholder="Job No., 품명, S/N, PO·PR·반출번호, 담당자, 매입처"></div>
+    <select class="sel" id="cust" aria-label="고객사"></select>
+    <div class="seg" id="stSeg"></div>
+    <span id="flagChip"></span>
+  </div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Job No.</th><th>단계</th><th>고객사</th><th>품명 · 품목 · S/N</th><th class="r">수량</th><th class="r">금액</th><th class="r">이익</th><th>고객 문서</th><th>요청납기</th></tr></thead>
+    <tbody id="tbody"><tr><td colspan="9" class="empty">불러오는 중…</td></tr></tbody>
+  </table></div>
+  <div class="cards" id="cards"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="dh"><div class="t"><div class="no" id="dNo"></div><h2 id="dName"></h2></div><button class="x" type="button" id="dClose" aria-label="닫기"></button></div>
+  <div class="db" id="dBody"></div>
+</aside>
+<datalist id="dlSite"><option value="부천"><option value="상우"></datalist>
+<datalist id="dlKind"><option value="N"><option value="R"><option value="I"><option value="W"><option value="분석"></datalist>
+
+<script src="./assets/sl.js"></script>
+<script>
+const { sb, esc, icon, toast, fld, nz } = QC;
+const DOC = { PO:'PO (발주)', LOI:'LOI', PR:'PR', OUT:'반출입번호' };
+const STAGE_BADGE = { '접수':'gry', '수주 예정':'amb', '수주 확정':'blu', '분할 납품 중':'blu', '납품 완료':'grn', '계산서 완료':'grn', '취소':'gry' };
+const PROFIT_BADGE = { '단가 미정':'amb', '매입 미연결':'amb', '매입가 미정':'amb', '자사 작업':'blu', '확정':'grn' };
+const FLAGS = {
+  open:    ['진행 중',     r => !r.cancelled && r.stage !== '계산서 완료'],
+  nopo:    ['PO 대기',     r => r.flag_no_po],
+  overdue: ['납기 경과',   r => r.flag_overdue],
+  noprice: ['단가 미정',   r => !r.cancelled && r.unit_price == null],
+  nocost:  ['매입 미확정', r => !r.cancelled && (r.profit_status === '매입 미연결' || r.profit_status === '매입가 미정' || r.flag_negative_margin)],
+};
+const st = { rows:[], cust:'', stage:'open', flag:'', q:'', cur:null, customers:[], items:[], people:{} };
+
+const won = n => n == null || n === '' ? '' : Math.round(Number(n)).toLocaleString('ko-KR');
+const qtyf = n => { n = Number(n); return Number.isInteger(n) ? n.toLocaleString('ko-KR') : n.toLocaleString('ko-KR', { maximumFractionDigits:3 }); };
+const today = () => QC.todayKST();
+const daysPast = d => Math.round((Date.parse(today()) - Date.parse(d)) / 864e5);
+const badge = (cls, t) => `<span class="badge ko ${cls}">${esc(t)}</span>`;
+
+/* ---------- 불러오기 ---------- */
+async function loadRefs(){
+  const [c, i, p] = await Promise.all([
+    sb.from('bct_customers').select('code,name,party_type,invoice_method,aliases').order('name'),
+    sb.from('sales_items').select('id,customer_code,cust_item_code,description,oem_code,bct_code'),
+    sb.from('profiles').select('id,name,email'),
+  ]);
+  if(c.error) return toast(c.error.message, true);
+  st.customers = c.data; st.items = i.data || [];
+  st.people = Object.fromEntries((p.data || []).map(x => [x.id, x.name || (x.email || '').split('@')[0]]));
+}
+async function load(){
+  const { data, error } = await sb.from('sales_job_board').select('*').order('job_no', { ascending:false });
+  if(error) return toast(error.message, true);
+  st.rows = data; render();
+  if(st.cur){ st.rows.find(x => x.id === st.cur) ? openJob(st.cur) : closeDrawer(); }
+}
+
+/* ---------- 목록 ---------- */
+function filtered(){
+  const q = st.q.toLowerCase();
+  return st.rows.filter(r =>
+    (st.stage === 'all' || (st.stage === 'open' ? FLAGS.open[1](r) : st.stage === 'cancel' ? r.cancelled : r.stage === st.stage))
+    && (!st.cust || r.customer_code === st.cust)
+    && (!st.flag || FLAGS[st.flag][1](r))
+    && (!q || [r.job_no, r.description, r.serial_no, r.cust_item_code, r.po_no, r.pr_no, r.out_no, r.loi_no, r.requester, r.vendors, r.customer_name, r.sales_note]
+              .some(v => (v || '').toLowerCase().includes(q))));
+}
+function render(){
+  const live = st.rows.filter(r => !r.cancelled), sum = (a, k = 'amount') => a.reduce((s, r) => s + Number(r[k] || 0), 0);
+  const tile = (key, cls) => { const a = st.rows.filter(FLAGS[key][1]);
+    return `<button type="button" class="kpi ${cls} ${st.flag === key ? 'on' : ''}" data-flag="${key}"><div class="k"><i></i>${FLAGS[key][0]}</div>
+      <div class="v">${a.length}<small>건</small></div><div class="s">${key === 'noprice' ? '금액 없음' : won(sum(a)) + '원'}</div></button>`; };
+  document.getElementById('kpis').innerHTML = tile('open', 'blu') + tile('nopo', 'amb') + tile('overdue', 'red') + tile('noprice', 'amb') + tile('nocost', 'red');
+  const ok = live.filter(r => r.profit != null);
+  document.getElementById('sumline').innerHTML = `<span>전체 <b>${live.length}</b>건 · <b>${won(sum(live))}</b>원</span>
+    <span>이익이 확정된 <b>${ok.length}</b>건의 이익 <b>${won(sum(ok, 'profit'))}</b>원</span>
+    <span>매입 합계 <b>${won(sum(live, 'purchase_total'))}</b>원</span>`;
+
+  const used = [...new Set(st.rows.map(r => r.customer_code))];
+  document.getElementById('cust').innerHTML = `<option value="">모든 고객사</option>` + used.map(c => { const r = st.rows.find(x => x.customer_code === c);
+    return `<option value="${esc(c)}" ${st.cust === c ? 'selected' : ''}>${esc(r.customer_name)}</option>`; }).join('');
+  document.getElementById('stSeg').innerHTML = [['open','진행 중'],['수주 예정','수주 예정'],['수주 확정','수주 확정'],['납품 완료','납품 완료'],['all','전체'],['cancel','취소']]
+    .map(([v, t]) => `<button type="button" data-v="${esc(v)}" class="${st.stage === v ? 'on' : ''}">${t}</button>`).join('');
+  document.getElementById('flagChip').innerHTML = st.flag && st.flag !== 'open' ? `<span class="filt">${FLAGS[st.flag][0]}만 보기<button type="button" id="flagX" aria-label="필터 해제">${icon.x}</button></span>` : '';
+
+  const rows = filtered(), t = today();
+  const empty = st.rows.length ? '조건에 맞는 Job이 없습니다' : '등록된 Job이 없습니다';
+  document.getElementById('tbody').innerHTML = rows.map(r => {
+    const due = r.due_on ? (r.flag_overdue ? `${esc(r.due_on)}<div class="sub" style="color:var(--red-ink);font-weight:700">${daysPast(r.due_on)}일 경과</div>` : esc(r.due_on)) : '—';
+    const amt = r.unit_price == null ? badge('amb', '단가 미정') : won(r.amount);
+    const pf = r.profit == null ? badge(PROFIT_BADGE[r.profit_status] || 'gry', r.profit_status)
+      : `<span class="amt ${r.profit < 0 ? 'neg' : ''}">${won(r.profit)}</span>${r.flag_negative_margin ? '<div>' + badge('red', '역마진') + '</div>' : r.profit_status === '자사 작업' ? '<div class="sub">자사</div>' : ''}`;
+    const docs = r.po_no ? `PO ${esc(r.po_no)}` : badge('gry', 'PO 없음');
+    const sub = [r.cust_item_code, r.serial_no && 'S/N ' + r.serial_no, r.lot_no && '묶음 ' + r.lot_no].filter(Boolean).map(esc).join(' · ');
+    return `<tr data-id="${r.id}" class="${r.cancelled ? 'cx' : ''}"><td class="no">${esc(r.job_no)}</td>
+      <td>${badge(STAGE_BADGE[r.stage] || 'gry', r.stage)}</td>
+      <td><div class="nm">${esc(r.customer_name)}</div><div class="sub">${esc([r.site, r.requester].filter(Boolean).join(' · '))}</div></td>
+      <td><div class="nm">${esc(r.description)}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</td>
+      <td class="r amt">${qtyf(r.qty)}</td><td class="r amt">${amt}</td><td class="r">${pf}</td>
+      <td class="docs">${docs}${r.pr_no ? `<br><span>PR ${esc(r.pr_no)}</span>` : ''}</td><td class="dt">${due}</td></tr>`; }).join('')
+    || `<tr><td colspan="9" class="empty">${empty}</td></tr>`;
+  document.getElementById('cards').innerHTML = rows.map(r => `<button type="button" class="icard" data-id="${r.id}"><div class="body">
+      <div class="top"><div class="nm">${esc(r.description)}</div>${badge(STAGE_BADGE[r.stage] || 'gry', r.stage)}</div>
+      <div class="meta">${esc(r.job_no)} · ${esc(r.customer_name)} · ${r.unit_price == null ? '단가 미정' : won(r.amount) + '원'}${r.flag_overdue ? ' · 납기 경과' : ''}</div></div></button>`).join('')
+    || `<div class="empty">${empty}</div>`;
+}
+
+/* ---------- 상세 ---------- */
+const drawer = document.getElementById('drawer'), scrim = document.getElementById('scrim');
+function closeDrawer(){ drawer.classList.remove('show'); scrim.classList.remove('show'); drawer.setAttribute('aria-hidden', 'true'); st.cur = null; }
+async function openJob(id){
+  const r = st.rows.find(x => x.id === id); if(!r) return;
+  st.cur = id;
+  document.getElementById('dNo').textContent = `${r.job_no} · ${r.customer_name}`;
+  document.getElementById('dName').textContent = r.description;
+  document.getElementById('dBody').innerHTML = '<div class="boot">불러오는 중…</div>';
+  drawer.classList.add('show'); scrim.classList.add('show'); drawer.setAttribute('aria-hidden', 'false');
+
+  const [d, p, v, inv, lg1, lg2] = await Promise.all([
+    sb.from('job_docs').select('doc_id, customer_docs(id,doc_type,doc_no,doc_date,created_at)').eq('job_id', id),
+    sb.from('purchases').select('*').eq('job_id', id).order('created_at'),
+    sb.from('deliveries').select('*').eq('job_id', id).order('created_at'),
+    sb.from('invoice_lines').select('amount, invoice_id, sales_invoices(id,issued_on,approval_no,method,supply_amount,vat_amount,note)').eq('job_id', id),
+    sb.from('sales_audit_log').select('*').eq('row_id', id).order('changed_at', { ascending:false }).limit(30),
+    sb.from('sales_audit_log').select('*').eq('diff->>job_id', id).order('changed_at', { ascending:false }).limit(30),
+  ]);
+  if(st.cur !== id) return;
+  for(const x of [d, p, v, inv, lg1, lg2]) if(x.error){ toast(x.error.message, true); return; }
+  const docs = d.data.map(x => x.customer_docs).filter(Boolean).sort((a, b) => a.doc_type.localeCompare(b.doc_type) || a.doc_no.localeCompare(b.doc_no));
+  const pur = p.data, dlv = v.data, invs = inv.data;
+  const logs = [...lg1.data, ...lg2.data].sort((a, b) => b.changed_at.localeCompare(a.changed_at));
+  renderJob(r, docs, pur, dlv, invs, logs);
+}
+function renderJob(r, docs, pur, dlv, invs, logs){
+  const admin = QC.isAdmin();
+  const ev = [{ d:r.issued_on, cls:'sale', t:'접수 · Job 등록', s:[r.requester && '고객 담당 ' + r.requester, r.out_no && '반출 ' + r.out_no].filter(Boolean).join(' · ') }];
+  docs.forEach(x => ev.push({ d:x.doc_date || null, cls:x.doc_type === 'PO' ? 'sale' : '', t:`${DOC[x.doc_type]} 접수`, s:x.doc_no }));
+  pur.forEach(x => {
+    const s = `${x.vendor_name} · ${qtyf(x.qty)} × ${x.unit_cost == null ? '매입가 미정' : won(x.unit_cost) + '원'}`;
+    if(x.ordered_on || !x.received_on) ev.push({ d:x.ordered_on, cls:'buy', t:/^자사/.test(x.vendor_name) ? '내부 원가' : '외주 발주', s });
+    if(x.received_on) ev.push({ d:x.received_on, cls:'buy', t:'외주 입고', s:x.vendor_name });
+  });
+  dlv.forEach(x => ev.push(x.delivered_on ? { d:x.delivered_on, cls:'sale', t:`납품 ${qtyf(x.qty)}개`, s:x.statement_no ? '거래명세서 ' + x.statement_no : '' }
+                                          : { d:x.planned_on, cls:'plan', t:`납품 예정 ${qtyf(x.qty)}개`, s:'' }));
+  invs.forEach(x => x.sales_invoices && ev.push({ d:x.sales_invoices.issued_on, cls:'sale', t:'매출 계산서', s:`${won(x.amount)}원${x.sales_invoices.approval_no ? ' · ' + x.sales_invoices.approval_no : ''}` }));
+  if(r.due_on) ev.push({ d:r.due_on, cls:'due', t:'요청납기', s:r.flag_overdue ? `${daysPast(r.due_on)}일 경과` : '' });
+  // 날짜가 없는 기록(이관된 문서·매입 등)은 접수 바로 뒤에 둔다
+  ev.forEach((e, i) => { e.k = (e.d || r.issued_on) + (e.d ? '0' : '1') + String(i).padStart(3, '0'); });
+  ev.sort((a, b) => a.k.localeCompare(b.k));
+
+  const flags = [badge(STAGE_BADGE[r.stage] || 'gry', r.stage), badge(PROFIT_BADGE[r.profit_status] || 'gry', '이익 ' + r.profit_status)];
+  if(r.flag_no_po) flags.push(badge('amb', 'PO 대기'));
+  if(r.flag_overdue) flags.push(badge('red', '납기 경과'));
+  if(r.flag_negative_margin) flags.push(badge('red', '역마진 · 사유 필요'));
+  if(r.cancelled) flags.push(badge('gry', '취소: ' + (r.cancel_reason || '')));
+  const delivered = dlv.filter(x => x.delivered_on).reduce((s, x) => s + Number(x.qty), 0);
+  const invoiced = invs.reduce((s, x) => s + Number(x.amount || 0), 0);
+
+  document.getElementById('dBody').innerHTML = `
+    <div class="dact">
+      <button class="btn sm" type="button" data-a="edit">${icon.edit}Job 수정</button>
+      <button class="btn sm" type="button" data-a="doc">${icon.plus}고객 문서</button>
+      <button class="btn sm" type="button" data-a="pur">${icon.plus}매입</button>
+      <button class="btn sm" type="button" data-a="dlv">${icon.plus}납품</button>
+      <button class="btn sm" type="button" data-a="inv">${icon.plus}매출 계산서</button>
+      <button class="btn sm" type="button" data-a="lot" title="같은 PO·품목으로 다음 납품 묶음 Job을 등록">${icon.plus}다음 묶음 등록</button>
+      <button class="btn sm ghost" type="button" data-a="cancel">${r.cancelled ? 'Job 되살리기' : 'Job 취소'}</button>
+    </div>
+    <div class="blist">${flags.join('')}</div>
+    <div class="sec"><div class="money">
+      <div><div class="k">금액</div><div class="v">${r.unit_price == null ? '단가 미정' : won(r.amount)}</div><div class="n">${qtyf(r.qty)} × ${r.unit_price == null ? '—' : won(r.unit_price)}</div></div>
+      <div><div class="k">매입</div><div class="v">${r.purchase_total == null ? '—' : won(r.purchase_total)}</div><div class="n">${esc(r.vendors || '연결된 매입 없음')}</div></div>
+      <div><div class="k">이익</div><div class="v ${r.profit < 0 ? 'neg' : ''}">${r.profit == null ? '미확정' : won(r.profit)}</div><div class="n">${esc(r.profit_status)}${r.profit != null && r.amount > 0 ? ' · ' + Math.round(r.profit / r.amount * 100) + '%' : ''}</div></div>
+    </div></div>
+    <div class="sec"><div class="sec-h"><h3>흐름</h3></div><ol class="tl">${ev.map(e => `<li class="${e.cls}"><div class="d">${esc(e.d || '날짜 미기록')}</div><div class="o"></div><div><b>${esc(e.t)}</b>${e.s ? `<span>${esc(e.s)}</span>` : ''}</div></li>`).join('')}</ol></div>
+    <div class="sec"><div class="sec-h"><h3>고객 문서</h3></div>
+      ${docs.length ? `<div class="chips">${docs.map(x => `<span class="chip"><em class="${x.doc_type}">${x.doc_type === 'OUT' ? '반출' : x.doc_type}</em>${esc(x.doc_no)}${x.doc_date ? `<span class="dt">${esc(x.doc_date)}</span>` : ''}${admin ? `<button type="button" data-unlink="${x.id}" title="연결 해제">${icon.x}</button>` : ''}</span>`).join('')}</div>` : '<div class="nodata">연결된 고객 문서가 없습니다. PO가 오면 추가하세요.</div>'}
+    </div>
+    <div class="sec"><div class="sec-h"><h3>매입 (외주 · 내부 원가)</h3></div>
+      ${pur.length ? pur.map(x => `<div class="lrow"><div class="t">${esc(x.vendor_name)}${x.vendor_code ? '' : ' ' + badge('gry', '거래처 미등록')}</div>
+        <div class="m">${qtyf(x.qty)} × ${x.unit_cost == null ? '미정' : won(x.unit_cost)} = ${x.amount == null ? '—' : won(x.amount)}원${x.ordered_on ? ' · 발주 ' + esc(x.ordered_on) : ''}${x.received_on ? ' · 입고 ' + esc(x.received_on) : ''}${x.note && x.note !== '이관' ? ' · ' + esc(x.note) : ''}</div>
+        <div class="ops"><button class="btn sm ghost" type="button" data-pur="${x.id}">${icon.edit}</button></div></div>`).join('') : '<div class="nodata">매입이 없습니다. 외주를 보내면 매입처와 매입가를 적으세요 (자사 작업은 Job 수정에서 표시).</div>'}
+    </div>
+    <div class="sec"><div class="sec-h"><h3>납품 ${dlv.length ? `<span style="font-weight:500;color:var(--ink3)">· ${qtyf(delivered)} / ${qtyf(r.qty)} 완료</span>` : ''}</h3></div>
+      ${dlv.length ? dlv.map(x => `<div class="lrow"><div class="t">${qtyf(x.qty)}개 · ${x.delivered_on ? '납품 ' + esc(x.delivered_on) : '예정 ' + esc(x.planned_on || '날짜 없음')}</div>
+        <div class="m">${x.statement_no ? '거래명세서 ' + esc(x.statement_no) : '거래명세서 번호 없음'}${x.note && x.note !== '이관' ? ' · ' + esc(x.note) : ''}</div>
+        <div class="ops"><button class="btn sm ghost" type="button" data-dlv="${x.id}">${icon.edit}</button></div></div>`).join('') : '<div class="nodata">납품 기록이 없습니다.</div>'}
+    </div>
+    <div class="sec"><div class="sec-h"><h3>매출 계산서 ${invs.length ? `<span style="font-weight:500;color:var(--ink3)">· 청구 ${won(invoiced)} / ${r.unit_price == null ? '단가 미정' : won(r.amount)}</span>` : ''}</h3></div>
+      ${invs.length ? invs.filter(x => x.sales_invoices).map(x => { const v = x.sales_invoices; return `<div class="lrow"><div class="t">${esc(v.issued_on)} · ${won(x.amount)}원${Number(v.supply_amount) !== Number(x.amount) ? ` <span style="font-weight:500;color:var(--ink3)">(계산서 전체 ${won(v.supply_amount)}원 중)</span>` : ''}</div>
+        <div class="m">${v.method === 'reverse' ? '역발행' : '정발행'} · ${v.approval_no ? '승인번호 ' + esc(v.approval_no) : '승인번호 없음'} · 부가세 ${won(v.vat_amount)}${v.note && !/^이관/.test(v.note) ? ' · ' + esc(v.note) : ''}</div>
+        <div class="ops"><button class="btn sm ghost" type="button" data-inv="${x.invoice_id}">${icon.edit}</button></div></div>`; }).join('') : `<div class="nodata">등록된 계산서가 없습니다. ${r.invoice_method === 'reverse' ? '스마트빌 역발행' : '홈택스 정발행'} 후 승인번호와 금액을 등록하면 이 Job이 '계산서 완료'로 바뀝니다.</div>`}
+    </div>
+    <div class="sec"><div class="sec-h"><h3>Job 정보</h3></div><dl class="kv">
+      <dt>고객사</dt><dd>${esc(r.customer_name)} · 계산서 ${r.invoice_method === 'reverse' ? '역발행(스마트빌)' : '정발행(홈택스)'}</dd>
+      <dt>사이트</dt><dd>${esc(r.site || '')}</dd>
+      <dt>품목</dt><dd>${esc([r.cust_item_code, r.oem_code && 'OEM ' + r.oem_code, r.bct_code && 'BCT ' + r.bct_code].filter(Boolean).join(' · '))}</dd>
+      <dt>S/N</dt><dd>${esc(r.serial_no || '')}</dd>
+      <dt>납품 묶음</dt><dd>${r.lot_no ? '묶음 ' + r.lot_no : '나누지 않음'}</dd>
+      <dt>구분 · 분류</dt><dd>${esc([r.kind, r.category].filter(Boolean).join(' · '))}</dd>
+      <dt>발행일</dt><dd>${esc(r.issued_on)}</dd><dt>요청납기</dt><dd>${esc(r.due_on || '')}</dd>
+      <dt>고객 담당자</dt><dd>${esc(r.requester || '')}</dd>
+      <dt>현재 위치</dt><dd>${esc(r.location || '')}</dd>
+      <dt>고객요청사항</dt><dd class="pre">${esc(r.customer_request || '')}</dd>
+      <dt>영업메모</dt><dd class="pre">${esc(r.sales_note || '')}</dd>
+      ${r.price_reason ? `<dt>확인 사유</dt><dd class="pre">${esc(r.price_reason)}</dd>` : ''}
+      ${r.import_ref ? `<dt>이관 원본</dt><dd style="font-family:var(--mono);font-size:12px">${esc(r.import_ref)}</dd>` : ''}
+    </dl></div>
+    <div class="sec"><div class="sec-h"><h3>수정 이력</h3></div>${logs.length ? logs.map(logRow).join('') : '<div class="nodata">기록이 없습니다.</div>'}</div>`;
+
+  const body = document.getElementById('dBody');
+  body.querySelector('[data-a=edit]').onclick = () => jobForm(r);
+  body.querySelector('[data-a=doc]').onclick = () => docForm(r);
+  body.querySelector('[data-a=pur]').onclick = () => purForm(r);
+  body.querySelector('[data-a=dlv]').onclick = () => dlvForm(r, null, dlv);
+  body.querySelector('[data-a=cancel]').onclick = () => toggleCancel(r);
+  body.querySelector('[data-a=lot]').onclick = () => nextLot(r);
+  body.querySelector('[data-a=inv]').onclick = () => invForm(r, null, invs);
+  body.querySelectorAll('[data-inv]').forEach(b => b.onclick = () => invForm(r, invs.find(x => x.invoice_id === b.dataset.inv), invs));
+  body.querySelectorAll('[data-pur]').forEach(b => b.onclick = () => purForm(r, pur.find(x => x.id === b.dataset.pur)));
+  body.querySelectorAll('[data-dlv]').forEach(b => b.onclick = () => dlvForm(r, dlv.find(x => x.id === b.dataset.dlv), dlv));
+  body.querySelectorAll('[data-unlink]').forEach(b => b.onclick = () => unlinkDoc(r, b.dataset.unlink));
+}
+const TBL = { sales_jobs:'Job', purchases:'매입', deliveries:'납품', job_docs:'문서 연결', customer_docs:'고객 문서', invoice_lines:'계산서' };
+const COL = { qty:'수량', unit_price:'단가', unit_cost:'매입가', amount:'금액', due_on:'요청납기', issued_on:'발행일', description:'품명', serial_no:'S/N', vendor_name:'매입처', delivered_on:'납품일', planned_on:'예정일', cancelled:'취소', cancel_reason:'취소 사유', customer_request:'고객요청사항', sales_note:'영업메모', price_reason:'확인 사유', location:'현재 위치', in_house:'자사', requester:'고객 담당자', statement_no:'거래명세서', ordered_on:'발주일', received_on:'입고일' };
+function logRow(l){
+  const who = l.changed_by ? (st.people[l.changed_by] || '알 수 없음') : (l.diff && l.diff.note === '이관' || (l.diff && l.diff.import_ref) ? '이관' : '시스템');
+  const act = { INSERT:'추가', UPDATE:'수정', DELETE:'삭제' }[l.action];
+  let c = '';
+  if(l.action === 'UPDATE') c = Object.entries(l.diff).map(([k, [a, b]]) => `${COL[k] || k}: ${short(a)} → ${short(b)}`).join(' · ');
+  return `<div class="log"><div class="h"><b>${esc(TBL[l.tbl] || l.tbl)} ${act}</b><span>${esc(who)}</span><span class="dt">${esc(QC.fmtDT(l.changed_at))}</span></div>${c ? `<div class="c">${esc(c)}</div>` : ''}</div>`;
+}
+const short = v => { if(v == null) return '없음'; const s = typeof v === 'string' ? v : JSON.stringify(v); return s.length > 40 ? s.slice(0, 40) + '…' : s; };
+
+/* ---------- 오류 메시지 ---------- */
+function friendly(e){
+  const m = e && e.message || String(e);
+  if(/sales_jobs_due_after_issue/.test(m)) return '요청납기가 발행일보다 빠릅니다. 연도를 확인하세요.';
+  if(/R3:|R5:/.test(m)) return m;
+  if(/job_docs_pkey|duplicate key/.test(m)) return '이미 연결된 문서입니다.';
+  if(/row-level security/.test(m)) return '권한이 없습니다 (삭제는 관리자만 가능).';
+  return m;
+}
+
+/* ---------- 품목 ---------- */
+async function itemId(customer, code, description, oem){
+  code = (code || '').trim(); if(!code) return null;
+  let it = st.items.find(x => x.customer_code === customer && x.cust_item_code === code);
+  if(it) return it.id;
+  const { data, error } = await sb.from('sales_items').insert({ customer_code:customer, cust_item_code:code, description, oem_code:oem || null }).select().single();
+  if(error) throw error;
+  st.items.push(data); return data.id;
+}
+
+/* ---------- Job 등록 · 수정 ---------- */
+function jobForm(r, copy){
+  const isNew = !r;
+  r = r || copy || { issued_on: today(), qty: 1, in_house: false };
+  const custs = st.customers.filter(c => c.party_type !== 'vendor' || c.code === r.customer_code);
+  const f = QC.openModal(isNew ? (copy ? `New Job · 묶음 ${copy.lot_no}` : 'New Job') : `${r.job_no} 수정`, `
+    <fieldset class="fs"><legend>고객 · 일정</legend><div class="grid2">
+      ${fld('customer_code', '고객사', r.customer_code || '', { req:true, attr:'required data-label="고객사"', hint:'목록에 없으면 <a href="./customers.html" target="_blank" rel="noopener">Customers</a>에서 등록하세요 (이 창으로 돌아오면 목록이 새로 고쳐집니다)', options: [['', '선택']].concat(custs.map(c => [c.code, c.name])) })}
+      ${fld('site', '사이트', r.site, { attr:'list="dlSite"' })}
+      ${fld('issued_on', '발행일', r.issued_on, { type:'date', req:true })}${fld('due_on', '요청납기', r.due_on, { type:'date' })}
+      ${fld('requester', '고객 담당자', r.requester, { hint:'예) 강영규 수석' })}${fld('location', '현재 위치', r.location, { hint:'수리품: BCT / 고객사 / 외주업체명' })}
+    </div></fieldset>
+    <fieldset class="fs"><legend>품목 · 금액</legend><div class="grid2">
+      ${fld('cust_item_code', '고객 품목코드', r.cust_item_code, { attr:'list="dlItem" autocomplete="off"', hint:'처음 쓰는 코드는 품목으로 자동 등록' })}
+      ${fld('serial_no', 'S/N', r.serial_no)}
+      ${fld('description', '품명', r.description, { req:true, full:true })}
+      ${fld('kind', '구분', r.kind, { attr:'list="dlKind"' })}${fld('category', '분류', r.category)}
+      ${fld('qty', '수량', r.qty, { type:'number', req:true, attr:'min="0.001" step="any"' })}${fld('unit_price', '단가 (원, 비우면 미정)', r.unit_price, { type:'number', attr:'min="0" step="1"' })}
+      <div class="f full"><div class="calc" id="calc"></div></div>
+      ${fld('lot_no', '납품 묶음 순번', r.lot_no, { type:'number', attr:'min="1" max="999" step="1"', hint:'같은 PO를 납품 묶음별로 나눠 등록할 때 1, 2, 3…' })}
+      ${fld('in_house', '작업', String(!!r.in_house), { options: [['false', '외주 / 구매'], ['true', '자사 작업']] })}
+      ${fld('price_reason', '확인 사유', r.price_reason, { full:true, hint:'단가가 직전보다 ±50% 넘게 다르거나 역마진일 때' })}
+    </div></fieldset>
+    <div class="grid2">
+      ${fld('customer_request', '고객요청사항', r.customer_request, { area:true, full:true })}
+      ${fld('sales_note', '영업메모', r.sales_note, { area:true, full:true })}
+    </div>
+    ${isNew ? `<fieldset class="fs" style="margin-top:12px"><legend>고객 문서 (선택)</legend><div class="grid2">
+      ${fld('doc_type', '종류', copy && copy.po_first ? 'PO' : '', { options: [['', '없음']].concat(Object.entries(DOC)) })}${fld('doc_no', '번호', copy && copy.po_first || '')}
+      ${fld('doc_date', '문서 일자', '', { type:'date' })}
+    </div></fieldset>` : ''}
+    <datalist id="dlItem"></datalist>`,
+  async fd => {
+    const customer = fd.get('customer_code');
+    const rec = { customer_code:customer, site:nz(fd.get('site')), issued_on:fd.get('issued_on'), due_on:nz(fd.get('due_on')),
+      requester:nz(fd.get('requester')), location:nz(fd.get('location')), serial_no:nz(fd.get('serial_no')), description:String(fd.get('description')).trim(),
+      kind:nz(fd.get('kind')), category:nz(fd.get('category')), qty:Number(fd.get('qty')), unit_price:nz(fd.get('unit_price')) == null ? null : Number(fd.get('unit_price')),
+      lot_no:nz(fd.get('lot_no')) == null ? null : Number(fd.get('lot_no')),
+      in_house:fd.get('in_house') === 'true', price_reason:nz(fd.get('price_reason')), customer_request:nz(fd.get('customer_request')), sales_note:nz(fd.get('sales_note')),
+      updated_by:QC.S.user.id };
+    if(!(rec.qty > 0)) throw new Error('수량은 0보다 커야 합니다');
+    rec.item_id = await itemId(customer, fd.get('cust_item_code'), rec.description);
+    let id = r.id, no = r.job_no;
+    if(isNew){
+      const { data, error } = await sb.from('sales_jobs').insert(rec).select('id,job_no').single();
+      if(error) throw new Error(friendly(error));
+      id = data.id; no = data.job_no;
+      const dt = fd.get('doc_type'), dn = nz(fd.get('doc_no'));
+      if(dt && dn) await linkDoc(id, customer, dt, dn, nz(fd.get('doc_date')));
+    } else {
+      const { error } = await sb.from('sales_jobs').update(rec).eq('id', id);
+      if(error) throw new Error(friendly(error));
+    }
+    toast(isNew ? `${no} 등록했습니다` : '저장했습니다');
+    st.cur = id; await load();
+  }, { ok: isNew ? '등록' : '저장' });
+  const calc = () => { const q = Number(f.qty.value), p = f.unit_price.value;
+    f.querySelector('#calc').textContent = p === '' ? '금액: 단가 미정' : `금액 = ${qtyf(q || 0)} × ${won(p)} = ${won((q || 0) * Number(p))}원`; };
+  const items = () => { f.querySelector('#dlItem').innerHTML = st.items.filter(x => x.customer_code === f.customer_code.value)
+    .map(x => `<option value="${esc(x.cust_item_code)}">${esc(x.description)}</option>`).join(''); };
+  f.qty.oninput = f.unit_price.oninput = calc; f.customer_code.onchange = items;
+  f.cust_item_code.onchange = () => { const it = st.items.find(x => x.customer_code === f.customer_code.value && x.cust_item_code === f.cust_item_code.value.trim());
+    if(it && !f.description.value.trim()) f.description.value = it.description; };
+  calc(); items();
+}
+
+/* ---------- 고객 문서 ---------- */
+async function linkDoc(jobId, customer, type, no, date){
+  let { data:doc, error } = await sb.from('customer_docs').select('id,doc_date').eq('customer_code', customer).eq('doc_type', type).eq('doc_no', no).maybeSingle();
+  if(error) throw error;
+  if(!doc){
+    ({ data:doc, error } = await sb.from('customer_docs').insert({ customer_code:customer, doc_type:type, doc_no:no, doc_date:date }).select('id').single());
+    if(error) throw error;
+  } else if(date && !doc.doc_date){
+    await sb.from('customer_docs').update({ doc_date:date }).eq('id', doc.id);
+  }
+  const r2 = await sb.from('job_docs').insert({ job_id:jobId, doc_id:doc.id });
+  if(r2.error) throw new Error(friendly(r2.error));
+}
+function docForm(r){
+  QC.openModal(`${r.job_no} 고객 문서 추가`, `<div class="grid2">
+    ${fld('doc_type', '종류', 'PO', { options:Object.entries(DOC) })}${fld('doc_no', '번호', '', { req:true })}
+    ${fld('doc_date', '문서 일자', today(), { type:'date' })}
+    <div class="f full"><div class="hint">같은 번호의 문서가 이미 있으면 그 문서에 연결합니다. PO 하나에 여러 Job을 연결할 수 있습니다.</div></div></div>`,
+  async fd => { await linkDoc(r.id, r.customer_code, fd.get('doc_type'), String(fd.get('doc_no')).trim(), nz(fd.get('doc_date'))); toast('연결했습니다'); await load(); }, { ok:'추가' });
+}
+async function unlinkDoc(r, docId){
+  if(!confirm('이 문서와 Job의 연결을 해제할까요? (문서 자체는 남습니다)')) return;
+  const { error } = await sb.from('job_docs').delete().eq('job_id', r.id).eq('doc_id', docId);
+  if(error) return toast(friendly(error), true);
+  toast('연결을 해제했습니다'); load();
+}
+
+/* ---------- 매입 ---------- */
+function vendorCode(name){
+  const n = s => String(s || '').replace(/\(주\)|㈜|주식회사|\s/g, '').toLowerCase();
+  const k = n(name);
+  const hit = st.customers.filter(c => n(c.name) === k || (c.aliases || []).some(a => n(a) === k));
+  return hit.length === 1 ? hit[0].code : null;
+}
+function purForm(r, x){
+  const isNew = !x; x = x || { qty:r.qty };
+  const names = st.customers.filter(c => c.party_type !== 'customer').map(c => `<option value="${esc(c.name)}">`).join('');
+  QC.openModal(isNew ? `${r.job_no} 매입 추가` : `${r.job_no} 매입 수정`, `<div class="grid2">
+    ${fld('vendor_name', '매입처', x.vendor_name, { req:true, full:true, attr:'list="dlVendor" autocomplete="off"', hint:'거래처 DB의 이름·별칭과 같으면 자동 연결. 내부 원가는 "자사(내부 원가)"' })}
+    ${fld('qty', '수량', x.qty, { type:'number', req:true, attr:'min="0.001" step="any"' })}${fld('unit_cost', '매입 단가 (원, 비우면 미정)', x.unit_cost, { type:'number', attr:'min="0" step="1"' })}
+    ${fld('ordered_on', '발주일', x.ordered_on, { type:'date' })}${fld('received_on', '입고일', x.received_on, { type:'date' })}
+    ${fld('note', '메모', x.note === '이관' ? '' : x.note, { full:true })}</div><datalist id="dlVendor">${names}<option value="자사(내부 원가)"></datalist>`,
+  async fd => {
+    const name = String(fd.get('vendor_name')).trim();
+    const rec = { vendor_name:name, vendor_code:vendorCode(name), qty:Number(fd.get('qty')), unit_cost:nz(fd.get('unit_cost')) == null ? null : Number(fd.get('unit_cost')),
+      ordered_on:nz(fd.get('ordered_on')), received_on:nz(fd.get('received_on')), note:nz(fd.get('note')) ?? (x.note === '이관' ? '이관' : null), updated_by:QC.S.user.id };
+    const { error } = isNew ? await sb.from('purchases').insert({ ...rec, job_id:r.id }) : await sb.from('purchases').update(rec).eq('id', x.id);
+    if(error) throw new Error(friendly(error));
+    toast('저장했습니다'); await load();
+  }, { ok: isNew ? '추가' : '저장', extra: !isNew && QC.isAdmin() ? { label:'삭제', run: async () => {
+    if(!confirm('이 매입을 삭제할까요?')) return false;
+    const { error } = await sb.from('purchases').delete().eq('id', x.id); if(error) throw new Error(friendly(error));
+    toast('삭제했습니다'); await load(); } } : null });
+}
+
+/* ---------- 납품 ---------- */
+function dlvForm(r, x, all){
+  const isNew = !x;
+  const left = Number(r.qty) - all.filter(d => d !== x).reduce((s, d) => s + Number(d.qty), 0);
+  x = x || { qty: left > 0 ? left : '', planned_on: r.due_on };
+  QC.openModal(isNew ? `${r.job_no} 납품 추가` : `${r.job_no} 납품 수정`, `<div class="grid2">
+    ${fld('qty', '수량', x.qty, { type:'number', req:true, attr:'min="0.001" step="any"', hint:`Job 수량 ${qtyf(r.qty)} · 다른 납품 합계 ${qtyf(Number(r.qty) - left)}` })}
+    ${fld('statement_no', '거래명세서 번호', x.statement_no)}
+    ${fld('planned_on', '납품 예정일', x.planned_on, { type:'date' })}${fld('delivered_on', '납품일 (실제)', x.delivered_on, { type:'date', hint:'비우면 예정으로 남습니다' })}
+    ${fld('note', '메모', x.note === '이관' ? '' : x.note, { full:true })}</div>`,
+  async fd => {
+    const rec = { qty:Number(fd.get('qty')), statement_no:nz(fd.get('statement_no')), planned_on:nz(fd.get('planned_on')), delivered_on:nz(fd.get('delivered_on')),
+      note:nz(fd.get('note')) ?? (x.note === '이관' ? '이관' : null), updated_by:QC.S.user.id };
+    if(rec.qty > left + 1e-9 && !confirm(`납품 수량 합계가 Job 수량(${qtyf(r.qty)})을 넘습니다. 그래도 저장할까요?`)) throw new Error('저장하지 않았습니다');
+    const { error } = isNew ? await sb.from('deliveries').insert({ ...rec, job_id:r.id }) : await sb.from('deliveries').update(rec).eq('id', x.id);
+    if(error) throw new Error(friendly(error));
+    toast('저장했습니다'); await load();
+  }, { ok: isNew ? '추가' : '저장', extra: !isNew && QC.isAdmin() ? { label:'삭제', run: async () => {
+    if(!confirm('이 납품 기록을 삭제할까요?')) return false;
+    const { error } = await sb.from('deliveries').delete().eq('id', x.id); if(error) throw new Error(friendly(error));
+    toast('삭제했습니다'); await load(); } } : null });
+}
+
+/* ---------- 매출 계산서 ---------- */
+// 계산서 한 장(승인번호)이 여러 Job을 묶을 수 있다: 같은 승인번호가 이미 있으면 그 계산서에 이 Job 금액만 연결
+function invForm(r, x, all){
+  const isNew = !x, v = x ? x.sales_invoices : null;
+  const done = all.filter(i => i !== x).reduce((s, i) => s + Number(i.amount || 0), 0);
+  const left = r.unit_price == null ? '' : Math.max(0, Number(r.amount) - done);
+  const f = QC.openModal(isNew ? `${r.job_no} 매출 계산서 등록` : `${r.job_no} 매출 계산서 수정`, `<div class="grid2">
+    ${fld('issued_on', '발행일', v ? v.issued_on : today(), { type:'date', req:true })}
+    ${fld('method', '발행 방식', v ? v.method : (r.invoice_method || 'forward'), { options: [['forward', '정발행 (홈택스)'], ['reverse', '역발행 (스마트빌)']] })}
+    ${fld('approval_no', '국세청 승인번호', v ? v.approval_no : '', { full:true, hint:'같은 승인번호를 다른 Job에 넣으면 한 장의 계산서에 함께 묶입니다' })}
+    ${fld('amount', '이 Job 공급가액 (원)', x ? x.amount : left, { type:'number', req:true, attr:'min="0" step="1"', hint: r.unit_price == null ? 'Job 단가가 아직 미정입니다' : `Job 금액 ${won(r.amount)} · 이미 청구 ${won(done)}` })}
+    ${fld('vat', '부가세 (원)', v ? v.vat_amount : '', { type:'number', attr:'min="0" step="1"', hint:'비우면 공급가액의 10%' })}
+    ${fld('note', '메모', v && !/^이관/.test(v.note || '') ? v.note : '', { full:true })}</div>`,
+  async fd => {
+    const amount = Number(fd.get('amount')), approval = nz(fd.get('approval_no'));
+    const vat = nz(fd.get('vat')) == null ? Math.round(amount * 0.1) : Number(fd.get('vat'));
+    if(!(amount >= 0)) throw new Error('공급가액을 확인하세요');
+    if(r.unit_price != null && done + amount > Number(r.amount) && !confirm(`청구 합계(${won(done + amount)})가 Job 금액(${won(r.amount)})보다 큽니다. 그래도 저장할까요?`)) throw new Error('저장하지 않았습니다');
+    if(isNew && r.stage !== '납품 완료' && r.stage !== '분할 납품 중' && !confirm('아직 납품 기록이 없습니다. 납품 전에 계산서를 등록할까요?')) throw new Error('저장하지 않았습니다');
+    if(isNew){
+      let invId = null;
+      if(approval){
+        const { data, error } = await sb.from('sales_invoices').select('id,supply_amount,vat_amount').eq('approval_no', approval).maybeSingle();
+        if(error) throw new Error(friendly(error));
+        if(data){
+          if(!confirm(`승인번호 ${approval} 계산서가 이미 있습니다. 이 Job(${won(amount)}원)을 그 계산서에 함께 묶을까요?`)) throw new Error('저장하지 않았습니다');
+          invId = data.id;
+          const u = await sb.from('sales_invoices').update({ supply_amount:Number(data.supply_amount) + amount, vat_amount:Number(data.vat_amount) + vat }).eq('id', invId);
+          if(u.error) throw new Error(friendly(u.error));
+        }
+      }
+      if(!invId){
+        const { data, error } = await sb.from('sales_invoices').insert({ customer_code:r.customer_code, method:fd.get('method'), issued_on:fd.get('issued_on'),
+          approval_no:approval, supply_amount:amount, vat_amount:vat, note:nz(fd.get('note')) }).select('id').single();
+        if(error) throw new Error(friendly(error));
+        invId = data.id;
+      }
+      const l = await sb.from('invoice_lines').insert({ invoice_id:invId, job_id:r.id, amount });
+      if(l.error) throw new Error(/invoice_lines_pkey|duplicate/.test(l.error.message) ? '이 계산서에 이미 연결된 Job입니다' : friendly(l.error));
+    } else {
+      const diffAmt = amount - Number(x.amount), diffVat = vat - Math.round(Number(x.amount) * 0.1);
+      const single = Number(v.supply_amount) === Number(x.amount);   // 이 Job만 묶인 계산서
+      const upd = { method:fd.get('method'), issued_on:fd.get('issued_on'), approval_no:approval, note:nz(fd.get('note')),
+        supply_amount: single ? amount : Number(v.supply_amount) + diffAmt, vat_amount: single ? vat : Number(v.vat_amount) + diffVat };
+      const u = await sb.from('sales_invoices').update(upd).eq('id', x.invoice_id);
+      if(u.error) throw new Error(/approval_no/.test(u.error.message) ? '다른 계산서에 이미 있는 승인번호입니다' : friendly(u.error));
+      const l = await sb.from('invoice_lines').update({ amount }).eq('invoice_id', x.invoice_id).eq('job_id', r.id);
+      if(l.error) throw new Error(friendly(l.error));
+    }
+    toast('저장했습니다'); await load();
+  }, { ok: isNew ? '등록' : '저장', extra: !isNew && QC.isAdmin() ? { label:'이 Job에서 빼기', run: async () => {
+    if(!confirm('이 계산서에서 이 Job 연결을 뺄까요? (계산서에 다른 Job이 없으면 계산서도 삭제)')) return false;
+    const d = await sb.from('invoice_lines').delete().eq('invoice_id', x.invoice_id).eq('job_id', r.id); if(d.error) throw new Error(friendly(d.error));
+    if(Number(v.supply_amount) === Number(x.amount)) { const e = await sb.from('sales_invoices').delete().eq('id', x.invoice_id); if(e.error) throw new Error(friendly(e.error)); }
+    else { const e = await sb.from('sales_invoices').update({ supply_amount:Number(v.supply_amount) - Number(x.amount), vat_amount:Math.max(0, Number(v.vat_amount) - Math.round(Number(x.amount) * 0.1)) }).eq('id', x.invoice_id); if(e.error) throw new Error(friendly(e.error)); }
+    toast('뺐습니다'); await load(); } } : null });
+  const amt = f.amount, vatI = f.vat;
+  amt.oninput = () => { vatI.placeholder = amt.value === '' ? '' : `${won(Math.round(Number(amt.value) * 0.1))} (자동)`; };
+  amt.oninput();
+}
+
+/* ---------- 다음 납품 묶음 ---------- */
+async function nextLot(r){
+  const po = (r.po_no || '').split(', ')[0] || null;
+  const same = st.rows.filter(x => !x.cancelled && x.customer_code === r.customer_code && (x.item_id || x.description) === (r.item_id || r.description)
+    && (po ? (x.po_no || '').split(', ').includes(po) : x.id === r.id));
+  const next = Math.max(1, ...same.map(x => x.lot_no || 1)) + 1;
+  if(!r.lot_no){   // 처음 나누는 Job은 묶음 1로 표시해 둔다
+    const { error } = await sb.from('sales_jobs').update({ lot_no:1, updated_by:QC.S.user.id }).eq('id', r.id);
+    if(error) return toast(friendly(error), true);
+  }
+  closeDrawer();
+  jobForm(null, { customer_code:r.customer_code, site:r.site, issued_on:r.issued_on, due_on:r.due_on, requester:r.requester, location:null,
+    cust_item_code:r.cust_item_code, description:r.description, kind:r.kind, category:r.category, qty:r.qty, unit_price:r.unit_price,
+    in_house:r.in_house, lot_no:next, po_first:po });
+}
+
+/* ---------- 취소 ---------- */
+async function toggleCancel(r){
+  let rec;
+  if(r.cancelled){ if(!confirm(`${r.job_no}을(를) 다시 진행 상태로 돌릴까요?`)) return; rec = { cancelled:false, cancel_reason:null }; }
+  else { const why = prompt(`${r.job_no} 취소 사유를 적어 주세요 (삭제하지 않고 취소로 남깁니다)`); if(!why || !why.trim()) return; rec = { cancelled:true, cancel_reason:why.trim() }; }
+  const { error } = await sb.from('sales_jobs').update({ ...rec, updated_by:QC.S.user.id }).eq('id', r.id);
+  if(error) return toast(friendly(error), true);
+  toast(rec.cancelled ? '취소했습니다' : '되살렸습니다'); load();
+}
+
+/* ---------- CSV ---------- */
+function exportCsv(){
+  const head = ['Job No.','단계','고객사','사이트','발행일','요청납기','품목코드','품명','S/N','구분','수량','단가','금액','매입처','매입 합계','이익','이익 상태','PO','PR','반출번호','고객 담당자','현재 위치','고객요청사항','영업메모','취소 사유'];
+  const rows = filtered().map(r => [r.job_no, r.stage, r.customer_name, r.site, r.issued_on, r.due_on, r.cust_item_code, r.description, r.serial_no, r.kind, r.qty, r.unit_price, r.amount,
+    r.vendors, r.purchase_total, r.profit, r.profit_status, r.po_no, r.pr_no, r.out_no, r.requester, r.location, r.customer_request, r.sales_note, r.cancel_reason]);
+  QC.csv([head, ...rows], `OrderBook_${today()}.csv`);
+}
+
+/* ---------- 이벤트 ---------- */
+document.getElementById('bAdd').innerHTML = icon.plus + 'New Job';
+document.getElementById('bCsv').innerHTML = icon.dl + 'CSV';
+document.getElementById('dClose').innerHTML = icon.x;
+document.getElementById('bAdd').onclick = () => jobForm();
+document.getElementById('bCsv').onclick = exportCsv;
+document.getElementById('dClose').onclick = closeDrawer;
+scrim.onclick = closeDrawer;
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && drawer.classList.contains('show') && !document.querySelector('.modal.show')) closeDrawer(); });
+document.getElementById('q').oninput = e => { st.q = e.target.value.trim(); render(); };
+document.getElementById('cust').onchange = e => { st.cust = e.target.value; render(); };
+document.getElementById('stSeg').onclick = e => { const b = e.target.closest('button'); if(b){ st.stage = b.dataset.v; render(); } };
+document.getElementById('kpis').onclick = e => { const b = e.target.closest('[data-flag]'); if(!b) return;
+  const k = b.dataset.flag; st.flag = st.flag === k || k === 'open' ? '' : k; if(k === 'open') st.stage = 'open'; render(); };
+document.getElementById('flagChip').onclick = e => { if(e.target.closest('#flagX')){ st.flag = ''; render(); } };
+const rowClick = e => { const r = e.target.closest('[data-id]'); if(r) openJob(r.dataset.id); };
+document.getElementById('tbody').onclick = rowClick;
+document.getElementById('cards').onclick = rowClick;
+
+QC.init('ledger', async () => { await loadRefs(); await load(); });
+// 다른 탭(Customers)에서 거래처를 등록하고 돌아오면 목록을 다시 읽는다
+window.addEventListener('focus', () => { if(QC.S.user) loadRefs().then(() => { const sel = document.querySelector('.modal.show select[name=customer_code]'); if(sel && sel.options.length - 1 < st.customers.filter(c => c.party_type !== 'vendor').length){ const v = sel.value; sel.innerHTML = '<option value="">선택</option>' + st.customers.filter(c => c.party_type !== 'vendor').map(c => `<option value="${esc(c.code)}">${esc(c.name)}</option>`).join(''); sel.value = v; } }); });
+</script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customers — BCT Sales</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/bctechsemi/bct/refs/heads/main/images/bct_favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../quality/assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tbl .alias{font-size:12px;color:var(--ink3);margin-top:2px}
+.tbl td.r,.tbl th.r{text-align:right}
+.fs{border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;margin:0 0 12px}
+.fs legend{font-size:12.5px;font-weight:700;color:var(--ink2);padding:0 6px}
+.warn{font-size:12.5px;color:#A86F1C;background:var(--amb-bg);border-radius:10px;padding:8px 11px;margin-top:6px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="ph">
+    <div>
+      <div class="eyebrow"><i></i>Sales · Customers &amp; Vendors</div>
+      <h1>Customers</h1>
+      <p>고객사와 매입처를 한곳에서 관리합니다. 여기 등록한 거래처는 Order Book과 거래명세서에서 바로 고를 수 있습니다.</p>
+    </div>
+    <div class="actions">
+      <button class="btn pri" id="bAdd" type="button"></button>
+    </div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="toolbar">
+    <div class="search"><input id="q" type="search" placeholder="상호, 사업자번호, 대표자, 별칭"></div>
+    <div class="seg" id="tySeg"></div>
+  </div>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>상호</th><th>사업자번호</th><th>구분</th><th>계산서</th><th>대표자</th><th>연락처</th><th>주소</th><th class="r">Job</th></tr></thead>
+    <tbody id="tbody"><tr><td colspan="8" class="empty">불러오는 중…</td></tr></tbody>
+  </table></div>
+  <div class="cards" id="cards"></div>
+</main>
+
+<script src="./assets/sl.js"></script>
+<script>
+const { sb, esc, icon, toast, fld, nz } = QC;
+const TYPE = { customer:'고객사', vendor:'매입처', both:'고객사 · 매입처' };
+const TYPE_BADGE = { customer:'blu', vendor:'amb', both:'grn' };
+const st = { rows:[], jobs:{}, buys:{}, q:'', ty:'' };
+
+/* 사업자등록번호 검증 (국세청 체크섬) */
+function bizOk(code){
+  const d = String(code).replace(/\D/g, '');
+  if(d.length !== 10) return false;
+  const w = [1, 3, 7, 1, 3, 7, 1, 3, 5];
+  let sum = w.reduce((s, x, i) => s + x * +d[i], 0);
+  sum += Math.floor(+d[8] * 5 / 10);
+  return (10 - sum % 10) % 10 === +d[9];
+}
+const fmtBiz = v => { const d = String(v).replace(/\D/g, ''); return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}` : String(v).trim(); };
+const normName = s => String(s || '').replace(/\(주\)|㈜|주식회사|\s/g, '').toLowerCase();
+
+async function load(){
+  const [c, j, p] = await Promise.all([
+    sb.from('bct_customers').select('*').order('name'),
+    sb.from('sales_jobs').select('customer_code'),
+    sb.from('purchases').select('vendor_code'),
+  ]);
+  if(c.error) return toast(c.error.message, true);
+  st.rows = c.data;
+  st.jobs = {}; (j.data || []).forEach(x => st.jobs[x.customer_code] = (st.jobs[x.customer_code] || 0) + 1);
+  st.buys = {}; (p.data || []).forEach(x => x.vendor_code && (st.buys[x.vendor_code] = (st.buys[x.vendor_code] || 0) + 1));
+  render();
+}
+function filtered(){
+  const q = st.q.toLowerCase();
+  return st.rows.filter(r => (!st.ty || r.party_type === st.ty || (st.ty !== 'both' && r.party_type === 'both'))
+    && (!q || [r.name, r.code, r.ceo, r.contact, r.phone, ...(r.aliases || [])].some(v => (v || '').toLowerCase().includes(q))));
+}
+function render(){
+  const n = t => st.rows.filter(r => r.party_type === t).length;
+  document.getElementById('kpis').innerHTML = [['blu', '전체', st.rows.length], ['blu', '고객사', n('customer') + n('both')], ['amb', '매입처', n('vendor') + n('both')],
+    ['gry', '사업자번호 확인 필요', st.rows.filter(r => !bizOk(r.code)).length]]
+    .map(([c, k, v]) => `<div class="kpi ${c}" style="cursor:default"><div class="k"><i></i>${k}</div><div class="v">${v}<small>곳</small></div></div>`).join('');
+  document.getElementById('tySeg').innerHTML = [['', '전체'], ['customer', '고객사'], ['vendor', '매입처']]
+    .map(([v, t]) => `<button type="button" data-v="${v}" class="${st.ty === v ? 'on' : ''}">${t}</button>`).join('');
+  const rows = filtered(), empty = st.rows.length ? '조건에 맞는 거래처가 없습니다' : '등록된 거래처가 없습니다';
+  document.getElementById('tbody').innerHTML = rows.map(r => `<tr data-code="${esc(r.code)}">
+      <td><div class="nm">${esc(r.name)}</div>${(r.aliases || []).length ? `<div class="alias">별칭 ${esc(r.aliases.join(', '))}</div>` : ''}</td>
+      <td class="mn">${esc(r.code)}${bizOk(r.code) ? '' : ' <span class="badge amb">확인</span>'}</td>
+      <td><span class="badge ko ${TYPE_BADGE[r.party_type] || 'gry'}">${esc(TYPE[r.party_type] || r.party_type)}</span></td>
+      <td>${r.party_type === 'vendor' ? '—' : (r.invoice_method === 'reverse' ? '역발행' : '정발행')}</td>
+      <td>${esc(r.ceo || '')}</td><td class="mn">${esc(r.phone || r.contact || '')}</td>
+      <td><div class="sub" style="margin:0;color:var(--ink2)">${esc(r.address || '')}</div></td>
+      <td class="r mn">${(st.jobs[r.code] || 0) + (st.buys[r.code] || 0) || ''}</td></tr>`).join('')
+    || `<tr><td colspan="8" class="empty">${empty}</td></tr>`;
+  document.getElementById('cards').innerHTML = rows.map(r => `<button type="button" class="icard" data-code="${esc(r.code)}"><div class="body">
+      <div class="top"><div class="nm">${esc(r.name)}</div><span class="badge ko ${TYPE_BADGE[r.party_type] || 'gry'}">${esc(TYPE[r.party_type] || '')}</span></div>
+      <div class="meta">${esc(r.code)}${r.ceo ? ' · ' + esc(r.ceo) : ''}</div></div></button>`).join('') || `<div class="empty">${empty}</div>`;
+}
+
+function form(r){
+  const isNew = !r;
+  r = r || { party_type:'customer', invoice_method:'forward', aliases:[] };
+  const used = !isNew && ((st.jobs[r.code] || 0) + (st.buys[r.code] || 0));
+  const f = QC.openModal(isNew ? 'New Customer' : `${r.name} 수정`, `
+    <fieldset class="fs"><legend>기본</legend><div class="grid2">
+      ${fld('code', '사업자등록번호', r.code, { req:true, attr: isNew ? 'placeholder="000-00-00000" inputmode="numeric"' : 'readonly', hint: isNew ? '거래처의 고유 번호로 쓰입니다. 등록 후에는 바꿀 수 없습니다' : '거래처 번호는 바꿀 수 없습니다 (Job·매입이 이 번호로 연결)' })}
+      ${fld('name', '상호', r.name, { req:true, hint:'사업자등록증의 상호 그대로. 예) 주식회사 바로테크' })}
+      ${fld('party_type', '구분', r.party_type, { options:Object.entries(TYPE) })}
+      ${fld('invoice_method', '매출 계산서 방식', r.invoice_method, { options:[['forward', '정발행 (홈택스)'], ['reverse', '역발행 (스마트빌)']], hint:'고객사일 때만 씁니다' })}
+      ${fld('aliases', '별칭', (r.aliases || []).join(', '), { full:true, hint:'엑셀·현장에서 부르는 다른 이름을 쉼표로. 예) 동부, DB HiTek' })}
+      <div class="f full" id="dupWarn"></div>
+    </div></fieldset>
+    <fieldset class="fs"><legend>사업자 정보 (거래명세서에 인쇄)</legend><div class="grid2">
+      ${fld('ceo', '대표자', r.ceo)}${fld('phone', '전화', r.phone)}
+      ${fld('address', '주소', r.address, { full:true })}
+      ${fld('biz_type', '업태', r.biz_type)}${fld('biz_item', '종목', r.biz_item)}
+      ${fld('contact', '담당자 · 연락처', r.contact, { full:true })}
+    </div></fieldset>
+    <fieldset class="fs"><legend>영문 (영문 거래명세서용, 선택)</legend><div class="grid2">
+      ${fld('ceo_en', 'CEO', r.ceo_en)}${fld('biz_type_en', 'Business type', r.biz_type_en)}
+      ${fld('biz_item_en', 'Business item', r.biz_item_en, { full:true })}
+    </div></fieldset>`,
+  async fd => {
+    const code = fmtBiz(fd.get('code'));
+    const rec = { name:String(fd.get('name')).trim(), party_type:fd.get('party_type'), invoice_method:fd.get('invoice_method'),
+      aliases:String(fd.get('aliases') || '').split(',').map(x => x.trim()).filter(Boolean),
+      ceo:nz(fd.get('ceo')), phone:nz(fd.get('phone')), address:nz(fd.get('address')), biz_type:nz(fd.get('biz_type')), biz_item:nz(fd.get('biz_item')),
+      contact:nz(fd.get('contact')), ceo_en:nz(fd.get('ceo_en')), biz_type_en:nz(fd.get('biz_type_en')), biz_item_en:nz(fd.get('biz_item_en')), updated_by:QC.S.user.id };
+    if(isNew){
+      if(!bizOk(code) && !confirm(`사업자등록번호 ${code}의 검증번호가 맞지 않습니다.\n오타가 아닌지 확인하세요. 그래도 등록할까요?`)) throw new Error('저장하지 않았습니다');
+      const twin = st.rows.find(x => normName(x.name) === normName(rec.name));
+      if(twin && !confirm(`같은 이름의 거래처가 있습니다: ${twin.name} (${twin.code})\n다른 사업자라면 계속 등록하세요. 등록할까요?`)) throw new Error('저장하지 않았습니다');
+      const { error } = await sb.from('bct_customers').insert({ code, ...rec });
+      if(error) throw new Error(/duplicate|pkey/.test(error.message) ? `이미 등록된 사업자등록번호입니다 (${code})` : error.message);
+      toast(`${rec.name} 등록했습니다`);
+    } else {
+      const { error } = await sb.from('bct_customers').update(rec).eq('code', r.code);
+      if(error) throw new Error(error.message);
+      toast('저장했습니다');
+    }
+    await load();
+  }, { ok: isNew ? '등록' : '저장', extra: !isNew && QC.isAdmin() ? { label: used ? '삭제 불가 (사용 중)' : '삭제', run: async () => {
+      if(used){ toast(`Job·매입 ${used}건에 쓰이고 있어 삭제할 수 없습니다`, true); return false; }
+      if(!confirm(`${r.name}을(를) 삭제할까요? 되돌릴 수 없습니다.`)) return false;
+      const { error } = await sb.from('bct_customers').delete().eq('code', r.code);
+      if(error) throw new Error(/foreign key/.test(error.message) ? '다른 기록(Job·계산서 등)에 쓰이고 있어 삭제할 수 없습니다' : error.message);
+      toast('삭제했습니다'); await load(); } } : null });
+  // 입력하는 동안 번호 형식·중복 안내
+  const warn = () => {
+    const msgs = [], code = fmtBiz(f.code.value);
+    if(isNew && f.code.value.trim()){
+      if(String(f.code.value).replace(/\D/g, '').length === 10 && !bizOk(code)) msgs.push('사업자등록번호 검증번호가 맞지 않습니다. 오타를 확인하세요.');
+      const same = st.rows.find(x => x.code === code); if(same) msgs.push(`이미 등록된 번호입니다: ${same.name}`);
+    }
+    const twin = f.name.value.trim() && st.rows.find(x => x.code !== r.code && normName(x.name) === normName(f.name.value));
+    if(twin) msgs.push(`같은 이름이 있습니다: ${twin.name} (${twin.code})`);
+    f.querySelector('#dupWarn').innerHTML = msgs.map(m => `<div class="warn">${esc(m)}</div>`).join('');
+  };
+  f.code.oninput = f.name.oninput = warn;
+  f.code.onblur = () => { if(isNew) f.code.value = fmtBiz(f.code.value); warn(); };
+  warn();
+}
+
+document.getElementById('bAdd').innerHTML = icon.plus + 'New Customer';
+document.getElementById('bAdd').onclick = () => form();
+document.getElementById('q').oninput = e => { st.q = e.target.value.trim(); render(); };
+document.getElementById('tySeg').onclick = e => { const b = e.target.closest('button'); if(b){ st.ty = b.dataset.v; render(); } };
+const rowClick = e => { const t = e.target.closest('[data-code]'); if(t) form(st.rows.find(x => x.code === t.dataset.code)); };
+document.getElementById('tbody').onclick = rowClick;
+document.getElementById('cards').onclick = rowClick;
+
+QC.init('customers', load);
+</script>
+</body>
+</html>

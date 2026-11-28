@@ -396,7 +396,7 @@ var T = {
     dropT:'제품 폴더를 끌어다 놓으세요', dropD:'파일명 앞 번호(0_ ~ 10_)로 사진이 항목에 자동 배정됩니다.', pickFolder:'폴더 선택', pickFiles:'사진 선택',
     crit:'기준', photo:'사진', notePh:'비고 (선택)', addPhoto:'사진', judgedOf:'판정', photosOf:'사진',
     save:'저장', submit:'검사 완료 · 서명 제출', approve:'승인 · 고객 공개', toDraft:'작성 중으로 되돌리기', revoke:'승인 취소', del:'삭제', print:'PDF · 인쇄',
-    inspector:'검사자', approver:'승인자', name:'이름', clear:'지우기', signHere:'여기에 서명', waitSubmit:'검사자 서명 후 승인할 수 있습니다', waitAdmin:'관리자(admin) 승인 대기',
+    inspector:'검사자', approver:'승인자', name:'이름', clear:'지우기', signHere:'여기에 서명', loadSign:'불러오기', loadSignHint:'서명 이미지(PNG·JPG) 불러오기 · 흰 배경은 자동으로 지웁니다. 패드에 끌어다 놓아도 됩니다.', signBadType:'PNG · JPG · WEBP 이미지만 불러올 수 있습니다', signTooBig:'10 MB 이하 이미지만 불러올 수 있습니다', signEmpty:'이미지에서 서명을 찾지 못했습니다 (배경이 너무 어둡거나 비어 있음)', waitSubmit:'검사자 서명 후 승인할 수 있습니다', waitAdmin:'관리자(admin) 승인 대기',
     lockedSub:'검사자 서명이 끝난 성적서입니다. 수정하려면 작성 중으로 되돌리세요(서명이 지워집니다).',
     lockedApp:'승인되어 HS HiTek에 공개된 성적서입니다. 내용과 사진은 잠겨 있습니다.',
     needSn:'S/N을 먼저 입력하세요', needSign:'서명을 입력하세요', needName:'이름을 입력하세요',
@@ -431,7 +431,7 @@ var T = {
     dropT:'Drop the unit folder here', dropD:'Photos are matched to items by the number at the start of the file name (0_ to 10_).', pickFolder:'Choose folder', pickFiles:'Choose photos',
     crit:'Criteria', photo:'Photo', notePh:'Note (optional)', addPhoto:'Photo', judgedOf:'judged', photosOf:'photos',
     save:'Save', submit:'Finish · sign and submit', approve:'Approve · publish', toDraft:'Return to draft', revoke:'Revoke approval', del:'Delete', print:'PDF · Print',
-    inspector:'Inspector', approver:'Approver', name:'Name', clear:'Clear', signHere:'Sign here', waitSubmit:'Approval opens after the inspector signs', waitAdmin:'Waiting for admin approval',
+    inspector:'Inspector', approver:'Approver', name:'Name', clear:'Clear', signHere:'Sign here', loadSign:'Load image', loadSignHint:'Load a signature image (PNG or JPG). A white background is removed automatically. You can also drop it on the pad.', signBadType:'Only PNG, JPG or WEBP images can be loaded', signTooBig:'Images must be 10 MB or smaller', signEmpty:'No signature found in the image (background too dark or blank)', waitSubmit:'Approval opens after the inspector signs', waitAdmin:'Waiting for admin approval',
     lockedSub:'The inspector has signed this report. Return it to draft to edit (the signature will be cleared).',
     lockedApp:'Approved and published to HS HiTek. Content and photos are locked.',
     needSn:'Enter the S/N first', needSign:'Please sign', needName:'Enter a name',
@@ -1040,7 +1040,7 @@ function renderEdit(){
   if(r.status === 'draft'){
     h += '<div class="field" style="margin-bottom:8px"><input id="insName" placeholder="' + esc(t('name')) + '" value="' + esc(r.inspector_name || defaultName()) + '"></div>' +
          '<canvas class="pad" id="padI" aria-label="' + esc(t('signHere')) + '"></canvas>' +
-         '<div class="act"><button class="btn btn-ghost btn-sm" onclick="clearPad(\'padI\')">' + t('clear') + '</button><button class="btn btn-primary btn-sm" onclick="submitReport()">' + t('submit') + '</button></div>';
+         '<div class="act"><button class="btn btn-ghost btn-sm" onclick="clearPad(\'padI\')">' + t('clear') + '</button>' + loadBtn('padI') + '<button class="btn btn-primary btn-sm" onclick="submitReport()">' + t('submit') + '</button></div>';
   }else{
     h += signImg(r.inspector_sign) + '<div class="sm">' + esc(r.inspector_name || '') + '</div>';
   }
@@ -1052,7 +1052,7 @@ function renderEdit(){
   }else if(r.status === 'submitted' && adm){
     h += '<div class="field" style="margin-bottom:8px"><input id="apName" placeholder="' + esc(t('name')) + '" value="' + esc(defaultName()) + '"></div>' +
          '<canvas class="pad" id="padA" aria-label="' + esc(t('signHere')) + '"></canvas>' +
-         '<div class="act"><button class="btn btn-ghost btn-sm" onclick="clearPad(\'padA\')">' + t('clear') + '</button><button class="btn btn-primary btn-sm" onclick="approveReport()">' + t('approve') + '</button></div>';
+         '<div class="act"><button class="btn btn-ghost btn-sm" onclick="clearPad(\'padA\')">' + t('clear') + '</button>' + loadBtn('padA') + '<button class="btn btn-primary btn-sm" onclick="approveReport()">' + t('approve') + '</button></div>';
   }else{
     h += '<div class="sign-wait">' + (r.status === 'submitted' ? t('waitAdmin') : t('waitSubmit')) + '</div>';
   }
@@ -1067,6 +1067,7 @@ function renderEdit(){
   document.getElementById('app').innerHTML = h;
   renderPreview();
   initPad('padI'); initPad('padA');
+  bindPadDrop('padI'); bindPadDrop('padA');
   bindDrop();
 }
 function signImg(src){ return src ? '<img class="sign-img" src="' + src + '" alt="signature">' : '<div class="sign-wait">—</div>'; }
@@ -1095,7 +1096,64 @@ function initPad(id){
   c.addEventListener('pointermove', function(e){ if(!down) return; var p = pt(e); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p; });
   ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ c.addEventListener(ev, function(){ down = false; }); });
 }
-function clearPad(id){ var c = document.getElementById(id); if(!c) return; c.getContext('2d').clearRect(0, 0, c.width, c.height); c.dataset.empty = '1'; }
+function clearPad(id){
+  var c = document.getElementById(id); if(!c) return;
+  var ctx = c.getContext('2d'); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, c.width, c.height); ctx.restore();
+  c.dataset.empty = '1';
+}
+
+/* 서명 이미지 불러오기 : 흰 배경을 투명하게 지우고, 서명 부분만 잘라 패드에 맞춰 넣음 */
+function loadBtn(id){
+  return '<label class="btn btn-ghost btn-sm" title="' + esc(t('loadSignHint')) + '">' + t('loadSign') +
+    '<input type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="loadSignFile(this,\'' + id + '\')"></label>';
+}
+function loadSignFile(input, id){
+  var f = input.files && input.files[0]; input.value = '';
+  if(f) placeSignImage(f, id);
+}
+async function placeSignImage(file, id){
+  var c = document.getElementById(id); if(!c) return;
+  if(!/^image\/(png|jpe?g|webp)$/i.test(file.type)) return toast(t('signBadType'), true);
+  if(file.size > 10 * 1024 * 1024) return toast(t('signTooBig'), true);
+  var bmp;
+  try{ bmp = await createImageBitmap(file, { imageOrientation:'from-image' }); }
+  catch(e){ return toast(t('signBadType'), true); }
+  /* 1) 작업용 캔버스 (긴 변 최대 1200px) */
+  var s = Math.min(1, 1200 / Math.max(bmp.width, bmp.height));
+  var w = Math.max(1, Math.round(bmp.width * s)), h = Math.max(1, Math.round(bmp.height * s));
+  var wc = document.createElement('canvas'); wc.width = w; wc.height = h;
+  var wx = wc.getContext('2d'); wx.drawImage(bmp, 0, 0, w, h); if(bmp.close) bmp.close();
+  var img = wx.getImageData(0, 0, w, h), d = img.data;
+  /* 2) 밝은 배경 → 투명, 잉크는 진하기에 따라 부드럽게 */
+  var HI = 225, LO = 150, x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for(var i = 0; i < d.length; i += 4){
+    var lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    var a = lum >= HI ? 0 : lum <= LO ? 255 : Math.round(255 * (HI - lum) / (HI - LO));
+    a = Math.min(a, d[i + 3]);
+    d[i + 3] = a;
+    if(a > 40){ var p = i / 4, px = p % w, py = (p - px) / w; if(px < x0) x0 = px; if(px > x1) x1 = px; if(py < y0) y0 = py; if(py > y1) y1 = py; }
+  }
+  if(x1 < 0) return toast(t('signEmpty'), true);
+  wx.putImageData(img, 0, 0);
+  /* 3) 서명 영역만 잘라 패드 크기에 맞춰 가운데 배치 */
+  var pad = 4; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+  var cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+  var m = Math.round(Math.min(c.width, c.height) * 0.08);
+  var k = Math.min((c.width - 2 * m) / cw, (c.height - 2 * m) / ch);
+  var dw = cw * k, dh = ch * k;
+  clearPad(id);
+  var ctx = c.getContext('2d'); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(wc, x0, y0, cw, ch, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh);
+  ctx.restore();
+  c.dataset.empty = '0';
+}
+function bindPadDrop(id){
+  var c = document.getElementById(id); if(!c) return;
+  c.addEventListener('dragover', function(e){ e.preventDefault(); c.style.borderColor = 'var(--primary)'; });
+  c.addEventListener('dragleave', function(){ c.style.borderColor = ''; });
+  c.addEventListener('drop', function(e){ e.preventDefault(); c.style.borderColor = ''; var f = e.dataTransfer.files && e.dataTransfer.files[0]; if(f) placeSignImage(f, id); });
+}
 function padData(id){ var c = document.getElementById(id); return c && c.dataset.empty === '0' ? c.toDataURL('image/png') : null; }
 
 /* ===== photos ===== */

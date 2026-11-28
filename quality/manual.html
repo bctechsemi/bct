@@ -51,6 +51,10 @@
 .md th{background:var(--pale2);color:var(--ink2);font-weight:700;font-size:12.5px;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
 .md td{padding:9px 10px;border-bottom:1px solid var(--line2);vertical-align:top}
 .md .tw{overflow-x:auto;margin-bottom:4px}
+.md img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;cursor:zoom-in;vertical-align:top}
+.md td img{max-height:240px;width:auto}
+.md p > img{max-height:420px}
+.md thead:not(:has(th:not(:empty))){display:none}
 .md svg.orgsvg{width:100%;height:auto;max-width:760px;display:block;margin:4px auto 14px;font-family:var(--font)}
 .hist-t{margin-top:26px}
 .hist-t h3{font-size:14px;color:var(--ink2);margin:0 0 8px}
@@ -209,7 +213,10 @@ function editSection(id){
 
 document.getElementById('bPrint').innerHTML = icon.print + '인쇄 · PDF';
 document.getElementById('bPrint').onclick = () => window.print();
-document.getElementById('doc').addEventListener('click', e => { const b = e.target.closest('[data-edit]'); if(b) editSection(Number(b.dataset.edit)); });
+document.getElementById('doc').addEventListener('click', e => {
+  const im = e.target.closest('.md img'); if(im) return QC.lightbox(im.getAttribute('src'));
+  const b = e.target.closest('[data-edit]'); if(b) editSection(Number(b.dataset.edit));
+});
 
 QC.init('docs', load);
 </script>

@@ -102,6 +102,10 @@ a.mod:hover{border-color:var(--primary);box-shadow:0 14px 34px -20px rgba(31,78,
     <h3>교정 조치가 필요한 계측기</h3>
     <div class="due-list" id="dueList"></div>
   </div>
+  <div class="due hidden" id="fsDue">
+    <h3>오늘 3정5S 점검 (16:20)</h3>
+    <div class="due-list" id="fsDueList"></div>
+  </div>
   <div class="due hidden" id="eqDue">
     <h3>이번 주 설비 점검</h3>
     <div class="due-list" id="eqDueList"></div>
@@ -163,6 +167,23 @@ QC.init('home', async () => {
     ]);
     const b = document.querySelectorAll('#envStats b');
     b[0].textContent = z.count ?? '–'; b[1].textContent = t.count ?? '–'; b[2].textContent = d.count ?? '–';
+  })();
+  // 3정5S 일일 점검 (근무일 16:20) — 16:20이 지났는데 오늘 기록이 없는 구역만 표시
+  (async () => {
+    const today = QC.todayKST(), dow = new Date(today + 'T12:00:00+09:00').getUTCDay();
+    if(dow === 0 || dow === 6 || QC.hmKST(new Date()) < '16:20') return;
+    const [h, a, au] = await Promise.all([
+      QC.sb.from('qc_holidays').select('d').eq('d', today),
+      QC.sb.from('qc_5s_areas').select('id,code,name').eq('active', true).order('sort'),
+      QC.sb.from('qc_5s_audits').select('area_id').eq('audit_date', today),
+    ]);
+    if((h.data || []).length) return;
+    const done = new Set((au.data || []).map(x => x.area_id)), miss = (a.data || []).filter(x => !done.has(x.id));
+    if(!miss.length) return;
+    document.getElementById('fsDue').classList.remove('hidden');
+    document.getElementById('fsDueList').innerHTML = miss.map(x => `<a href="./5s.html#${encodeURIComponent(x.code)}">
+      <span class="no">${QC.esc(x.code)}</span><span class="nm">${QC.esc(x.name)} · 3정5S 점검</span><span class="dt">16:20</span>
+      <span class="badge red ko">미실시</span></a>`).join('');
   })();
   // Dummy Load 주간 점검 (월요일, 공휴일이면 다음 근무일) — 오늘 점검·기한 초과·재측정 필요만 표시
   (async () => {

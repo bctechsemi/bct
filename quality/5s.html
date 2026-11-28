@@ -117,7 +117,7 @@
       <div>
         <div class="eyebrow"><i></i>Quality Control · 3정5S</div>
         <h1>3정5S 관리</h1>
-        <p>구역별로 바람직한 모습(기준 사진)과 비교해 점수를 기록하고, 지적사항은 개선 전·후 사진으로 마무리합니다.</p>
+        <p>구역별로 바람직한 모습(기준 사진)과 비교해 점수를 기록하고, 지적사항은 개선 전·후 사진으로 마무리합니다.<br><b>점검 시각: 매 근무일 16:20</b> (퇴근 10분 전 · 월~금, 공휴일 제외)</p>
       </div>
       <div class="actions">
         <button class="btn hidden" id="bItems" type="button">체크리스트 설정</button>
@@ -177,6 +177,7 @@ const REF = {
 };
 const refCap = p => (REF[p] || [, p.split('/').pop()])[1];
 const refsFor = areaId => { const a = st.areas.find(x => x.id === areaId); return Object.keys(REF).filter(p => a && REF[p][0] === a.code); };
+const CHECK_TIME = '16:20';   // 매 근무일 퇴근 10분 전 점검
 const SCALE = [[5,'기준 사진과 같은 상태'],[4,'경미한 차이 1곳 (바로 고칠 수 있음)'],[3,'차이 2~3곳'],[2,'기준 상태가 일부만 유지됨'],[1,'기준과 다름 · 관리되지 않음']];
 const SERIES = ['#1F4E9C','#C98A2B','#2FB57E','#7A5BC7','#D2453B'];
 const st = { areas:[], items:[], audits:[], acts:[], people:{}, showDone:false, draft:null, drawerMode:null };
@@ -194,14 +195,18 @@ async function load(){
   const done90 = new Date(Date.now() - 90*864e5).toISOString();
   let aq = sb.from('qc_5s_actions').select('*').order('due_date', {ascending:true, nullsFirst:false}).order('created_at');
   aq = st.showDone ? aq.or(`status.neq.done,done_at.gte.${done90}`) : aq.neq('status','done');
-  const [a, i, au, ac, p] = await Promise.all([
+  const today = QC.todayKST();
+  const [a, i, au, ac, p, h] = await Promise.all([
     sb.from('qc_5s_areas').select('*').order('sort'),
     sb.from('qc_5s_items').select('*').order('sort'),
     sb.from('qc_5s_audits').select('*').gte('audit_date', since.toISOString().slice(0,10)).order('audit_date', {ascending:false}).order('created_at', {ascending:false}),
     aq,
     sb.from('profiles').select('id,name,email'),
+    sb.from('qc_holidays').select('d').eq('d', today),
   ]);
   if(a.error) return toast(a.error.message, true);
+  const dow = new Date(today + 'T12:00:00+09:00').getUTCDay();
+  st.workday = dow > 0 && dow < 6 && !((h && h.data) || []).length;
   st.areas = a.data; st.items = i.data || []; st.audits = au.data || []; st.acts = ac.data || [];
   st.people = Object.fromEntries((p.data||[]).map(x => [x.id, x.name || x.email]));
   render();
@@ -213,11 +218,15 @@ const itemsFor = areaId => st.items.filter(i => i.active && (!i.area_id || i.are
 /* ---------- 렌더 ---------- */
 function render(){
   const openBy = id => st.acts.filter(x => x.area_id === id && x.status !== 'done').length;
+  const today = QC.todayKST(), afterDue = QC.hmKST(new Date()) >= CHECK_TIME;
   document.getElementById('areas').innerHTML = activeAreas().map(a => {
     const last = st.audits.find(x => x.area_id === a.id);
+    const doneToday = st.audits.some(x => x.area_id === a.id && x.audit_date === today);
+    const todayTag = !st.workday ? '' : doneToday ? '<span class="badge grn ko">오늘 점검 완료</span>'
+      : afterDue ? '<span class="badge red ko">오늘 점검 미실시</span>' : `<span class="badge blu ko">오늘 ${CHECK_TIME} 점검 예정</span>`;
     return `<div class="area">
       <div class="ah"><div><div class="an">${esc(a.name)}</div><div class="am">${a.manager ? '담당 ' + esc(a.manager) : '담당자 미지정'}</div></div>${last ? gradeTag(last.score_pct) : '<span class="grade g-x">점검 전</span>'}</div>
-      <div class="score"><b>${last && last.score_pct != null ? Math.round(last.score_pct) : '–'}<small>점</small></b></div>
+      <div class="score"><b>${last && last.score_pct != null ? Math.round(last.score_pct) : '–'}<small>점</small></b>${todayTag}</div>
       <div class="meta"><span>${last ? `${last.audit_date} · ${esc(who(last.auditor))}` : '아직 점검 기록이 없습니다'}</span>
         <span>${openBy(a.id) ? `<span class="badge red">개선 ${openBy(a.id)}건</span>` : '<span class="badge grn ko">미결 없음</span>'}</span></div>
       <button class="btn pri" type="button" data-audit="${a.id}">${icon.plus}점검 시작</button></div>`;

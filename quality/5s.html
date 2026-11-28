@@ -73,6 +73,26 @@
 .it .phbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8}
 .it .flag{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--red-ink);font-weight:600}
 .rubric{font-size:12px;color:var(--ink2);background:var(--pale2);border-radius:10px;padding:9px 12px;margin-bottom:14px;line-height:1.6}
+.rubric table{border-collapse:collapse;margin-top:6px;width:100%}
+.rubric td{padding:3px 6px;vertical-align:top;border-top:1px solid var(--line2)}
+.rubric td:first-child{font-family:var(--mono);font-weight:700;width:28px;text-align:center}
+.gal-h{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;margin:4px 0 8px}
+.gal-h span{font-weight:400;color:var(--ink2);font-size:12px}
+.gal{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px;scroll-snap-type:x mandatory}
+.gal button{flex:none;width:150px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0;cursor:zoom-in;overflow:hidden;text-align:left;scroll-snap-align:start}
+.gal img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.gal button span{display:block;font-size:11.5px;padding:5px 7px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ref{display:flex;gap:10px;align-items:flex-start;margin-top:8px;background:var(--grn-bg);border-radius:10px;padding:8px 10px}
+.ref .rt{flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:#1E5E42}
+.ref .rt b{font-weight:700;margin-right:4px}
+.ref .rp{display:flex;gap:5px;flex:none}
+.ref .rp button{width:58px;height:44px;border-radius:7px;border:1px solid #BFE3CF;background:#fff center/cover no-repeat;cursor:zoom-in;padding:0}
+.rsel{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.rsel label{position:relative;border:1px solid var(--line);border-radius:9px;overflow:hidden;cursor:pointer;font-size:11.5px;color:var(--ink2)}
+.rsel label:has(input:checked){border-color:var(--primary);box-shadow:0 0 0 2px rgba(31,78,156,.2)}
+.rsel img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.rsel input{position:absolute;top:6px;left:6px}
+.rsel span{display:block;padding:4px 6px}
 .drow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
 .drow .s{font-family:var(--mono);font-weight:700;min-width:34px;text-align:center;border-radius:7px;padding:4px 8px}
 .s1,.s2{background:var(--red-bg);color:var(--red-ink)} .s3{background:var(--amb-bg);color:#8E5C14} .s4,.s5{background:var(--grn-bg);color:#1E7A53} .sna{background:var(--gry-bg);color:var(--ink2)}
@@ -97,7 +117,7 @@
       <div>
         <div class="eyebrow"><i></i>Quality Control · 3정5S</div>
         <h1>3정5S 관리</h1>
-        <p>구역별 정기 점검 점수를 기록하고, 지적사항은 개선 전·후 사진으로 마무리합니다.</p>
+        <p>구역별로 바람직한 모습(기준 사진)과 비교해 점수를 기록하고, 지적사항은 개선 전·후 사진으로 마무리합니다.</p>
       </div>
       <div class="actions">
         <button class="btn hidden" id="bItems" type="button">체크리스트 설정</button>
@@ -141,6 +161,23 @@
 const { sb, esc, icon, toast, fld, nz } = QC;
 const CATS3 = ['정품','정량','정위치'], CATS5 = ['정리','정돈','청소','청결','습관화'], CATS = [...CATS3, ...CATS5];
 const STATUS = { open:'미조치', doing:'진행 중', done:'완료' };
+/* 바람직한 정리정돈 기준 사진 (2026-11-25 촬영) — 구역 코드별 */
+const REF = {
+  'assets/5s/prod_01_floor1.jpg':      ['PROD', '작업장 전경 ①'],
+  'assets/5s/prod_05_floor2.jpg':      ['PROD', '작업장 전경 ②'],
+  'assets/5s/prod_02_cart.jpg':        ['PROD', '대차·카트 정위치'],
+  'assets/5s/prod_03_test.jpg':        ['PROD', 'TEST 구역'],
+  'assets/5s/prod_04_bench.jpg':       ['PROD', '작업대·부자재 선반'],
+  'assets/5s/prod_06_tool_top.jpg':    ['PROD', 'Tool 정리 (상단)'],
+  'assets/5s/prod_07_tool_front.jpg':  ['PROD', 'Tool 정리 (정면)'],
+  'assets/5s/store_01_overview1.jpg':  ['STORE', '창고 전경 ①'],
+  'assets/5s/store_04_overview2.jpg':  ['STORE', '창고 전경 ②'],
+  'assets/5s/store_02_shelf.jpg':      ['STORE', '자재 선반'],
+  'assets/5s/store_03_fg_shelf.jpg':   ['STORE', '완제품·반제품 선반'],
+};
+const refCap = p => (REF[p] || [, p.split('/').pop()])[1];
+const refsFor = areaId => { const a = st.areas.find(x => x.id === areaId); return Object.keys(REF).filter(p => a && REF[p][0] === a.code); };
+const SCALE = [[5,'기준 사진과 같은 상태'],[4,'경미한 차이 1곳 (바로 고칠 수 있음)'],[3,'차이 2~3곳'],[2,'기준 상태가 일부만 유지됨'],[1,'기준과 다름 · 관리되지 않음']];
 const SERIES = ['#1F4E9C','#C98A2B','#2FB57E','#7A5BC7','#D2453B'];
 const st = { areas:[], items:[], audits:[], acts:[], people:{}, showDone:false, draft:null, drawerMode:null };
 const who = id => (id && st.people[id]) || '';
@@ -262,7 +299,11 @@ function startAudit(areaId){
 function renderAudit(){
   const dft = st.draft, body = document.getElementById('dBody');
   let html = `<div class="grid2" style="margin-bottom:12px">${fld('audit_date','점검일', dft.date, {type:'date', req:true})}<div class="f"><label>점검자</label><input value="${esc(who(QC.S.user.id))}" disabled></div></div>
-    <div class="rubric"><b>채점 기준</b> 5 매우 우수 · 4 양호 · 3 보통 · 2 미흡 · 1 불량 · N/A 해당 없음 (합계에서 제외)<br>2점 이하 항목은 <b>개선 요청</b>으로 자동 등록됩니다 — 사진을 함께 남겨 주세요.</div>`;
+    ${refsFor(dft.areaId).length ? `<div class="gal-h">바람직한 모습 (기준 사진)<span>눌러서 크게 보기</span></div>
+    <div class="gal">${refsFor(dft.areaId).map(p => `<button type="button" data-ref="${esc(p)}"><img src="./${esc(p)}" alt="${esc(refCap(p))}" loading="lazy"><span>${esc(refCap(p))}</span></button>`).join('')}</div>` : ''}
+    <div class="rubric"><b>채점 기준</b> — 항목마다 초록 칸의 <b>바람직한 모습</b>(기준 사진)과 비교해 점수를 매깁니다.
+      <table>${SCALE.map(([v, t]) => `<tr><td>${v}</td><td>${t}</td></tr>`).join('')}<tr><td>N/A</td><td>해당 없음 (합계에서 제외)</td></tr></table>
+      2점 이하 항목은 <b>개선 요청</b>으로 자동 등록됩니다 — 현재 상태 사진을 함께 남겨 주세요.</div>`;
   let lastGroup = '';
   dft.rows.forEach((r, k) => {
     const g = CATS3.includes(r.item.category) ? '3정 (정품 · 정량 · 정위치)' : '5S (정리 · 정돈 · 청소 · 청결 · 습관화)';
@@ -270,7 +311,8 @@ function renderAudit(){
     const low = r.score != null && r.score <= 2;
     html += `<div class="it ${low?'low':''}" data-k="${k}">
       <div class="q"><div class="c"><em>${esc(r.item.category)}</em>${esc(r.item.content)}</div>
-        <div class="sc">${[1,2,3,4,5].map(v => `<button type="button" data-v="${v}" class="${r.score===v?'on':''}" aria-label="${v}점">${v}</button>`).join('')}<button type="button" data-v="" class="na ${r.na?'on':''}">N/A</button></div></div>
+        <div class="sc">${[1,2,3,4,5].map(v => `<button type="button" data-v="${v}" class="${r.score===v?'on':''}" aria-label="${v}점" title="${(SCALE.find(s => s[0] === v) || [])[1] || ''}">${v}</button>`).join('')}<button type="button" data-v="" class="na ${r.na?'on':''}">N/A</button></div></div>
+      ${refBox(r.item)}
       <div class="ex"><input type="text" data-cmt placeholder="의견 (선택)" value="${esc(r.comment)}">
         <label class="phbtn ${r.file?'has':''}">${icon.cam}${r.file?'사진 ✓':'사진'}<input type="file" accept="image/*" capture="environment" data-ph></label>
         ${low ? `<label class="flag"><input type="checkbox" data-flag ${r.flag?'checked':''}> 개선 요청 등록 (담당 ${esc(st.areas.find(a=>a.id===dft.areaId).manager || '미지정')}, 기한 +14일)</label>` : ''}</div></div>`;
@@ -278,6 +320,12 @@ function renderAudit(){
   html += `<div class="f" style="margin-top:14px"><label>총평</label><textarea data-total-cmt placeholder="잘된 점, 전반적인 상태">${esc(dft.comment)}</textarea></div>`;
   body.innerHTML = html;
   updateAuditFoot();
+}
+function refBox(item){
+  const ph = item.ref_photos || [];
+  if(!item.ref_note && !ph.length) return '';
+  return `<div class="ref"><div class="rt"><b>바람직한 모습</b>${esc(item.ref_note || '')}</div>
+    ${ph.length ? `<div class="rp">${ph.map(p => `<button type="button" data-ref="${esc(p)}" title="${esc(refCap(p))}" style="background-image:url('./${esc(p)}')" aria-label="기준 사진: ${esc(refCap(p))}"></button>`).join('')}</div>` : ''}</div>`;
 }
 function updateAuditFoot(){
   const rows = st.draft.rows, scored = rows.filter(r => r.score != null), tot = scored.reduce((t, r) => t + r.score, 0), max = scored.length * 5;
@@ -288,6 +336,7 @@ function updateAuditFoot(){
 }
 document.getElementById('dBody').addEventListener('click', e => {
   if(st.drawerMode !== 'audit') return;
+  const rf = e.target.closest('[data-ref]'); if(rf) return QC.lightbox('./' + rf.dataset.ref);
   const b = e.target.closest('.sc button'); if(!b) return;
   const k = +b.closest('[data-k]').dataset.k, r = st.draft.rows[k];
   if(b.dataset.v === ''){ r.na = !r.na; r.score = null; } else { r.score = +b.dataset.v; r.na = false; }
@@ -324,7 +373,7 @@ async function saveAudit(){
     const scores = [];
     for(const r of dft.rows){
       const photo = r.file ? await QC.upload(r.file, `5s/${audit.id}`) : null;
-      scores.push({ audit_id: audit.id, item_id: r.item.id, category: r.item.category, content: r.item.content, score: r.na ? null : r.score, comment: nz(r.comment), photo_path: photo });
+      scores.push({ audit_id: audit.id, item_id: r.item.id, category: r.item.category, content: r.item.content, ref_note: r.item.ref_note || null, score: r.na ? null : r.score, comment: nz(r.comment), photo_path: photo });
       r.photo = photo;
     }
     const s1 = await sb.from('qc_5s_audit_scores').insert(scores); if(s1.error) throw s1.error;
@@ -355,7 +404,7 @@ async function viewAudit(id){
     <div class="score" style="margin-bottom:6px"><b>${a.score_pct ?? '–'}<small>점</small></b>${gradeTag(a.score_pct)}<span style="color:var(--ink2);font-size:13px">${a.total_score}/${a.max_score}</span></div>
     ${a.comment ? `<p style="margin:6px 0 14px;font-size:14px;color:var(--ink2)">${esc(a.comment)}</p>` : ''}
     ${rows.map(r => `<div class="drow"><span class="s ${r.score==null?'sna':'s'+r.score}">${r.score ?? 'NA'}</span>
-      <div><em style="font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink2);margin-right:6px">${esc(r.category)}</em>${esc(r.content)}${r.comment?`<div style="font-size:12.5px;color:var(--ink2);margin-top:2px">${esc(r.comment)}</div>`:''}</div>
+      <div><em style="font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink2);margin-right:6px">${esc(r.category)}</em>${esc(r.content)}${r.ref_note?`<div style="font-size:12px;color:#1E5E42;margin-top:2px">기준: ${esc(r.ref_note)}</div>`:''}${r.comment?`<div style="font-size:12.5px;color:var(--ink2);margin-top:2px">${esc(r.comment)}</div>`:''}</div>
       ${r.photo_path ? `<span class="mini" style="cursor:zoom-in" data-zoom="${esc(r.photo_path)}"></span>` : '<span></span>'}</div>`).join('')}
     ${st.viewing.acts.length ? `<div class="sec"><div class="sec-h"><h3>개선 요청 (${st.viewing.acts.length})</h3></div>${st.viewing.acts.map(x => `<div class="drow" style="cursor:pointer" data-openact="${x.id}"><span class="badge ${x.status==='done'?'grn':x.status==='doing'?'amb':'red'} ko">${STATUS[x.status]}</span><div>${esc(x.issue)}</div><span>${x.status==='done'?'':dday(x.due_date)}</span></div>`).join('')}</div>` : ''}`;
   document.querySelectorAll('#dBody [data-zoom]').forEach(async el => { const u = await QC.fileUrl(el.dataset.zoom); if(u){ el.style.backgroundImage = `url("${u}")`; el.dataset.src = u; } });
@@ -385,11 +434,11 @@ function printAudit(){
       <td class="lbl">구역</td><td>${esc(areaName(a.area_id))}</td><td rowspan="3" style="padding:0;width:230px"><table class="sign"><tr><th>점검</th><th>검토</th><th>승인</th></tr><tr><td></td><td></td><td></td></tr></table></td></tr>
       <tr><td class="lbl">점검일</td><td>${a.audit_date}</td></tr><tr><td class="lbl">점검자</td><td>${esc(who(a.auditor))}</td></tr></table>
     <table class="list"><thead><tr><th style="width:28px">No</th><th style="width:52px">구분</th><th>점검 항목</th><th style="width:40px">점수</th><th style="width:34%">의견</th></tr></thead>
-    <tbody>${rows.map((r, k) => `<tr><td>${k+1}</td><td>${esc(r.category)}</td><td class="l">${esc(r.content)}</td><td>${r.score ?? 'N/A'}</td><td class="l">${esc(r.comment||'')}</td></tr>`).join('')}
+    <tbody>${rows.map((r, k) => `<tr><td>${k+1}</td><td>${esc(r.category)}</td><td class="l">${esc(r.content)}${r.ref_note ? `<div style="font-size:8pt;color:#444">기준: ${esc(r.ref_note)}</div>` : ''}</td><td>${r.score ?? 'N/A'}</td><td class="l">${esc(r.comment||'')}</td></tr>`).join('')}
     <tr><td colspan="3"><b>합계</b></td><td colspan="2"><b>${a.total_score} / ${a.max_score} (${a.score_pct ?? '-'}점 · ${grade(a.score_pct)[0]})</b></td></tr></tbody></table>
     <div style="margin-top:8px;font-size:10pt"><b>총평</b> ${esc(a.comment||'')}</div>
     ${acts.length ? `<table class="list" style="margin-top:8px"><thead><tr><th>지적사항</th><th style="width:70px">담당</th><th style="width:80px">기한</th><th style="width:60px">상태</th></tr></thead><tbody>${acts.map(x => `<tr><td class="l">${esc(x.issue)}</td><td>${esc(x.assignee||'')}</td><td>${x.due_date||''}</td><td>${STATUS[x.status]}</td></tr>`).join('')}</tbody></table>` : ''}
-    <div style="margin-top:6px;font-size:8.5pt">채점: 5 매우 우수 · 4 양호 · 3 보통 · 2 미흡 · 1 불량 / 등급: A ≥90 · B ≥80 · C ≥70 · D &lt;70</div>`;
+    <div style="margin-top:6px;font-size:8.5pt">채점 (바람직한 모습 기준 사진과 비교): ${SCALE.map(([v, t]) => `${v} ${t}`).join(' · ')} / 등급: A ≥90 · B ≥80 · C ≥70 · D &lt;70</div>`;
   window.print();
 }
 
@@ -469,9 +518,12 @@ function itemForm(it, scope){
     ${fld('area_id','대상', it.area_id || '', {options: [['','전 구역 공통'], ...st.areas.map(a => [a.id, a.name + ' 전용'])]})}
     ${fld('category','구분', it.category, {options: CATS.map(c => [c, (CATS3.includes(c)?'3정 · ':'5S · ') + c])})}
     ${fld('content','점검 내용', it.content, {area:true, req:true, full:true, hint:'"~되어 있다"처럼 예/아니오로 판단할 수 있게 쓰면 점검자마다 점수가 덜 흔들립니다.'})}
+    ${fld('ref_note','바람직한 모습 (판단 기준)', it.ref_note, {area:true, full:true, hint:'기준 사진에서 무엇이 보여야 5점인지 적어 주세요. 예) 대차 2대가 노란 구획선 안에 나란히 있다'})}
     ${fld('sort','표시 순서', it.sort, {type:'number'})}
+    <div class="f full"><label>기준 사진</label><div class="rsel">${Object.keys(REF).map(p => `<label><input type="checkbox" name="ref_photos" value="${esc(p)}" ${(it.ref_photos || []).includes(p) ? 'checked' : ''}><img src="./${esc(p)}" alt="" loading="lazy"><span>${esc(REF[p][0] === 'PROD' ? '생산 · ' : '창고 · ')}${esc(refCap(p))}</span></label>`).join('')}</div></div>
   </div>`, async fd => {
-    const rec = { area_id: nz(fd.get('area_id')), category: fd.get('category'), content: nz(fd.get('content')), sort: Number(fd.get('sort')) || 0 };
+    const rec = { area_id: nz(fd.get('area_id')), category: fd.get('category'), content: nz(fd.get('content')), sort: Number(fd.get('sort')) || 0,
+      ref_note: nz(fd.get('ref_note')), ref_photos: fd.getAll('ref_photos') };
     const { error } = isNew ? await sb.from('qc_5s_items').insert(rec) : await sb.from('qc_5s_items').update(rec).eq('id', it.id);
     if(error) throw new Error(error.message);
     toast('항목을 저장했습니다'); await load(); setTimeout(() => openItems(rec.area_id || ''), 0);

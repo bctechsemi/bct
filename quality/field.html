@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BCT 현장 점검</title>
+<meta name="theme-color" content="#0A1F42">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BCT 점검">
+<link rel="manifest" href="./field.webmanifest">
+<link rel="icon" type="image/png" href="./assets/field-icon-192.png">
+<link rel="apple-touch-icon" href="./assets/field-icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Gowun+Batang:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/qc.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+.qc-nav{display:none}
+.wrap{max-width:760px;padding-top:18px}
+.today{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:2px 0 16px}
+.today h1{margin:0;font-size:24px;letter-spacing:-.01em}
+.today .d{font-family:var(--mono);font-size:13px;color:var(--ink2)}
+.off{background:var(--gry-bg);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--ink2);margin-bottom:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}
+.card h2{margin:0;font-size:18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card .when{font-size:13px;color:var(--ink3);margin:4px 0 12px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line2)}
+.row:first-of-type{border-top:0}
+.row .nm{flex:1;min-width:0;font-weight:700;font-size:15px}
+.row .nm small{display:block;font-weight:500;font-size:12.5px;color:var(--ink3);margin-top:2px}
+.row .st{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.go{display:flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border-radius:12px;background:var(--primary);color:#fff;font-weight:700;font-size:15px;text-decoration:none;flex:none}
+.go:active{background:var(--deep)}
+.go.done{background:var(--pale);color:var(--deep)}
+.links{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px}
+.links h2{margin:0 0 4px;font-size:16px}
+.links p{margin:0 0 12px;font-size:13.5px;color:var(--ink2);line-height:1.6}
+.lk{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line2)}
+.lk .t{flex:1;min-width:0}
+.lk .t b{display:block;font-size:14px}
+.lk .t code{display:block;font-family:var(--mono);font-size:12px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.how{margin-top:12px;font-size:13px;color:var(--ink2);line-height:1.7}
+.how b{color:var(--ink)}
+.empty-s{font-size:14px;color:var(--ink3);padding:6px 0}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="today">
+    <h1>현장 점검</h1>
+    <span class="d" id="dt"></span>
+  </div>
+  <div id="off" class="off hidden"></div>
+  <div id="cards"><div class="empty-s">불러오는 중…</div></div>
+
+  <section class="links no-print">
+    <h2>즐겨찾기 주소</h2>
+    <p>현장 모바일·태블릿에는 이 페이지 하나만 홈 화면에 추가하면 됩니다. 점검 화면을 바로 열고 싶으면 아래 주소를 각각 즐겨찾기에 넣으세요.</p>
+    <div id="lks"></div>
+    <div class="how">
+      <b>홈 화면에 추가</b> — 안드로이드(Chrome): 오른쪽 위 ⋮ → <b>홈 화면에 추가</b> · 아이폰·아이패드(Safari): 공유 버튼 → <b>홈 화면에 추가</b><br>
+      로그인은 한 번만 하면 기기에 유지됩니다. 로그아웃되면 로그인 후 보던 화면으로 돌아옵니다.
+    </div>
+  </section>
+</main>
+
+<script src="./assets/qc.js"></script>
+<script>
+const { sb, esc, toast } = QC;
+const BASE = new URL('./', location.href).href;
+const DOW = ['일','월','화','수','목','금','토'];
+const CHECK_5S = '16:20';
+
+const addDays = (ds, n) => { const d = new Date(ds + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); };
+const dowOf = ds => new Date(ds + 'T12:00:00Z').getUTCDay();
+const md = ds => `${+ds.slice(5,7)}/${+ds.slice(8,10)}(${DOW[dowOf(ds)]})`;
+const nowHM = () => QC.hmKST(new Date());
+
+function badge(cls, txt){ return `<span class="badge ${cls} ko">${txt}</span>`; }
+
+async function load(){
+  const today = QC.todayKST();
+  const ws = addDays(today, -((dowOf(today) + 6) % 7));               // 이번 주 월요일
+  const since = new Date(today + 'T00:00:00+09:00').toISOString();
+  const [hol, zones, reads, areas, audits, eqs, checks] = await Promise.all([
+    sb.from('qc_holidays').select('d,name').gte('d', ws).lte('d', addDays(ws, 13)),
+    sb.from('qc_env_zones').select('id,code,name,checks_per_day,sort').eq('active', true).order('sort'),
+    sb.from('qc_env_readings').select('zone_id,slot,temp_out,hum_out').gte('measured_at', since),
+    sb.from('qc_5s_areas').select('id,code,name,sort').eq('active', true).order('sort'),
+    sb.from('qc_5s_audits').select('area_id,score_pct').eq('audit_date', today),
+    sb.from('qc_instruments').select('id,mgmt_no,name,model').eq('weekly_imp_check', true).eq('status', 'active').order('seq'),
+    sb.from('qc_equip_checks').select('instrument_id,attempt,result').eq('week_start', ws),
+  ]);
+  const err = [hol, zones, reads, areas, audits, eqs, checks].find(r => r.error);
+  if(err) return toast(err.error.message, true);
+
+  const holi = new Map((hol.data || []).map(h => [h.d, h.name]));
+  const isWork = ds => dowOf(ds) % 6 !== 0 && !holi.has(ds);
+  const work = isWork(today);
+  let due = ws; while(!isWork(due)) due = addDays(due, 1);              // 이번 주 점검일 (월요일, 쉬는 날이면 다음 근무일)
+
+  document.getElementById('dt').textContent = `${today.replace(/-/g,'.')} (${DOW[dowOf(today)]}) ${nowHM()}`;
+  const off = document.getElementById('off');
+  off.classList.toggle('hidden', work);
+  off.textContent = work ? '' : `오늘은 ${holi.get(today) || '주말'}입니다. 일일 점검이 없습니다.`;
+
+  /* 온습도 */
+  const r = reads.data || [];
+  const envRows = (zones.data || []).map(z => {
+    const mine = r.filter(x => x.zone_id === z.id);
+    const slots = (z.checks_per_day <= 2 ? ['AM','PM'].slice(0, z.checks_per_day) : []).map(s => {
+      const x = mine.filter(v => v.slot === s), lb = s === 'AM' ? '오전' : '오후';
+      return !x.length ? badge('gry', lb + ' 미입력') : x.some(v => v.temp_out || v.hum_out) ? badge('red', lb + ' 기준 이탈') : badge('grn', lb + ' 완료');
+    }).join('') || badge(mine.length >= z.checks_per_day ? 'grn' : 'gry', `오늘 ${mine.length}/${z.checks_per_day}`);
+    return `<div class="row"><div class="nm">${esc(z.name)}</div><div class="st">${work ? slots : ''}</div>
+      <a class="go" href="./env.html#${encodeURIComponent(z.code)}">입력</a></div>`;
+  }).join('');
+
+  /* 3정5S */
+  const doneA = new Set((audits.data || []).map(a => a.area_id)), after = nowHM() >= CHECK_5S;
+  const fsRows = (areas.data || []).map(a => {
+    const ok = doneA.has(a.id);
+    const st = !work ? '' : ok ? badge('grn', '오늘 완료') : after ? badge('red', '미실시') : badge('amb', CHECK_5S + ' 예정');
+    return `<div class="row"><div class="nm">${esc(a.name)}</div><div class="st">${st}</div>
+      <a class="go ${ok ? 'done' : ''}" href="./5s.html#${encodeURIComponent(a.code)}">${ok ? '보기' : '점검'}</a></div>`;
+  }).join('');
+
+  /* 설비 주간 점검 (Dummy Load) */
+  const ck = checks.data || [];
+  const eqRows = (eqs.data || []).map(e => {
+    const mine = ck.filter(c => c.instrument_id === e.id).sort((a,b) => a.attempt - b.attempt), last = mine[mine.length - 1];
+    const st = last ? (last.result === 'pass' ? badge('grn', '이번 주 완료') : badge('red', '불합격 · 조치 필요'))
+             : today > due ? badge('red', '지연') : today === due ? badge('amb', '오늘 점검') : badge('gry', md(due) + ' 예정');
+    return `<div class="row"><div class="nm">${esc(e.mgmt_no)} ${esc(e.name.replace(/\s*\(.*\)$/, ''))}<small>${esc(e.model || '')} · 13.56 MHz 임피던스</small></div>
+      <div class="st">${st}</div><a class="go ${last && last.result === 'pass' ? 'done' : ''}" href="./equip-check.html#${encodeURIComponent(e.mgmt_no)}">${last ? '보기' : '측정'}</a></div>`;
+  }).join('');
+
+  document.getElementById('cards').innerHTML = `
+    <section class="card"><h2>온습도 측정</h2><div class="when">매 근무일 오전·오후 1회씩</div>${envRows || '<div class="empty-s">측정 구역이 없습니다</div>'}</section>
+    <section class="card"><h2>3정5S 점검</h2><div class="when">매 근무일 ${CHECK_5S} (퇴근 10분 전)</div>${fsRows || '<div class="empty-s">점검 구역이 없습니다</div>'}</section>
+    <section class="card"><h2>설비 주간 점검</h2><div class="when">매주 월요일 (쉬는 날이면 다음 근무일) · 이번 주 ${md(due)}</div>${eqRows || '<div class="empty-s">주간 점검 설비가 없습니다</div>'}</section>`;
+
+  /* 즐겨찾기 주소 */
+  const L = [['현장 점검 (이 페이지)', 'field.html']]
+    .concat((zones.data || []).map(z => [`온습도 · ${z.name}`, `env.html#${z.code}`]))
+    .concat((areas.data || []).map(a => [`3정5S · ${a.name}`, `5s.html#${a.code}`]))
+    .concat((eqs.data || []).map(e => [`주간 점검 · ${e.mgmt_no} ${e.model || ''}`, `equip-check.html#${e.mgmt_no}`]));
+  document.getElementById('lks').innerHTML = L.map(([t, p]) => {
+    const u = BASE + p;
+    return `<div class="lk"><div class="t"><b>${esc(t)}</b><code>${esc(decodeURI(u))}</code></div><button class="btn sm" type="button" data-u="${esc(u)}">복사</button></div>`;
+  }).join('');
+}
+
+document.getElementById('lks').addEventListener('click', async e => {
+  const b = e.target.closest('[data-u]'); if(!b) return;
+  try{ await navigator.clipboard.writeText(decodeURI(b.dataset.u)); toast('주소를 복사했습니다'); }
+  catch(_){ prompt('주소를 복사하세요', decodeURI(b.dataset.u)); }
+});
+
+QC.init('field', async () => {
+  await load();
+  // 화면을 켜 둔 채로 쓰는 경우를 위해 다시 보일 때와 5분마다 새로 고칩니다.
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') load(); });
+  setInterval(load, 5 * 60 * 1000);
+});
+</script>
+</body>
+</html>

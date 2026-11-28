@@ -116,7 +116,8 @@ const QC = (() => {
     renderTop(active);
     // 로그인은 Business Hub(hub.html)에서 한 번만 합니다. 같은 storageKey를 쓰므로 Hub 세션을 그대로 사용합니다.
     const { data:{ session } } = await sb.auth.getSession();
-    if(!session){ location.replace('../hub.html'); return; }
+    // 로그인 후 보던 화면으로 돌아오도록 주소를 남깁니다 (hub.html이 읽고 지움).
+    if(!session){ try{ sessionStorage.setItem('bct-return', location.href); }catch(_){} location.replace('../hub.html'); return; }
     S.user = session.user;
     await loadProfile();
     fillUser();

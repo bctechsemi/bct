@@ -1,0 +1,13 @@
+{
+  "name": "BCT 현장 점검",
+  "short_name": "BCT 점검",
+  "start_url": "./field.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F4F7FC",
+  "theme_color": "#0A1F42",
+  "icons": [
+    { "src": "./assets/field-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./assets/field-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

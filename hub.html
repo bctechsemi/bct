@@ -476,7 +476,10 @@ async function showUser(){
   try{const{data}=await SB.from('profiles').select('name').eq('id',session.user.id).maybeSingle();if(data&&data.name)name=data.name;}catch(e){}
   el.textContent=name;el.parentElement.classList.remove('hidden');
 }
-function unlock(){document.body.classList.remove('locked');showUser();}
+/* QC 화면에서 로그인하러 온 경우, 로그인 후 그 화면으로 돌려보냅니다 (같은 사이트 주소만). */
+function goBack(){let u=null;try{u=sessionStorage.getItem('bct-return');sessionStorage.removeItem('bct-return');}catch(e){}
+  if(u&&u.startsWith(location.origin+'/')){location.replace(u);return true;}return false;}
+function unlock(){if(goBack())return;document.body.classList.remove('locked');showUser();}
 function lock(){document.body.classList.add('locked');pwIn.value='';msg.classList.remove('show');setTimeout(()=>(emailIn.value?pwIn:emailIn).focus(),300);showUser();}
 SB.auth.getSession().then(({data})=>{session=data.session;if(session)unlock();else lock();});
 SB.auth.onAuthStateChange((ev,s)=>{session=s;if(ev==='SIGNED_OUT')lock();});
